@@ -44,7 +44,7 @@ describe("the built extension", () => {
     assert.equal(manifest.displayName, "X-RayViewer");
     assert.equal(manifest.publisher, "aliqaryan");
     assert.equal(manifest.author, "Ali Qaryan");
-    assert.equal(manifest.version, "0.4.1");
+    assert.equal(manifest.version, "0.4.2");
     const page = await readFile(path.join(dir, "media", "ui", "app.js"), "utf8");
     assert.match(page, /function modelSummary\(agents\)/);
     assert.match(page, /Update review/);

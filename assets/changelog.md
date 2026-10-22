@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.4.2
+
+- **The id is xrayviewer.** Settings, commands, links, and the home folder use `xrayviewer`. The Marketplace name is X-RayViewer. The folder is `~/.xrayviewer`, or `XRAYVIEWER_HOME`.
+
 ## 0.4.1
 
 - **A blue icon.** The viewfinder mark is white on blue.
