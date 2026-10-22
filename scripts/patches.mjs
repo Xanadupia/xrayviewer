@@ -272,7 +272,7 @@ export const PATCHES = [
   {
     id: "sidebar-tooltip",
     find: "tooltip(e,t){let s=e.record,i=s.summary,r=new oe.MarkdownString;r.appendMarkdown(\"**\"),r.appendText(i?.title||N(s.key)),r.appendMarkdown(`**  \n`),r.appendText(`${N(s.key)}${i?.author?.login?` by ${i.author.login}`:\"\"}`),r.appendMarkdown(`  \n`);let o=(i?.reasons||[]).map(c=>hd[c]).filter(Boolean);if(o.length&&r.appendMarkdown(`Listed because ${o.join(\", \")}.  \n`),i&&r.appendMarkdown(`+${i.additions} \\u2212${i.deletions} in ${i.changedFiles} files${i.checks.failed?` \\xB7 ${i.checks.failed} checks failing`:i.checks.running?` \\xB7 ${i.checks.running} checks running`:\"\"}  \n`),i){r.appendMarkdown(`\n`);for(let c of[Sf(i),kf(i),...Rf(i)])r.appendText(c),r.appendMarkdown(`  \n`)}if(e.risk){r.appendMarkdown(`\n**${fi[e.risk.level]} risk, ${e.risk.score}/100**  \n`);for(let c of e.risk.factors.slice(0,4))r.appendMarkdown(\"- \"),r.appendText(`${c.label}${c.detail?`: ${c.detail}`:\"\"} (+${c.points})`),r.appendMarkdown(`\n`)}if([\"waiting\",\"queued\",\"running\",\"elsewhere\",\"held\",\"failed\"].includes(s.run.state)&&t&&r.appendMarkdown(`\nAgents: ${t}  \n`),$f(s).forEach((c,d)=>{r.appendMarkdown(d?`  \n`:`\n`),r.appendText(c)}),s.run.state===\"done\"&&(s.run.tokens||s.run.costUsd!=null)){let c=[s.run.tokens?wt(s.run.tokens):\"\",s.run.costUsd!=null?`$${s.run.costUsd.toFixed(2)}${s.run.tokens?\" for the agents that report one\":\"\"}`:\"\"];r.appendMarkdown(`  \nLast run: ${c.filter(Boolean).join(\", \")}`)}return s.run.note&&(r.appendMarkdown(`  \n`),r.appendText(s.run.note)),s.run.error&&(r.appendMarkdown(`  \n`),r.appendText(s.run.error.slice(0,300))),r}};",
-    replace: "tooltip(e,t){let s=e.record,i=s.summary,r=new oe.MarkdownString,num=n=>Number(n||0).toLocaleString(\"en-US\"),paint=(c,x)=>{r.appendMarkdown('<span style=\"color:'+c+';\">'),r.appendText(String(x)),r.appendMarkdown(\"</span>\")};r.supportHtml=!0;r.appendMarkdown(\"**\"),r.appendText(i?.title||N(s.key)),r.appendMarkdown(\"**\\n\\n\"),r.appendText([N(s.key),i?.author?.login].filter(Boolean).join(\" · \")),r.appendMarkdown(\"\\n\\n\");if(i){let state=i.state===\"MERGED\"?\"Merged\":i.state===\"CLOSED\"?\"Closed\":i.isDraft?\"Draft\":\"Open\",stateCls=state===\"Merged\"?\"#B180D7\":state===\"Closed\"?\"#F14C4C\":state===\"Draft\"?\"#9AA0A6\":\"#3FB950\",review=kf(i);review===\"No approvals yet\"&&(review=\"no approvals yet\");paint(stateCls,state),r.appendMarkdown(\" · \"),r.appendText(review),r.appendMarkdown(\"\\n\\n\"),paint(\"#3FB950\",\"+\"+num(i.additions)),r.appendMarkdown(\" \"),paint(\"#F85149\",\"−\"+num(i.deletions)),r.appendMarkdown(\" in \"+num(i.changedFiles)+\" files\");i.checks?.failed?(r.appendMarkdown(\" · \"),paint(\"#F85149\",num(i.checks.failed)+\" checks failing\")):i.checks?.running&&(r.appendMarkdown(\" · \"),paint(\"#E2C08D\",num(i.checks.running)+\" checks running\"));r.appendMarkdown(\"\\n\\n\");for(let line of Rf(i))r.appendText(line),r.appendMarkdown(\"\\n\\n\")}if(e.risk){let cls=e.risk.level===\"high\"?\"#F85149\":e.risk.level===\"medium\"?\"#E2C08D\":\"#3FB950\";r.appendMarkdown(\"<b>\"),paint(cls,fi[e.risk.level]+\" risk · \"+e.risk.score),r.appendMarkdown(\"</b>\\n\\n\");for(let c of e.risk.factors.slice(0,3))r.appendText(c.label),r.appendMarkdown(\"\\n\\n\")}let xs=xrvAgentState(s);r.appendMarkdown(\"<b>X-RayView</b> · \"),paint(xs.color,xs.long),r.appendMarkdown(\"\\n\\n\");if(s.run.state===\"done\"&&(s.run.tokens||s.run.costUsd!=null)){let c=[s.run.tokens?wt(s.run.tokens):\"\",s.run.costUsd!=null?\"$\"+s.run.costUsd.toFixed(2):\"\"].filter(Boolean);c.length&&(r.appendText(c.join(\" · \")),r.appendMarkdown(\"\\n\\n\"))}return s.run.note&&(r.appendText(s.run.note),r.appendMarkdown(\"\\n\\n\")),s.run.error&&r.appendText(s.run.error.slice(0,300)),r}};",
+    replace: "tooltip(e,t){let s=e.record,i=s.summary,r=new oe.MarkdownString,num=n=>Number(n||0).toLocaleString(\"en-US\"),paint=(c,x)=>{r.appendMarkdown('<span style=\"color:'+c+';\">'),r.appendText(String(x)),r.appendMarkdown(\"</span>\")};r.supportHtml=!0;r.appendMarkdown(\"**\"),r.appendText(i?.title||N(s.key)),r.appendMarkdown(\"**\\n\\n\"),r.appendText([N(s.key),i?.author?.login].filter(Boolean).join(\" · \")),r.appendMarkdown(\"\\n\\n\");if(i){let state=i.state===\"MERGED\"?\"Merged\":i.state===\"CLOSED\"?\"Closed\":i.isDraft?\"Draft\":\"Open\",stateCls=state===\"Merged\"?\"#B180D7\":state===\"Closed\"?\"#F14C4C\":state===\"Draft\"?\"#9AA0A6\":\"#3FB950\",review=kf(i);review===\"No approvals yet\"&&(review=\"no approvals yet\");paint(stateCls,state),r.appendMarkdown(\" · \"),r.appendText(review),r.appendMarkdown(\"\\n\\n\"),paint(\"#3FB950\",\"+\"+num(i.additions)),r.appendMarkdown(\" \"),paint(\"#F85149\",\"−\"+num(i.deletions)),r.appendMarkdown(\" in \"+num(i.changedFiles)+\" files\");i.checks?.failed?(r.appendMarkdown(\" · \"),paint(\"#F85149\",num(i.checks.failed)+\" checks failing\")):i.checks?.running&&(r.appendMarkdown(\" · \"),paint(\"#E2C08D\",num(i.checks.running)+\" checks running\"));r.appendMarkdown(\"\\n\\n\");for(let line of Rf(i))r.appendText(line),r.appendMarkdown(\"\\n\\n\")}if(e.risk){let cls=e.risk.level===\"high\"?\"#F85149\":e.risk.level===\"medium\"?\"#E2C08D\":\"#3FB950\";r.appendMarkdown(\"<b>\"),paint(cls,fi[e.risk.level]+\" risk · \"+e.risk.score),r.appendMarkdown(\"</b>\\n\\n\");for(let c of e.risk.factors.slice(0,3))r.appendText(c.label),r.appendMarkdown(\"\\n\\n\")}let xs=xrvAgentState(s);r.appendMarkdown(\"<b>X-RayViewer</b> · \"),paint(xs.color,xs.long),r.appendMarkdown(\"\\n\\n\");if(s.run.state===\"done\"&&(s.run.tokens||s.run.costUsd!=null)){let c=[s.run.tokens?wt(s.run.tokens):\"\",s.run.costUsd!=null?\"$\"+s.run.costUsd.toFixed(2):\"\"].filter(Boolean);c.length&&(r.appendText(c.join(\" · \")),r.appendMarkdown(\"\\n\\n\"))}return s.run.note&&(r.appendText(s.run.note),r.appendMarkdown(\"\\n\\n\")),s.run.error&&r.appendText(s.run.error.slice(0,300)),r}};",
   },
   {
         id: "sidebar-view-label",
@@ -439,17 +439,17 @@ function adoptFinding(id) {`,
   const agents = agentProgress && agentProgress.agents ? Object.values(agentProgress.agents).filter((a) => a && a.state !== "skipped") : [];
   if (agentsRunning) {
     const done = agents.filter((a) => a.state === "done" || a.state === "failed").length;
-    return { kind: "running", label: "X-RayView reviewing", sub: agents.length ? \`\${done}/\${agents.length}\` : "", title: "X-RayView's agents are reviewing this pull request. Click to watch them." };
+    return { kind: "running", label: "X-RayViewer reviewing", sub: agents.length ? \`\${done}/\${agents.length}\` : "", title: "X-RayViewer's agents are reviewing this pull request. Click to watch them." };
   }
   if (!AG) {
-    if (agents.some((a) => a.state === "failed")) return { kind: "failed", label: "X-RayView review failed", sub: "", title: "The last X-RayView review failed. Click to see what happened." };
-    return { kind: "none", label: "Not reviewed by X-RayView", sub: "", title: "X-RayView's agents haven't reviewed this pull request yet. Run agents starts a review." };
+    if (agents.some((a) => a.state === "failed")) return { kind: "failed", label: "X-RayViewer review failed", sub: "", title: "The last X-RayViewer review failed. Click to see what happened." };
+    return { kind: "none", label: "Not reviewed by X-RayViewer", sub: "", title: "X-RayViewer's agents haven't reviewed this pull request yet. Run agents starts a review." };
   }
   const when = AGENT_RUN_AT ? \` \${ago(AGENT_RUN_AT)}\` : "";
   const commit = String(AG.commit || "").slice(0, 7);
   const found = plural(FINDINGS.length, "finding");
-  if (agentsBehind()) return { kind: "behind", label: "X-RayView reviewed an older push", sub: found, title: \`X-RayView reviewed \${commit}\${when}. New commits came after it, and Rerun reviews the latest.\` };
-  return { kind: "current", label: "X-RayView reviewed", sub: found, title: \`X-RayView reviewed \${commit}\${when}: \${found}.\` };
+  if (agentsBehind()) return { kind: "behind", label: "X-RayViewer reviewed an older push", sub: found, title: \`X-RayViewer reviewed \${commit}\${when}. New commits came after it, and Rerun reviews the latest.\` };
+  return { kind: "current", label: "X-RayViewer reviewed", sub: found, title: \`X-RayViewer reviewed \${commit}\${when}: \${found}.\` };
 }
 function xrayPillHTML() {
   const s = xrayState();
@@ -732,7 +732,7 @@ function prHeadHTML() {`,
   },
   {
     id: "run-button-click",
-    find: '"host-run-agents": () => {\n    HOST.runAgents();\n    toast("The agents are running. X-RayView tells you when they finish.");\n  },',
+    find: '"host-run-agents": () => {\n    HOST.runAgents();\n    toast("The agents are running. X-RayViewer tells you when they finish.");\n  },',
     replace:
       '"host-run-agents": () => {\n' +
       "    if (agentsRunning) return;\n" +
@@ -813,7 +813,7 @@ function prHeadHTML() {`,
   {
     id: "brand-word",
     find: '<span class="brand-word">xrayviewer</span>',
-    replace: '<span class="brand-word">X-RayView</span>',
+    replace: '<span class="brand-word">X-RayViewer</span>',
   },
   {
     id: "ribbon-plain",

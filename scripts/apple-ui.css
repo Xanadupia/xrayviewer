@@ -223,7 +223,7 @@ body {
   font-size: 12.5px;
 }
 
-/* X-RayView's review state beside the risk pill. */
+/* X-RayViewer's review state beside the risk pill. */
 .xray-pill {
   display: inline-flex;
   align-items: center;

@@ -64,7 +64,7 @@ describe("comment levels on GitHub", () => {
     assert.equal(withTag("low", "nit: spacing"), `${tagBadge("low")} nit: spacing`);
   });
 
-  test("reads the level back from X-RayView's tag, Greptile's P0 to P2, or an earlier High, Medium or Low tag, and the kind from a written prefix", () => {
+  test("reads the level back from X-RayViewer's tag, Greptile's P0 to P2, or an earlier High, Medium or Low tag, and the kind from a written prefix", () => {
     const posted = withTag("medium", "suggestion: Use the shared helper.");
     const tag = readTag(posted);
 

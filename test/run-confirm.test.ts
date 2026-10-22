@@ -118,7 +118,7 @@ describe("plannedAgents", () => {
     ]);
   });
 
-  test("uses the default harness for an agent whose harness is not one X-RayView knows", () => {
+  test("uses the default harness for an agent whose harness is not one X-RayViewer knows", () => {
     const [agent] = plannedAgents({ guide: { name: "Guide", harness: "gemini", enabled: true } }, harnesses, versions);
 
     assert.equal(agent.harness, "codex");

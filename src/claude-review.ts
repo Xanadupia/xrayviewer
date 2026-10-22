@@ -362,7 +362,7 @@ function addTokens(a: Tokens | null, b: Tokens | null): Tokens | null {
 }
 
 /**
- * Runs /code-review, then hands its report to the bundle's own Claude Code runner, which turns it into X-RayView's
+ * Runs /code-review, then hands its report to the bundle's own Claude Code runner, which turns it into X-RayViewer's
  * findings with its usual read-only tools and JSON schema. Cost, tokens and time cover both runs.
  */
 export async function runCodeReview(

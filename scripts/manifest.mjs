@@ -1,18 +1,18 @@
-export const VERSION = "0.4.2";
+export const VERSION = "0.4.3";
 
 const CURSOR_SETTINGS = {
   "xrayviewer.cursor.path": {
     type: "string",
     default: "cursor-agent",
     markdownDescription:
-      "The Cursor Agent CLI: `cursor-agent` (or `agent`) when it's on your `PATH`, or the full path to it. X-RayView also looks in `~/.local/bin`, where Cursor's installer puts it.",
+      "The Cursor Agent CLI: `cursor-agent` (or `agent`) when it's on your `PATH`, or the full path to it. X-RayViewer also looks in `~/.local/bin`, where Cursor's installer puts it.",
     scope: "machine",
   },
   "xrayviewer.cursor.model": {
     type: "string",
     default: "",
     markdownDescription:
-      "Model for the agents that run on Cursor: any model id on your Cursor account, such as `composer-2.5` or `claude-opus-5-thinking-high`. Empty uses the Cursor Agent CLI's default. **X-RayView: Choose Agent Harnesses…** lists your account's models. A model set for one agent in `~/.xrayviewer/agents.yml` wins over this.",
+      "Model for the agents that run on Cursor: any model id on your Cursor account, such as `composer-2.5` or `claude-opus-5-thinking-high`. Empty uses the Cursor Agent CLI's default. **X-RayViewer: Choose Agent Harnesses…** lists your account's models. A model set for one agent in `~/.xrayviewer/agents.yml` wins over this.",
   },
   "xrayviewer.cursor.extraArgs": {
     type: "array",
@@ -66,7 +66,7 @@ export function transformManifest(original) {
 
   const untrusted = manifest.capabilities.untrustedWorkspaces;
   untrusted.description =
-    "In Restricted Mode, X-RayView ignores workspace values for the settings that choose which programs run (the Claude Code, Codex, Pi and Cursor Agent paths and arguments) and where clones are.";
+    "In Restricted Mode, X-RayViewer ignores workspace values for the settings that choose which programs run (the Claude Code, Codex, Pi and Cursor Agent paths and arguments) and where clones are.";
   untrusted.restrictedConfigurations = [
     ...untrusted.restrictedConfigurations,
     "xrayviewer.cursor.path",
@@ -81,7 +81,7 @@ export function transformManifest(original) {
   manifest.contributes.commands.push({
     command: "xrayviewer.filter",
     title: "Filter…",
-    category: "X-RayView",
+    category: "X-RayViewer",
     icon: "$(filter)",
   });
   manifest.contributes.menus["view/title"].push({
@@ -106,21 +106,21 @@ export function transformManifest(original) {
     "xrayviewer.sidebar.mine": {
       type: "boolean",
       default: false,
-      markdownDescription: "Show only pull requests you opened. **X-RayView: Filter…** sets it.",
+      markdownDescription: "Show only pull requests you opened. **X-RayViewer: Filter…** sets it.",
     },
     "xrayviewer.sidebar.author": {
       type: "array",
       items: { type: "string" },
       default: [],
       markdownDescription:
-        "GitHub logins to show. Empty shows every author. **X-RayView: Filter…** sets it.",
+        "GitHub logins to show. Empty shows every author. **X-RayViewer: Filter…** sets it.",
     },
     "xrayviewer.sidebar.status": {
       type: "array",
       items: { type: "string", enum: ["open", "draft", "merged", "closed"] },
       default: [],
       markdownDescription:
-        "Statuses to show. Empty shows open, draft, merged, and closed. **X-RayView: Filter…** sets it.",
+        "Statuses to show. Empty shows open, draft, merged, and closed. **X-RayViewer: Filter…** sets it.",
     },
   });
   return manifest;

@@ -5,7 +5,7 @@
     <rect x="40" y="40" width="608" height="48" rx="14" fill="#F4F7F6"/>
     <path d="M58 60v-3.5a2 2 0 0 1 2-2H64M74 54.5h4a2 2 0 0 1 2 2V60M80 68v3.5a2 2 0 0 1-2 2H74M64 73.5h-4a2 2 0 0 1-2-2V68" fill="none" stroke="#0F7668" stroke-width="1.6" stroke-linecap="round"/>
     <path d="M63 63l6 6M69 63l-6 6" fill="none" stroke="#0F7668" stroke-width="1.6" stroke-linecap="round"/>
-    <text x="86" y="69" fill="#17211F" font-size="15" font-weight="700">X-RayView</text>
+    <text x="86" y="69" fill="#17211F" font-size="15" font-weight="700">X-RayViewer</text>
     <text x="188" y="69" fill="#5C6B68" font-size="13">#123</text>
     <rect x="500" y="52" width="132" height="28" rx="8" fill="#007AFF"/>
     <text x="566" y="71" text-anchor="middle" fill="#FFFFFF" font-size="13" font-weight="650">Post review</text>

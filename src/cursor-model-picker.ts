@@ -77,7 +77,7 @@ export async function pickCursorModel(deps: PickerDeps, agent: AgentRef | null):
   );
   if (!models) {
     await window.showWarningMessage(
-      "X-RayView couldn't list your Cursor models. Check that the Cursor Agent CLI is installed and signed in: run `cursor-agent login` in a terminal.",
+      "X-RayViewer couldn't list your Cursor models. Check that the Cursor Agent CLI is installed and signed in: run `cursor-agent login` in a terminal.",
     );
     return false;
   }

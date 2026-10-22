@@ -1,4 +1,4 @@
-/* X-RayView's review page. It runs in the VS Code extension's webview, which sets three globals before this script:
+/* X-RayViewer's review page. It runs in the VS Code extension's webview, which sets three globals before this script:
  * window.REVIEW_DATA (the diff), window.XRAYVIEWER_LIVE (the pull request from GitHub, the agents' results and the saved
  * review state) and window.XRAYVIEWER_HOST (the bridge back to the extension).
  *
@@ -34,8 +34,8 @@ const LIVE = window.XRAYVIEWER_LIVE;
 const HOST = window.XRAYVIEWER_HOST;
 const app = document.getElementById("app");
 if (!LIVE || !HOST || !D || !Array.isArray(D.files)) {
-  app.innerHTML = `<div class="missing"><p class="eyebrow">X-RayView</p><h1>Open this review in VS Code</h1>
-    <p>This page is part of the X-RayView extension. Open a pull request from the X-RayView sidebar.</p></div>`;
+  app.innerHTML = `<div class="missing"><p class="eyebrow">X-RayViewer</p><h1>Open this review in VS Code</h1>
+    <p>This page is part of the X-RayViewer extension. Open a pull request from the X-RayViewer sidebar.</p></div>`;
   return;
 }
 
@@ -1028,7 +1028,7 @@ function riskSheetHTML() {
       <div class="risk-hero-text"><b>${RISK_WORD[r.level]} risk</b>
         <span class="risk-scale" aria-hidden="true"><i style="left:${r.score}%"></i></span>
         <span class="risk-legend" aria-hidden="true"><span>Low</span><span>Medium</span><span>High</span></span></div></div>
-    <p class="sheet-lede">How much could go wrong if this merges as it is. X-RayView adds up what it can see: the code it touches, the agent findings still in play, its size, its tests and its checks. Use it to decide where to spend your attention. It isn't a verdict.</p>
+    <p class="sheet-lede">How much could go wrong if this merges as it is. X-RayViewer adds up what it can see: the code it touches, the agent findings still in play, its size, its tests and its checks. Use it to decide where to spend your attention. It isn't a verdict.</p>
     <h3 class="eyebrow">What adds to it</h3>
     <ul class="risk-factors">${r.factors.length ? r.factors.map((f) => `<li><span class="rf-pts">+${f.points}</span>
       <div class="rf-text"><b>${esc(f.label)}</b>${f.detail ? `<span>${esc(f.detail)}</span>` : ""}</div>
@@ -1075,7 +1075,7 @@ function liveStages() {
   } else {
     out.push({ id: "agents", name: "Agent review", short: "Agents", st: "upcoming", caption: "Not run yet",
       gates: [{ id: "agent-none", agent: true, name: "No agent run for this pull request", st: "upcoming",
-        detail: "Run the agents from the briefing on the Changes tab, or with the play button on this pull request in the X-RayView sidebar." }] });
+        detail: "Run the agents from the briefing on the Changes tab, or with the play button on this pull request in the X-RayViewer sidebar." }] });
   }
 
   const gates = [];
@@ -1756,7 +1756,7 @@ function topbarHTML() {
   const pr = S.view === "pr";
   return `<header class="bar" id="bar">
     <button type="button" class="icon-btn back" data-act="inbox" aria-label="Back to your reviews">${icon("left")}</button>
-    <a class="brand" href="#inbox" data-act="inbox" aria-label="X-RayView, your reviews">${LOGO}<span class="brand-word">xrayviewer</span></a>
+    <a class="brand" href="#inbox" data-act="inbox" aria-label="X-RayViewer, your reviews">${LOGO}<span class="brand-word">xrayviewer</span></a>
     ${pr ? `<nav class="crumbs" aria-label="Location"><button type="button" class="crumb-repo crumb-link" data-act="inbox" title="All pull requests in this session">${esc(PR.repo)}</button><span class="crumb-sep">/</span>
       <span class="crumb-pr">#${PR.number}</span><span class="crumb-title">${esc(PR.title)}</span></nav>` : `<span class="crumbs"></span>`}
     <div class="bar-end">
@@ -1836,7 +1836,7 @@ function pendingHTML() {
     ? `<div class="pending is-error" id="pending" role="alert">${icon("alert")}<h2>The changes didn't load</h2><p>${esc(D.error)}</p>
         <button type="button" class="btn sm" data-act="live-refresh">Try again</button></div>`
     : `<div class="pending" id="pending" role="status"><span class="spin" aria-hidden="true"></span><h2>Loading the changes…</h2>
-        <p>X-RayView is getting the commits and building the diff${n != null ? ` of ${plural(n, "file")}` : ""}. ${S.tab === "map" ? "The map shows" : "It shows here"} as soon as it's ready; the description, discussion and workflow are here meanwhile.</p></div>`;
+        <p>X-RayViewer is getting the commits and building the diff${n != null ? ` of ${plural(n, "file")}` : ""}. ${S.tab === "map" ? "The map shows" : "It shows here"} as soon as it's ready; the description, discussion and workflow are here meanwhile.</p></div>`;
   return `<div class="pending-wrap">${S.tab === "changes" ? briefHTML() : ""}${card}</div>`;
 }
 
@@ -2972,7 +2972,7 @@ function planBodyHTML() {
   const rel = planRelations(plan);
   const issues = rel.filter((r) => r.issue).length;
   const intro = `<p class="plan-view"><span class="ribbon-tag">Your view</span><span class="dim">Changes here only affect your reading order. Nothing is posted.</span></p>
-    <p class="sheet-lede">The guide agent drafted these chapters from the commits and the import graph. Move a file to change the order; X-RayView checks that each chapter still builds on the ones before it.</p>`;
+    <p class="sheet-lede">The guide agent drafted these chapters from the commits and the import graph. Move a file to change the order; X-RayViewer checks that each chapter still builds on the ones before it.</p>`;
   return `${intro}
     <div class="plan-why"><h3 class="eyebrow">How the agent drafted them</h3>
       <ul>${PR.planReasons.map((r) => `<li>${agentAv("xs")}<span>${inline(r)}</span></li>`).join("")}</ul></div>
@@ -3065,7 +3065,7 @@ function ownersHTML() {
 function wfSideHTML() {
   const owners = ownersHTML();
   return `<aside class="wf-side" id="wf-side"><section class="side-card"><h3>Rules</h3>
-    <p class="dim">X-RayView shows GitHub's own requirements for this pull request: required checks, reviews and the merge state.</p>
+    <p class="dim">X-RayViewer shows GitHub's own requirements for this pull request: required checks, reviews and the merge state.</p>
     ${owners ? `<ul class="rules">${owners}</ul>` : ""}</section></aside>`;
 }
 
@@ -3668,11 +3668,11 @@ function inboxHTML() {
   const yours = list.filter((it) => it.own && it.state === "OPEN").sort(byRisk);
   const others = list.filter((it) => !isWaitingOnYou(it) && !yours.includes(it)).sort(byRisk);
   const sections = grouped
-    ? `${LIVE.grouping ? `<p class="dim ib-mode">${GROUPING_WORDS[LIVE.grouping.by] || ""} · ${SORT_WORDS[LIVE.grouping.sort] || ""}, as in the X-RayView sidebar. Change it from the sidebar's title bar.</p>` : ""}${liveGroupsHTML(list)}`
+    ? `${LIVE.grouping ? `<p class="dim ib-mode">${GROUPING_WORDS[LIVE.grouping.by] || ""} · ${SORT_WORDS[LIVE.grouping.sort] || ""}, as in the X-RayViewer sidebar. Change it from the sidebar's title bar.</p>` : ""}${liveGroupsHTML(list)}`
     : `${waiting.length ? `<section class="ib-sec"><h2 class="eyebrow">Waiting on you · riskiest first</h2><ul class="ib-list">${waiting.map(liveRowHTML).join("")}</ul></section>` : ""}
     ${yours.length ? `<section class="ib-sec"><h2 class="eyebrow">Your pull requests</h2><ul class="ib-list">${yours.map(liveRowHTML).join("")}</ul></section>` : ""}
     ${others.length ? `<section class="ib-sec"><h2 class="eyebrow">Also in this session</h2><ul class="ib-list">${others.map(liveRowHTML).join("")}</ul></section>` : ""}`;
-  const note = "To add a pull request, use <b>Open Pull Request…</b> in the X-RayView sidebar, or watch a repository in the <code>xrayviewer.watch.repositories</code> setting.";
+  const note = "To add a pull request, use <b>Open Pull Request…</b> in the X-RayViewer sidebar, or watch a repository in the <code>xrayviewer.watch.repositories</code> setting.";
   const hour = new Date().getHours();
   const greeting = hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening";
   const first = PEOPLE.you && PEOPLE.you.name && PEOPLE.you.name !== "You" ? PEOPLE.you.name.split(" ")[0] : "";
@@ -3719,7 +3719,7 @@ const shortDate = (iso) => { const t = Date.parse(iso.length === 10 ? `${iso}T12
 
 function loadMetrics() {
   if (typeof HOST.metricsReport !== "function") {
-    M.error = "This version of the X-RayView extension can't show review metrics.";
+    M.error = "This version of the X-RayViewer extension can't show review metrics.";
     refreshMetrics();
     return;
   }
@@ -3764,7 +3764,7 @@ function metricsControlsHTML() {
 function metricsHTML() {
   return `${ribbonHTML()}${topbarHTML()}<main class="page inbox metrics" id="main">
     <header class="inbox-head"><p class="eyebrow">On this machine</p><h1>Review metrics</h1>
-      <p class="lede">The reviews you posted, what you did with agent findings, and what agent runs took and cost. X-RayView keeps this log on this computer and never sends it anywhere.</p></header>
+      <p class="lede">The reviews you posted, what you did with agent findings, and what agent runs took and cost. X-RayViewer keeps this log on this computer and never sends it anywhere.</p></header>
     ${metricsControlsHTML()}
     <p class="sr-only" role="status" id="mx-status"></p>
     <div id="metrics-body" aria-busy="${M.loading}">${metricsBodyHTML()}</div>
@@ -3774,9 +3774,9 @@ function metricsHTML() {
 function metricsEmptyHTML(enabled) {
   return `<section class="mx-empty">
     <h2>${enabled ? "No review metrics yet" : "Review metrics are off"}</h2>
-    <p>As you review, X-RayView records what you do with each agent finding (added to your review, dismissed and why, copied, posted, or left open when you post), the description checks you ask about or skip, each review you post with the time you spent on it, and each agent run's duration, tokens and cost.</p>
+    <p>As you review, X-RayViewer records what you do with each agent finding (added to your review, dismissed and why, copied, posted, or left open when you post), the description checks you ask about or skip, each review you post with the time you spent on it, and each agent run's duration, tokens and cost.</p>
     <p>It keeps them in a file in the extension's storage on this computer. They hold finding titles, but no code, diffs or comment text.</p>
-    <p>${enabled ? "Open a pull request, decide on its agent findings and post a review, and the numbers show up here." : "Turn on the <code>xrayviewer.metrics.enabled</code> setting to start recording."} <b>X-RayView: Delete Review Metrics</b> deletes the file.</p>
+    <p>${enabled ? "Open a pull request, decide on its agent findings and post a review, and the numbers show up here." : "Turn on the <code>xrayviewer.metrics.enabled</code> setting to start recording."} <b>X-RayViewer: Delete Review Metrics</b> deletes the file.</p>
   </section>`;
 }
 
@@ -3800,7 +3800,7 @@ function metricsBodyHTML() {
 function reviewsSectionHTML(r) {
   const t = r.reviews.total;
   const head = `<h2 class="mx-h">Your reviews</h2>`;
-  if (!t.reviews) return `<section class="mx-sec" aria-labelledby="mx-reviews">${head.replace("<h2", '<h2 id="mx-reviews"')}<p class="dim">No reviews posted from X-RayView in ${periodWord()}.</p></section>`;
+  if (!t.reviews) return `<section class="mx-sec" aria-labelledby="mx-reviews">${head.replace("<h2", '<h2 id="mx-reviews"')}<p class="dim">No reviews posted from X-RayViewer in ${periodWord()}.</p></section>`;
   const tiles = [
     ["Reviews posted", num(t.reviews), `${t.approve} approved · ${t.changes} changes requested · ${t.comment} comments only`],
     ["Whose pull requests", `${t.others} · ${t.own}`, "others' · your own"],
@@ -4815,7 +4815,7 @@ const ACTIONS = {
   "agent-md": (el) => copyAgentReview(el.dataset.mode),
   "host-run-agents": () => {
     HOST.runAgents();
-    toast("The agents are running. X-RayView tells you when they finish.");
+    toast("The agents are running. X-RayViewer tells you when they finish.");
   },
   "push-preview": () => previewPush(),
   "push-post": () => { S.pushConfirm = true; refreshPushFoot(); },
@@ -5195,7 +5195,7 @@ window.addEventListener("xrayviewer-host", (e) => {
     }
     return;
   }
-  // "metrics": X-RayView: Show Review Metrics, which reads the numbers afresh.
+  // "metrics": X-RayViewer: Show Review Metrics, which reads the numbers afresh.
   const view = m.view === "metrics" ? "metrics" : "inbox";
   if (S.view === view) render(); else setView(view);
   window.scrollTo(0, 0);

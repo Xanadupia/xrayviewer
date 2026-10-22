@@ -8,7 +8,7 @@ describe("the user guide website", () => {
     const markdown = await readFile(new URL("../assets/readme.md", import.meta.url), "utf8");
     const html = guideHTML(markdown);
 
-    assert.match(html, /<h1 id="x-rayview">X-RayView<\/h1>/);
+    assert.match(html, /<h1 id="x-rayviewer">X-RayViewer<\/h1>/);
     assert.match(html, /<a href="#start-here">Start here<\/a>/);
     assert.match(html, /<img src="review-path\.png" alt="Four steps:/);
     assert.equal(html.includes("docs/review-path.png"), false);

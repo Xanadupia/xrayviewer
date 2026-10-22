@@ -312,7 +312,7 @@ describe("runCodeReview", () => {
     assert.equal(result.model, "claude-opus-5-5");
   });
 
-  test("reports a failed, signed-out, stopped or silent /code-review in X-RayView's words", async () => {
+  test("reports a failed, signed-out, stopped or silent /code-review in X-RayViewer's words", async () => {
     const never = async (): Promise<never> => {
       throw new Error("the report isn't converted after a failure");
     };

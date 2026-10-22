@@ -1,6 +1,6 @@
 {
   "name": "xrayviewer",
-  "displayName": "X-RayView",
+  "displayName": "X-RayViewer",
   "description": "Review GitHub pull requests in VS Code with Claude Code, Codex or Pi agents that run on your computer: description checks, reading order, flow maps and findings, then post your review.",
   "version": "0.3.2",
   "publisher": "aliqaryan",
@@ -39,7 +39,7 @@
   "capabilities": {
     "untrustedWorkspaces": {
       "supported": "limited",
-      "description": "In Restricted Mode, X-RayView ignores workspace values for the settings that choose which programs run (the Claude Code, Codex and Pi paths and arguments) and where clones are.",
+      "description": "In Restricted Mode, X-RayViewer ignores workspace values for the settings that choose which programs run (the Claude Code, Codex and Pi paths and arguments) and where clones are.",
       "restrictedConfigurations": [
         "xrayviewer.claude.path",
         "xrayviewer.codex.path",
@@ -57,7 +57,7 @@
       "activitybar": [
         {
           "id": "xrayviewer",
-          "title": "X-RayView",
+          "title": "X-RayViewer",
           "icon": "media/xrayviewer.svg"
         }
       ]
@@ -73,122 +73,122 @@
     "viewsWelcome": [
       {
         "view": "xrayviewer.pullRequests",
-        "contents": "X-RayView lists pull requests that need your review and the ones you opened.\n[Refresh](command:xrayviewer.refresh)\n[Open a pull request](command:xrayviewer.openPullRequest)\nX-RayView uses the GitHub CLI. If nothing shows up, run `gh auth login` in a terminal."
+        "contents": "X-RayViewer lists pull requests that need your review and the ones you opened.\n[Refresh](command:xrayviewer.refresh)\n[Open a pull request](command:xrayviewer.openPullRequest)\nX-RayViewer uses the GitHub CLI. If nothing shows up, run `gh auth login` in a terminal."
       }
     ],
     "commands": [
       {
         "command": "xrayviewer.refresh",
         "title": "Refresh",
-        "category": "X-RayView",
+        "category": "X-RayViewer",
         "icon": "$(refresh)"
       },
       {
         "command": "xrayviewer.openHome",
         "title": "Home: All Pull Requests",
-        "category": "X-RayView",
+        "category": "X-RayViewer",
         "icon": "$(home)"
       },
       {
         "command": "xrayviewer.groupBy",
         "title": "Group Pull Requests…",
-        "category": "X-RayView",
+        "category": "X-RayViewer",
         "icon": "$(group-by-ref-type)"
       },
       {
         "command": "xrayviewer.sortBy",
         "title": "Sort Pull Requests…",
-        "category": "X-RayView",
+        "category": "X-RayViewer",
         "icon": "$(sort-precedence)"
       },
       {
         "command": "xrayviewer.openPullRequest",
         "title": "Open a Pull Request…",
-        "category": "X-RayView",
+        "category": "X-RayViewer",
         "icon": "$(add)"
       },
       {
         "command": "xrayviewer.open",
         "title": "Open Review",
-        "category": "X-RayView"
+        "category": "X-RayViewer"
       },
       {
         "command": "xrayviewer.copyLink",
         "title": "Copy Link to This Review",
-        "category": "X-RayView",
+        "category": "X-RayViewer",
         "icon": "$(link)"
       },
       {
         "command": "xrayviewer.openOnGitHub",
         "title": "Open on GitHub",
-        "category": "X-RayView",
+        "category": "X-RayViewer",
         "icon": "$(github)"
       },
       {
         "command": "xrayviewer.runAgents",
         "title": "Run Agents",
-        "category": "X-RayView",
+        "category": "X-RayViewer",
         "icon": "$(sparkle)"
       },
       {
         "command": "xrayviewer.cancelAgents",
         "title": "Stop Agents",
-        "category": "X-RayView",
+        "category": "X-RayViewer",
         "icon": "$(debug-stop)"
       },
       {
         "command": "xrayviewer.copyAgentReview",
         "title": "Copy Agent Review as Markdown",
-        "category": "X-RayView",
+        "category": "X-RayViewer",
         "icon": "$(copy)"
       },
       {
         "command": "xrayviewer.showLog",
         "title": "Show Agent Log",
-        "category": "X-RayView",
+        "category": "X-RayViewer",
         "icon": "$(output)"
       },
       {
         "command": "xrayviewer.selectHarness",
         "title": "Choose Agent Harnesses…",
-        "category": "X-RayView"
+        "category": "X-RayViewer"
       },
       {
         "command": "xrayviewer.editAgentInstructions",
         "title": "Customize Agents…",
-        "category": "X-RayView"
+        "category": "X-RayViewer"
       },
       {
         "command": "xrayviewer.newAgent",
         "title": "New Agent…",
-        "category": "X-RayView"
+        "category": "X-RayViewer"
       },
       {
         "command": "xrayviewer.removeAgent",
         "title": "Remove an Agent…",
-        "category": "X-RayView"
+        "category": "X-RayViewer"
       },
       {
         "command": "xrayviewer.removePullRequest",
         "title": "Remove from List",
-        "category": "X-RayView",
+        "category": "X-RayViewer",
         "icon": "$(close)"
       },
       {
         "command": "xrayviewer.resetAgentSettings",
         "title": "Reset Agent Settings",
-        "category": "X-RayView"
+        "category": "X-RayViewer"
       },
       {
         "command": "xrayviewer.showMetrics",
         "title": "Show Review Metrics",
-        "category": "X-RayView",
+        "category": "X-RayViewer",
         "icon": "$(graph)"
       },
       {
         "command": "xrayviewer.deleteMetrics",
         "title": "Delete Review Metrics",
-        "category": "X-RayView"
+        "category": "X-RayViewer"
       }
     ],
     "keybindings": [
@@ -290,7 +290,7 @@
       ]
     },
     "configuration": {
-      "title": "X-RayView",
+      "title": "X-RayViewer",
       "properties": {
         "xrayviewer.harness": {
           "type": "string",
@@ -305,7 +305,7 @@
             "Pi coding agent (`pi`)"
           ],
           "default": "claude",
-          "markdownDescription": "The default harness for the review agents. An agent can use another one: set `harness` for it in `~/.xrayviewer/agents.yml`, or run **X-RayView: Choose Agent Harnesses…**."
+          "markdownDescription": "The default harness for the review agents. An agent can use another one: set `harness` for it in `~/.xrayviewer/agents.yml`, or run **X-RayViewer: Choose Agent Harnesses…**."
         },
         "xrayviewer.claude.path": {
           "type": "string",
@@ -356,7 +356,7 @@
         "xrayviewer.pi.model": {
           "type": "string",
           "default": "",
-          "markdownDescription": "Model for the agents that run on Pi, in Pi's syntax: `provider/id` or a name Pi knows, with an optional `:<thinking>` suffix, such as `anthropic/claude-sonnet-5-5` or `openai/gpt-6.1-sol:high`. Empty uses Pi's default (the model you set in Pi, else its first signed-in provider's). **X-RayView: Choose Agent Harnesses…** lists the models Pi is signed in to. A model set for one agent in `~/.xrayviewer/agents.yml` wins over this."
+          "markdownDescription": "Model for the agents that run on Pi, in Pi's syntax: `provider/id` or a name Pi knows, with an optional `:<thinking>` suffix, such as `anthropic/claude-sonnet-5-5` or `openai/gpt-6.1-sol:high`. Empty uses Pi's default (the model you set in Pi, else its first signed-in provider's). **X-RayViewer: Choose Agent Harnesses…** lists the models Pi is signed in to. A model set for one agent in `~/.xrayviewer/agents.yml` wins over this."
         },
         "xrayviewer.pi.thinking": {
           "type": "string",
@@ -463,7 +463,7 @@
         "xrayviewer.metrics.enabled": {
           "type": "boolean",
           "default": true,
-          "markdownDescription": "Keep review metrics: what you do with agent findings (added to your review, dismissed and why, copied, posted, left open), description checks, the reviews you post (with the time spent on them) and each agent run's cost, tokens and duration. They stay on this computer, in the extension's storage, and hold finding titles but no code, diffs or comment text. **X-RayView: Delete Review Metrics** removes them."
+          "markdownDescription": "Keep review metrics: what you do with agent findings (added to your review, dismissed and why, copied, posted, left open), description checks, the reviews you post (with the time spent on them) and each agent run's cost, tokens and duration. They stay on this computer, in the extension's storage, and hold finding titles but no code, diffs or comment text. **X-RayViewer: Delete Review Metrics** removes them."
         },
         "xrayviewer.watch.reviewRequested": {
           "type": "boolean",
@@ -562,7 +562,7 @@
             "type": "string"
           },
           "default": {},
-          "markdownDescription": "Local clones to use, as `\"owner/name\": \"/path/to/clone\"`. Workspace folders are found automatically. Without a clone, X-RayView keeps its own partial clone.",
+          "markdownDescription": "Local clones to use, as `\"owner/name\": \"/path/to/clone\"`. Workspace folders are found automatically. Without a clone, X-RayViewer keeps its own partial clone.",
           "scope": "machine"
         }
       }

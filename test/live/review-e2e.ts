@@ -1,5 +1,5 @@
 /**
- * A real X-RayView review on the signed-in Cursor account: the bundle's own diff builder, settings, prompts, runner and
+ * A real X-RayViewer review on the signed-in Cursor account: the bundle's own diff builder, settings, prompts, runner and
  * validation, with the patched dispatcher and the Cursor harness. Uses account usage, so it isn't part of `npm test`.
  *
  *   node test/live/review-e2e.ts [model] [output.json]

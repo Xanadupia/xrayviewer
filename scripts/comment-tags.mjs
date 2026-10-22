@@ -53,7 +53,7 @@ export function findingDrafts(findings, page) {
 }
 
 /**
- * The tags a comment opens with: a priority from P0 to P3 (X-RayView's or Greptile's) or an earlier High, Medium or
+ * The tags a comment opens with: a priority from P0 to P3 (X-RayViewer's or Greptile's) or an earlier High, Medium or
  * Low tag, then a written `nit:` style prefix. Returns the level and kind they name, and how many characters they
  * take, or null.
  * @param {string} body

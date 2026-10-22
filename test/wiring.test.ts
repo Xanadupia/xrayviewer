@@ -381,7 +381,7 @@ describe("the patched extension", () => {
     assert.deepEqual(review.args.slice(0, 2), ["-p", `/code-review high ${data.mergeBase}...${head} --max-findings 10`]);
     assert.ok(!review.args.includes("--json-schema"));
     assert.equal(review.input, "");
-    assert.match(shape.input, /^You are the Code review agent in X-RayView/);
+    assert.match(shape.input, /^You are the Code review agent in X-RayViewer/);
     assert.match(shape.input, /## What Claude Code's \/code-review reported\n\nsrc\/cart\.js:3 — a 10% discount takes the whole total off\n$/);
     for (const id of ["correctness", "tests"]) {
       const brief = new RegExp(`## ${settings.agents[id].name} \\(\`agent\`: "${id}"\\)\\n\\nFocus: ${settings.agents[id].focus}\\.`);
@@ -425,7 +425,7 @@ describe("the patched extension", () => {
     assert.equal(settings.agents["claude-code-review"], undefined, "agents.yml's settings are left as they were");
   });
 
-  test("the dispatcher reports a missing CLI and Cursor's own errors in X-RayView's words", async () => {
+  test("the dispatcher reports a missing CLI and Cursor's own errors in X-RayViewer's words", async () => {
     const { Na } = ext.__xrayviewer;
     const request = { prompt: "Review.", schema: {}, cwd: root, readDirs: [], timeoutMs: 30_000 };
     const failing = await fakeCli("cursor-bad-model", { exitCode: 1, stderr: "Cannot use this model: nope. Available models: auto" });

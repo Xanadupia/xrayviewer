@@ -2,7 +2,7 @@
   "name": "xrayviewer-workspace",
   "private": true,
   "type": "module",
-  "description": "Builds the X-RayView extension.",
+  "description": "Builds the X-RayViewer extension.",
   "author": "Ali Qaryan",
   "license": "MIT",
   "engines": {

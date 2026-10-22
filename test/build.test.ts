@@ -39,17 +39,17 @@ describe("the built extension", () => {
     bundle = await readFile(path.join(dir, "dist", "extension.cjs"), "utf8");
   });
 
-  test("is X-RayView by Ali Qaryan, with its own id", async () => {
+  test("is X-RayViewer by Ali Qaryan, with its own id", async () => {
     assert.equal(manifest.name, "xrayviewer");
     assert.equal(manifest.displayName, "X-RayViewer");
     assert.equal(manifest.publisher, "aliqaryan");
     assert.equal(manifest.author, "Ali Qaryan");
-    assert.equal(manifest.version, "0.4.2");
+    assert.equal(manifest.version, "0.4.3");
     const page = await readFile(path.join(dir, "media", "ui", "app.js"), "utf8");
     assert.match(page, /function modelSummary\(agents\)/);
     assert.match(page, /Update review/);
     assert.match(page, /Choose model/);
-    assert.match(page, /X-RayView/);
+    assert.match(page, /X-RayViewer/);
     assert.match(page, /choose-model/);
     assert.ok(bundle.includes('type==="chooseHarness"'));
     assert.match(page, /id="host-run-wrap">\$\{runMainHTML\(label\)\}[\s\S]*?data-act="run-menu"[\s\S]*?id="run-menu" role="menu"[^>]*hidden>\$\{chooseModelHTML\(\)\}\$\{activityItemHTML\(\)\}<\/div><\/div>/, "Choose model and Agent activity sit in the run button's menu");
@@ -155,7 +155,7 @@ describe("the built extension", () => {
     assert.match(styles, /backdrop-filter: saturate\(1\.8\) blur\(28px\)/);
   });
 
-  test("says where X-RayView's review stands on each sidebar row and its hover card", () => {
+  test("says where X-RayViewer's review stands on each sidebar row and its hover card", () => {
     const source = bundle.slice(bundle.indexOf("function xrvAgentState("), bundle.indexOf("function bf("));
     const jn = (agent: any, summary: any) => (!agent ? { state: "none" } : { state: summary?.headRefOid && summary.headRefOid !== agent.commit ? "behind" : "current", commit: agent.commit, ranAt: agent.ranAt });
     const fa = (n: any) => ({ text: n.run.state === "queued" ? "agents queued" : "agents in 30s" });
@@ -173,10 +173,10 @@ describe("the built extension", () => {
     assert.deepEqual(row({ state: "failed" }, { agent }), { short: "review failed", long: "The last review failed. The one before found 3 findings.", color: "#F85149" });
     assert.equal(row({ state: "held", hold: "large" }).long, "Not reviewed yet. Large, so the agents wait for you to press Run.");
     assert.ok(bundle.includes("return[state,xrvAgentState(n,t).short,"), "every row's description carries the state");
-    assert.ok(bundle.includes('let xs=xrvAgentState(s);r.appendMarkdown("<b>X-RayView</b> \u00B7 "),paint(xs.color,xs.long)'), "the hover card says it in full");
+    assert.ok(bundle.includes('let xs=xrvAgentState(s);r.appendMarkdown("<b>X-RayViewer</b> \u00B7 "),paint(xs.color,xs.long)'), "the hover card says it in full");
   });
 
-  test("shows X-RayView's review state beside the risk pill on the review page", async () => {
+  test("shows X-RayViewer's review state beside the risk pill on the review page", async () => {
     const page = await readFile(path.join(dir, "media", "ui", "app.js"), "utf8");
     const source = page.slice(page.indexOf("function xrayState("), page.indexOf("function xrayPillHTML("));
     const stateOf = (env: Record<string, unknown>) =>
@@ -184,9 +184,9 @@ describe("the built extension", () => {
     const env = { agentProgress: null, agentsRunning: false, AG: null, AGENT_RUN_AT: null, FINDINGS: [], agentsBehind: () => false, ago: () => "3 hours ago", plural: (n: number, one: string) => `${n} ${n === 1 ? one : `${one}s`}` };
     const ran = { ...env, AG: { commit: "a9dca66f00" }, AGENT_RUN_AT: "2026-10-21T09:00:00Z", FINDINGS: [{}, {}] };
 
-    assert.deepEqual([stateOf(env).kind, stateOf(env).label], ["none", "Not reviewed by X-RayView"]);
-    assert.deepEqual([stateOf(ran).kind, stateOf(ran).label, stateOf(ran).sub], ["current", "X-RayView reviewed", "2 findings"]);
-    assert.equal(stateOf(ran).title, "X-RayView reviewed a9dca66 3 hours ago: 2 findings.");
+    assert.deepEqual([stateOf(env).kind, stateOf(env).label], ["none", "Not reviewed by X-RayViewer"]);
+    assert.deepEqual([stateOf(ran).kind, stateOf(ran).label, stateOf(ran).sub], ["current", "X-RayViewer reviewed", "2 findings"]);
+    assert.equal(stateOf(ran).title, "X-RayViewer reviewed a9dca66 3 hours ago: 2 findings.");
     assert.equal(stateOf({ ...ran, agentsBehind: () => true }).kind, "behind");
     assert.deepEqual(stateOf({ ...ran, agentsRunning: true, agentProgress: { agents: { a: { state: "done" }, b: { state: "running" } } } }).sub, "1/2");
     assert.equal(stateOf({ ...env, agentProgress: { agents: { a: { state: "failed" } } } }).kind, "failed");

@@ -113,7 +113,7 @@ async function pickModel(
     () => deps.listModels?.(command) ?? Promise.resolve(null),
   );
   if (!models) {
-    await window.showWarningMessage(`X-RayView couldn't list the models in ${chosen.title} at ${command}.`);
+    await window.showWarningMessage(`X-RayViewer couldn't list the models in ${chosen.title} at ${command}.`);
     return true;
   }
   const fallback = `${chosen.title}'s default`;
@@ -206,7 +206,7 @@ export async function pickCliVersion(deps: VersionPickerDeps, id: CliId, agent: 
       continue;
     }
     const agreed = await window.showInformationMessage(
-      `Install ${chosen.title}? X-RayView will download it with the official installer.`,
+      `Install ${chosen.title}? X-RayViewer will download it with the official installer.`,
       { modal: true },
       "Install",
     );

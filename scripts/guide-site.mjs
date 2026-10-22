@@ -120,7 +120,7 @@ export function guideHTML(markdown) {
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>X-RayView user guide</title>
+  <title>X-RayViewer user guide</title>
   <meta name="description" content="Review GitHub pull requests in VS Code or Cursor. Agents run on your computer, and you post the review.">
   <link rel="canonical" href="${GUIDE}">
   <meta name="theme-color" content="#0F7668">
@@ -129,7 +129,7 @@ export function guideHTML(markdown) {
 <body>
   <a class="skip" href="#guide">Skip to the guide</a>
   <header class="top">
-    <a class="brand" href="./">X-RayView</a>
+    <a class="brand" href="./">X-RayViewer</a>
     <nav class="top-nav" aria-label="Site">
       <a href="${REPO}">Source</a>
       <a href="${REPO}/issues">Issues</a>
