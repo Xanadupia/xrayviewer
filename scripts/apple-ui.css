@@ -1,0 +1,946 @@
+/* xrayview-apple-ui
+   The review chrome follows the installed Apple skills: Liquid Glass stays on
+   navigation and controls, content stays on a standard material, interface
+   text uses the system face, and accents use system colors. */
+
+:root,
+:root.in-vscode {
+  --ui: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", system-ui, sans-serif;
+  --blue: #007aff;
+  --blue-2: #0040dd;
+  --on-blue: #ffffff;
+  --blue-soft: rgb(0 122 255 / 0.12);
+  --blue-line: rgb(0 122 255 / 0.36);
+  --glass: rgb(255 255 255 / 0.72);
+  --glass-2: rgb(255 255 255 / 0.82);
+  --glass-edge: rgb(0 0 0 / 0.1);
+  --r-btn: 8px;
+  --r-card: 14px;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --blue: #0a84ff;
+    --blue-2: #64d2ff;
+    --on-blue: #ffffff;
+    --blue-soft: rgb(10 132 255 / 0.18);
+    --blue-line: rgb(10 132 255 / 0.45);
+    --glass: rgb(28 28 30 / 0.72);
+    --glass-2: rgb(44 44 46 / 0.8);
+    --glass-edge: rgb(255 255 255 / 0.16);
+  }
+}
+
+:root[data-theme="dark"] {
+  --blue: #0a84ff;
+  --blue-2: #64d2ff;
+  --on-blue: #ffffff;
+  --blue-soft: rgb(10 132 255 / 0.18);
+  --blue-line: rgb(10 132 255 / 0.45);
+  --glass: rgb(28 28 30 / 0.72);
+  --glass-2: rgb(44 44 46 / 0.8);
+  --glass-edge: rgb(255 255 255 / 0.16);
+}
+
+body {
+  letter-spacing: -0.011em;
+}
+
+/* Regular Liquid Glass on the navigation layer. It floats above the page
+   so the review can scroll underneath it. */
+.bar {
+  top: 10px;
+  height: 48px;
+  margin: 10px 12px 0;
+  border: 0.5px solid var(--glass-edge);
+  border-radius: 16px;
+  background: var(--glass);
+  box-shadow:
+    inset 0 0.5px 0 rgb(255 255 255 / 0.28),
+    0 10px 28px rgb(0 0 0 / 0.16);
+  -webkit-backdrop-filter: saturate(1.8) blur(28px);
+  backdrop-filter: saturate(1.8) blur(28px);
+}
+
+.logo {
+  width: 18px;
+  height: 18px;
+}
+
+.bar .icon-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+}
+
+.bar .btn,
+.bar .mini-track {
+  height: 32px;
+  border-radius: 8px;
+}
+
+.toolbar {
+  top: calc(var(--top) + 70px);
+}
+
+.rail {
+  top: calc(var(--top) + 78px);
+}
+
+/* macOS push buttons: a rounded rectangle, one filled primary, press scales
+   instead of jumping down the page. */
+.btn {
+  border-radius: 8px;
+  font-weight: 590;
+}
+
+.btn.primary {
+  box-shadow: inset 0 0.5px 0 rgb(255 255 255 / 0.35);
+}
+
+.btn:active:not([disabled]) {
+  transform: scale(0.97);
+}
+
+/* The level a comment posts at, in the colors the page gives agent findings. */
+.levels {
+  align-items: center;
+}
+
+.levels-name {
+  margin-right: 2px;
+  font-size: 12px;
+  color: var(--ink-3);
+}
+
+.lab.lv-high[aria-checked="true"] {
+  border-color: var(--bad);
+  color: var(--bad);
+  background: var(--bad-bg);
+}
+
+.lab.lv-medium[aria-checked="true"] {
+  border-color: var(--warn);
+  color: var(--warn);
+  background: var(--warn-bg);
+}
+
+/* Content stays on a standard material. Glass on the briefing would put the
+   material in the content layer, which the guidelines say not to do. */
+.brief,
+.brief-item,
+.brief-map,
+.brief-desc,
+.track {
+  background: var(--sheet);
+  border-color: var(--line);
+}
+
+.brief {
+  box-shadow: var(--shadow-1);
+}
+
+.pr-title {
+  font-weight: 700;
+  letter-spacing: -0.022em;
+}
+
+.pr-status {
+  font-size: 13px;
+  line-height: 1.35;
+}
+
+.menu {
+  border: 0.5px solid var(--glass-edge);
+  border-radius: 12px;
+  background: var(--glass-2);
+  -webkit-backdrop-filter: saturate(1.8) blur(24px);
+  backdrop-filter: saturate(1.8) blur(24px);
+}
+
+/* Same state colors as the pull request list: green open, gray draft, purple merged, red closed. */
+.state.s-open {
+  background: rgb(26 127 55 / 0.14);
+  color: #1a7f37;
+}
+
+.state.s-merged {
+  background: rgb(177 128 215 / 0.18);
+  color: #7a3e9d;
+}
+
+.state.s-draft {
+  background: rgb(154 160 166 / 0.18);
+  color: #5c656c;
+}
+
+.ps-merged > .i {
+  color: #7a3e9d;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .state.s-open {
+    background: rgb(63 185 80 / 0.18);
+    color: #3fb950;
+  }
+
+  :root:not([data-theme="light"]) .state.s-merged,
+  :root:not([data-theme="light"]) .ps-merged > .i {
+    color: #b180d7;
+  }
+
+  :root:not([data-theme="light"]) .state.s-draft {
+    color: #c8cdd2;
+  }
+}
+
+:root[data-theme="dark"] .state.s-open {
+  background: rgb(63 185 80 / 0.18);
+  color: #3fb950;
+}
+
+:root[data-theme="dark"] .state.s-merged,
+:root[data-theme="dark"] .ps-merged > .i {
+  color: #b180d7;
+}
+
+:root[data-theme="dark"] .state.s-draft {
+  color: #c8cdd2;
+}
+
+/* Add every open agent finding to the review at once. */
+.brief-bulk {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 12px;
+  margin: 2px 0 0;
+}
+
+.brief-bulk > span {
+  flex: 1 1 240px;
+  color: var(--ink-2);
+  font-size: 12.5px;
+}
+
+/* X-RayView's review state beside the risk pill. */
+.xray-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 26px;
+  padding: 0 10px 0 8px;
+  border: 1px solid var(--line-2);
+  border-radius: 13px;
+  background: var(--sheet);
+  color: var(--ink);
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 650;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.xray-pill:hover {
+  border-color: var(--ink-3);
+}
+
+.xray-pill:focus-visible {
+  outline: 2px solid var(--blue);
+  outline-offset: 2px;
+}
+
+.xray-pill .i {
+  width: 14px;
+  height: 14px;
+}
+
+.xray-pill .spin {
+  width: 11px;
+  height: 11px;
+  border-width: 1.5px;
+  color: var(--blue);
+}
+
+.xray-pill.is-current .i {
+  color: var(--ok);
+}
+
+.xray-pill.is-behind .i {
+  color: var(--warn);
+}
+
+.xray-pill.is-failed .i {
+  color: var(--bad);
+}
+
+.xray-pill.is-none {
+  color: var(--ink-2);
+  border-style: dashed;
+}
+
+.xray-pill.is-none .i {
+  color: var(--ink-3);
+}
+
+.xray-sub {
+  color: var(--ink-2);
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Agent activity: agents listed like GitHub's checks, each agent's log folded like the Claude app. */
+.sheet.side.activity-sheet {
+  width: min(600px, 100%);
+}
+
+.run-tools {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  flex: none;
+}
+
+.post-all {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--ink-2);
+  font-size: 12.5px;
+  line-height: 1.3;
+  cursor: pointer;
+}
+
+.post-all input {
+  margin: 0;
+  accent-color: var(--blue);
+}
+
+@media (max-width: 699px) {
+  .brief-head .run-tools {
+    order: 1;
+  }
+}
+
+#host-run .spin {
+  width: 11px;
+  height: 11px;
+  border-width: 1.5px;
+  opacity: 0.8;
+}
+
+.checks {
+  overflow: visible;
+  border: 1px solid var(--line);
+  border-radius: var(--r-card);
+  background: var(--sheet);
+}
+
+.checks-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+}
+
+.checks-head > div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.checks-ring {
+  flex: none;
+  width: 30px;
+  height: 30px;
+}
+
+.checks-ring.is-live {
+  animation: checks-turn 2.4s linear infinite;
+}
+
+@keyframes checks-turn {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.checks-title {
+  font-size: 15px;
+  font-weight: 650;
+}
+
+.checks-tally {
+  color: var(--ink-2);
+  font-size: 12.5px;
+}
+
+.checks-group {
+  border-top: 1px solid var(--line);
+}
+
+.checks-group > summary {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 8px 16px;
+  color: var(--ink-2);
+  font-size: 12px;
+}
+
+.checks-chev {
+  width: 10px;
+  height: 10px;
+  transform: rotate(-90deg);
+  transition: transform 0.15s ease;
+}
+
+.checks-group[open] > summary .checks-chev {
+  transform: none;
+}
+
+.checks-list {
+  margin: 0;
+  padding: 0 0 6px;
+  list-style: none;
+}
+
+.check {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 36px;
+  margin: 0 6px;
+  padding: 2px 6px 2px 10px;
+  border-radius: 6px;
+  font-size: 13px;
+}
+
+.check:hover,
+.check:focus-within {
+  background: var(--sheet-3);
+}
+
+.check.is-sub {
+  min-height: 30px;
+  padding-left: 34px;
+  font-size: 12px;
+}
+
+.check.is-sub .check-status {
+  color: var(--ink-3);
+}
+
+.check-mark {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  color: var(--ink-3);
+}
+
+.check-mark .i {
+  width: 16px;
+  height: 16px;
+}
+
+.check-mark.is-done {
+  color: var(--ok);
+}
+
+.check-mark.is-failed {
+  color: var(--bad);
+}
+
+.check-mark.is-queued,
+.check-mark.is-running {
+  color: var(--warn);
+}
+
+.check-mark .spin {
+  width: 12px;
+  height: 12px;
+  border-width: 2px;
+}
+
+.check .agent-av {
+  flex: none;
+}
+
+.check-name {
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--ink);
+  font: inherit;
+  text-align: left;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.check-name b {
+  font-weight: 620;
+}
+
+.check-name:hover b {
+  color: var(--blue);
+  text-decoration: underline;
+}
+
+.check-status {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  color: var(--ink-2);
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.check-status .act-time,
+.job-status .act-time {
+  color: inherit;
+  font-size: inherit;
+}
+
+.check-pill {
+  flex: none;
+  padding: 1px 8px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  color: var(--ink-2);
+  font-size: 11.5px;
+  font-variant-numeric: tabular-nums;
+}
+
+.check-more {
+  flex: none;
+}
+
+.check-more > summary {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 24px;
+  border-radius: 6px;
+  color: var(--ink-2);
+  cursor: pointer;
+  list-style: none;
+}
+
+.check-more > summary::-webkit-details-marker {
+  display: none;
+}
+
+.check-more > summary:hover,
+.check-more[open] > summary {
+  background: var(--sheet-2);
+  color: var(--ink);
+}
+
+.check-more > summary:focus-visible,
+.check-name:focus-visible,
+.act-back:focus-visible {
+  outline: 2px solid var(--blue);
+  outline-offset: 1px;
+}
+
+.check-more > summary .i {
+  width: 16px;
+  height: 16px;
+}
+
+.check-menu {
+  position: absolute;
+  z-index: 5;
+  top: calc(100% - 2px);
+  right: 6px;
+  min-width: 170px;
+  padding: 4px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--sheet);
+  box-shadow: 0 8px 24px rgb(0 0 0 / 0.24);
+}
+
+.check-menu button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 7px 10px;
+  border: 0;
+  border-radius: 6px;
+  background: none;
+  color: var(--ink);
+  font: inherit;
+  font-size: 13px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.check-menu button:hover,
+.check-menu button:focus-visible {
+  background: var(--sheet-3);
+  outline: none;
+}
+
+.check-menu .i {
+  width: 14px;
+  height: 14px;
+  color: var(--ink-2);
+}
+
+.act-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin: 0 0 10px -4px;
+  padding: 4px 8px 4px 4px;
+  border: 0;
+  border-radius: 6px;
+  background: none;
+  color: var(--blue);
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.act-back:hover {
+  background: var(--sheet-3);
+}
+
+.act-back .i {
+  width: 14px;
+  height: 14px;
+}
+
+.job-detail {
+  border: 1px solid var(--line);
+  border-radius: var(--r-card);
+  background: var(--sheet);
+  padding: 12px 16px 0;
+}
+
+.job-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding-bottom: 12px;
+}
+
+.job-head .check-mark {
+  margin-top: 2px;
+}
+
+.job-title {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.job-name {
+  font-size: 15px;
+  font-weight: 650;
+}
+
+.job-meta,
+.job-status {
+  color: var(--ink-2);
+  font-size: 12.5px;
+}
+
+.act-group > summary,
+details.act-step > summary {
+  cursor: pointer;
+  list-style: none;
+  border-radius: inherit;
+}
+
+.checks-group > summary {
+  cursor: pointer;
+  list-style: none;
+}
+
+.checks-group > summary::-webkit-details-marker,
+.act-group > summary::-webkit-details-marker,
+details.act-step > summary::-webkit-details-marker {
+  display: none;
+}
+
+.checks-group > summary:hover {
+  color: var(--ink);
+}
+
+.act-group > summary:hover,
+details.act-step > summary:hover {
+  background: var(--sheet-3);
+}
+
+.checks-group > summary:focus-visible,
+.act-group > summary:focus-visible,
+details.act-step > summary:focus-visible {
+  outline: 2px solid var(--blue);
+  outline-offset: -2px;
+}
+
+.act-chev {
+  flex: none;
+  width: 12px;
+  height: 12px;
+  color: var(--ink-3);
+  transform: rotate(-90deg);
+  transition: transform 0.15s ease;
+}
+
+.act-group[open] > summary .act-chev {
+  transform: none;
+}
+
+.act-ok {
+  color: var(--ok);
+}
+
+.act-bad {
+  color: var(--bad);
+}
+
+.act-time {
+  flex: none;
+  color: var(--ink-3);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+.job-body {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0 -16px;
+  padding: 6px 16px 14px 42px;
+  border-top: 1px solid var(--line);
+}
+
+.act-msg {
+  margin: 6px 0 2px;
+  font-size: 13.5px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.act-msg.is-typing::after {
+  content: "▍";
+  margin-left: 1px;
+  color: var(--blue);
+  animation: act-blink 1s steps(2, start) infinite;
+}
+
+@keyframes act-blink {
+  to {
+    visibility: hidden;
+  }
+}
+
+.act-group > summary {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0 -6px;
+  padding: 4px 6px;
+  border-radius: 6px;
+  color: var(--ink-2);
+  font-size: 13px;
+}
+
+.act-group .spin {
+  width: 10px;
+  height: 10px;
+  border-width: 1.5px;
+  color: var(--blue);
+}
+
+.act-sum {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.act-steps {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 2px 0 4px 5px;
+  padding-left: 12px;
+  border-left: 1px solid var(--line);
+}
+
+div.act-step,
+details.act-step > summary {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  min-width: 0;
+  padding: 3px 6px;
+  border-radius: 6px;
+  font-size: 12.5px;
+}
+
+.job-body > details.act-step > summary {
+  margin: 0 -6px;
+}
+
+details.act-step > .act-out,
+details.act-step > .act-thought {
+  margin-left: 0;
+}
+
+.act-step .spin,
+.act-step .i {
+  flex: none;
+  align-self: center;
+  width: 11px;
+  height: 11px;
+}
+
+.act-step .spin {
+  border-width: 1.5px;
+  color: var(--blue);
+}
+
+.act-verb {
+  flex: none;
+  color: var(--ink-2);
+}
+
+.act-title {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  padding: 0;
+  background: none;
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+details.act-step[open] .act-title {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.act-plain {
+  color: var(--ink-2);
+  font-size: 12.5px;
+}
+
+.act-sub {
+  margin-left: 14px;
+}
+
+.act-step.is-failed .act-title {
+  color: var(--bad);
+}
+
+.act-out,
+.act-thought {
+  max-height: 240px;
+  margin: 4px 0 6px;
+  padding: 8px 10px;
+  overflow: auto;
+  border-radius: 8px;
+  background: var(--sheet-3);
+  font-size: 11.5px;
+  line-height: 1.45;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.act-out {
+  font-family: var(--mono);
+}
+
+.act-thought {
+  color: var(--ink-2);
+  font-style: italic;
+}
+
+.act-note,
+.act-empty {
+  margin: 6px 0 0;
+  color: var(--ink-2);
+  font-size: 12.5px;
+}
+
+.act-empty {
+  margin: 12px 0;
+  font-size: 13.5px;
+  line-height: 1.5;
+}
+
+.act-error {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  margin: 6px 0 0;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: var(--bad-bg);
+  color: var(--bad);
+  font-size: 12.5px;
+}
+
+.act-error .i {
+  flex: none;
+  width: 14px;
+  height: 14px;
+  margin-top: 1px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .checks-chev,
+  .act-chev {
+    transition: none;
+  }
+
+  .act-msg.is-typing::after,
+  .checks-ring.is-live {
+    animation: none;
+  }
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .bar,
+  .menu {
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+    background: var(--sheet);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .btn:active:not([disabled]) {
+    transform: none;
+  }
+}
+
+@media (prefers-contrast: more) {
+  .bar,
+  .menu,
+  .brief,
+  .track {
+    border: 1px solid var(--ink-2);
+  }
+}

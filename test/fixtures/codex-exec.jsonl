@@ -1,0 +1,7 @@
+{"type": "thread.started", "thread_id": "redacted"}
+{"type": "turn.started"}
+{"type": "item.completed", "item": {"id": "item_0", "type": "agent_message", "text": "I\u2019ll run the shell commands and read `math.js` to check what `add` does.\n"}}
+{"type": "item.started", "item": {"id": "item_2", "type": "command_execution", "command": "/bin/zsh -lc \"ls\ngit log --oneline -1\ncat math.js\"", "aggregated_output": "", "exit_code": null, "status": "in_progress"}}
+{"type": "item.completed", "item": {"id": "item_2", "type": "command_execution", "command": "/bin/zsh -lc \"ls\ngit log --oneline -1\ncat math.js\"", "aggregated_output": "math.js\n520b7c0 init\nexport const add = (a, b) => a - b;\n", "exit_code": 0, "status": "completed"}}
+{"type": "item.completed", "item": {"id": "item_3", "type": "agent_message", "text": "`add(a, b)` returns `a - b`, subtracting `b` from `a`."}}
+{"type": "turn.completed", "usage": {"input_tokens": 110798, "cached_input_tokens": 76416, "cache_write_input_tokens": 0, "output_tokens": 371, "reasoning_output_tokens": 0}}

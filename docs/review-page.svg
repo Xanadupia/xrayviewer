@@ -1,0 +1,62 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="520" viewBox="0 0 1080 520" fill="none">
+  <rect width="1080" height="520" rx="20" fill="#F4F7F6"/>
+  <g font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif">
+    <rect x="24" y="24" width="640" height="472" rx="18" fill="#FFFFFF"/>
+    <rect x="40" y="40" width="608" height="48" rx="14" fill="#F4F7F6"/>
+    <path d="M58 60v-3.5a2 2 0 0 1 2-2H64M74 54.5h4a2 2 0 0 1 2 2V60M80 68v3.5a2 2 0 0 1-2 2H74M64 73.5h-4a2 2 0 0 1-2-2V68" fill="none" stroke="#0F7668" stroke-width="1.6" stroke-linecap="round"/>
+    <path d="M63 63l6 6M69 63l-6 6" fill="none" stroke="#0F7668" stroke-width="1.6" stroke-linecap="round"/>
+    <text x="86" y="69" fill="#17211F" font-size="15" font-weight="700">X-RayView</text>
+    <text x="188" y="69" fill="#5C6B68" font-size="13">#123</text>
+    <rect x="500" y="52" width="132" height="28" rx="8" fill="#007AFF"/>
+    <text x="566" y="71" text-anchor="middle" fill="#FFFFFF" font-size="13" font-weight="650">Post review</text>
+
+    <text x="44" y="124" fill="#0F7668" font-size="14" font-weight="650">You approved this 2 hours ago</text>
+    <text x="44" y="164" fill="#17211F" font-size="22" font-weight="700">Add the backfill job</text>
+    <rect x="44" y="180" width="78" height="22" rx="11" fill="#E7F6F2"/>
+    <text x="83" y="195" text-anchor="middle" fill="#0F7668" font-size="12" font-weight="650">In review</text>
+
+    <text x="44" y="240" fill="#17211F" font-size="13" font-weight="650">Checks</text>
+    <text x="118" y="240" fill="#17211F" font-size="13" font-weight="650">Agents</text>
+    <text x="186" y="240" fill="#0F7668" font-size="13" font-weight="700">Review</text>
+    <text x="250" y="240" fill="#17211F" font-size="13" font-weight="650">Merge</text>
+    <path d="M178 250h52" stroke="#0F7668" stroke-width="2" stroke-linecap="round"/>
+
+    <rect x="44" y="268" width="600" height="148" rx="14" fill="#F7FBFA" stroke="#D5DEDB"/>
+    <text x="60" y="298" fill="#17211F" font-size="15" font-weight="700">Agents reviewed this before you</text>
+    <text x="60" y="324" fill="#5C6B68" font-size="13">Model: Codex &#183; gpt-6.1-sol &#183; high</text>
+    <text x="330" y="324" fill="#007AFF" font-size="13" font-weight="650">Change</text>
+    <rect x="60" y="342" width="568" height="28" rx="8" fill="#FFFFFF" stroke="#E1E8E6"/>
+    <text x="74" y="361" fill="#17211F" font-size="13">High &#183; The retry can save the comment twice</text>
+    <rect x="60" y="376" width="568" height="28" rx="8" fill="#FFFFFF" stroke="#E1E8E6"/>
+    <text x="74" y="395" fill="#17211F" font-size="13">Low &#183; The log line names the wrong id</text>
+
+    <text x="44" y="448" fill="#5C6B68" font-size="13">The diff is below this card. Comments stay here until you post.</text>
+    <text x="44" y="476" fill="#17211F" font-size="13" font-weight="650">Rerun</text>
+    <text x="96" y="476" fill="#5C6B68" font-size="13">starts the agents again. While they run, it says Agents are running.</text>
+
+    <g font-size="13">
+      <circle cx="700" cy="66" r="4" fill="#0F7668"/>
+      <path d="M644 66h52" stroke="#0F7668" stroke-width="1.5"/>
+      <text x="716" y="62" fill="#17211F" font-size="14" font-weight="700">Next step</text>
+      <text x="716" y="82" fill="#5C6B68">Sends the review.</text>
+      <text x="716" y="100" fill="#5C6B68">Later this says Update review.</text>
+
+      <circle cx="700" cy="124" r="4" fill="#0F7668"/>
+      <path d="M664 124h32" stroke="#0F7668" stroke-width="1.5"/>
+      <text x="716" y="148" fill="#17211F" font-size="14" font-weight="700">Your decision</text>
+      <text x="716" y="168" fill="#5C6B68">Stays under the title,</text>
+      <text x="716" y="186" fill="#5C6B68">including after a merge.</text>
+
+      <circle cx="700" cy="324" r="4" fill="#0F7668"/>
+      <path d="M644 324h52" stroke="#0F7668" stroke-width="1.5"/>
+      <text x="716" y="320" fill="#17211F" font-size="14" font-weight="700">The model</text>
+      <text x="716" y="340" fill="#5C6B68">Change opens the picker.</text>
+
+      <circle cx="700" cy="370" r="4" fill="#0F7668"/>
+      <path d="M644 370h52" stroke="#0F7668" stroke-width="1.5"/>
+      <text x="716" y="394" fill="#17211F" font-size="14" font-weight="700">A finding</text>
+      <text x="716" y="414" fill="#5C6B68">Keep it, reword it,</text>
+      <text x="716" y="432" fill="#5C6B68">or dismiss it.</text>
+    </g>
+  </g>
+</svg>

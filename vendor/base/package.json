@@ -1,0 +1,600 @@
+{
+  "name": "xrayview",
+  "displayName": "X-RayView",
+  "description": "Review GitHub pull requests in VS Code with Claude Code, Codex or Pi agents that run on your computer: description checks, reading order, flow maps and findings, then post your review.",
+  "version": "0.3.2",
+  "publisher": "aliqaryan",
+  "preview": true,
+  "private": true,
+  "license": "MIT",
+  "icon": "media/icon.png",
+  "galleryBanner": {
+    "color": "#151922",
+    "theme": "dark"
+  },
+  "engines": {
+    "vscode": "^1.95.0"
+  },
+  "categories": [
+    "AI",
+    "Other"
+  ],
+  "keywords": [
+    "github",
+    "pull request",
+    "code review",
+    "review",
+    "agents",
+    "claude",
+    "claude code",
+    "codex",
+    "pi",
+    "gh"
+  ],
+  "main": "./dist/extension.cjs",
+  "activationEvents": [
+    "onStartupFinished",
+    "onUri"
+  ],
+  "capabilities": {
+    "untrustedWorkspaces": {
+      "supported": "limited",
+      "description": "In Restricted Mode, X-RayView ignores workspace values for the settings that choose which programs run (the Claude Code, Codex and Pi paths and arguments) and where clones are.",
+      "restrictedConfigurations": [
+        "xrayview.claude.path",
+        "xrayview.codex.path",
+        "xrayview.pi.path",
+        "xrayview.claude.extraArgs",
+        "xrayview.codex.extraArgs",
+        "xrayview.pi.extraArgs",
+        "xrayview.clones"
+      ]
+    },
+    "virtualWorkspaces": false
+  },
+  "contributes": {
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "xrayview",
+          "title": "X-RayView",
+          "icon": "media/xrayview.svg"
+        }
+      ]
+    },
+    "views": {
+      "xrayview": [
+        {
+          "id": "xrayview.pullRequests",
+          "name": "Pull requests"
+        }
+      ]
+    },
+    "viewsWelcome": [
+      {
+        "view": "xrayview.pullRequests",
+        "contents": "X-RayView lists pull requests that need your review and the ones you opened.\n[Refresh](command:xrayview.refresh)\n[Open a pull request](command:xrayview.openPullRequest)\nX-RayView uses the GitHub CLI. If nothing shows up, run `gh auth login` in a terminal."
+      }
+    ],
+    "commands": [
+      {
+        "command": "xrayview.refresh",
+        "title": "Refresh",
+        "category": "X-RayView",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "xrayview.openHome",
+        "title": "Home: All Pull Requests",
+        "category": "X-RayView",
+        "icon": "$(home)"
+      },
+      {
+        "command": "xrayview.groupBy",
+        "title": "Group Pull Requests…",
+        "category": "X-RayView",
+        "icon": "$(group-by-ref-type)"
+      },
+      {
+        "command": "xrayview.sortBy",
+        "title": "Sort Pull Requests…",
+        "category": "X-RayView",
+        "icon": "$(sort-precedence)"
+      },
+      {
+        "command": "xrayview.openPullRequest",
+        "title": "Open a Pull Request…",
+        "category": "X-RayView",
+        "icon": "$(add)"
+      },
+      {
+        "command": "xrayview.open",
+        "title": "Open Review",
+        "category": "X-RayView"
+      },
+      {
+        "command": "xrayview.copyLink",
+        "title": "Copy Link to This Review",
+        "category": "X-RayView",
+        "icon": "$(link)"
+      },
+      {
+        "command": "xrayview.openOnGitHub",
+        "title": "Open on GitHub",
+        "category": "X-RayView",
+        "icon": "$(github)"
+      },
+      {
+        "command": "xrayview.runAgents",
+        "title": "Run Agents",
+        "category": "X-RayView",
+        "icon": "$(sparkle)"
+      },
+      {
+        "command": "xrayview.cancelAgents",
+        "title": "Stop Agents",
+        "category": "X-RayView",
+        "icon": "$(debug-stop)"
+      },
+      {
+        "command": "xrayview.copyAgentReview",
+        "title": "Copy Agent Review as Markdown",
+        "category": "X-RayView",
+        "icon": "$(copy)"
+      },
+      {
+        "command": "xrayview.showLog",
+        "title": "Show Agent Log",
+        "category": "X-RayView",
+        "icon": "$(output)"
+      },
+      {
+        "command": "xrayview.selectHarness",
+        "title": "Choose Agent Harnesses…",
+        "category": "X-RayView"
+      },
+      {
+        "command": "xrayview.editAgentInstructions",
+        "title": "Customize Agents…",
+        "category": "X-RayView"
+      },
+      {
+        "command": "xrayview.newAgent",
+        "title": "New Agent…",
+        "category": "X-RayView"
+      },
+      {
+        "command": "xrayview.removeAgent",
+        "title": "Remove an Agent…",
+        "category": "X-RayView"
+      },
+      {
+        "command": "xrayview.removePullRequest",
+        "title": "Remove from List",
+        "category": "X-RayView",
+        "icon": "$(close)"
+      },
+      {
+        "command": "xrayview.resetAgentSettings",
+        "title": "Reset Agent Settings",
+        "category": "X-RayView"
+      },
+      {
+        "command": "xrayview.showMetrics",
+        "title": "Show Review Metrics",
+        "category": "X-RayView",
+        "icon": "$(graph)"
+      },
+      {
+        "command": "xrayview.deleteMetrics",
+        "title": "Delete Review Metrics",
+        "category": "X-RayView"
+      }
+    ],
+    "keybindings": [
+      {
+        "command": "xrayview.openPullRequest",
+        "key": "ctrl+shift+alt+p",
+        "mac": "cmd+alt+shift+p"
+      }
+    ],
+    "menus": {
+      "view/title": [
+        {
+          "command": "xrayview.openHome",
+          "when": "view == xrayview.pullRequests",
+          "group": "navigation@0"
+        },
+        {
+          "command": "xrayview.openPullRequest",
+          "when": "view == xrayview.pullRequests",
+          "group": "navigation@1"
+        },
+        {
+          "command": "xrayview.refresh",
+          "when": "view == xrayview.pullRequests",
+          "group": "navigation@2"
+        },
+        {
+          "command": "xrayview.groupBy",
+          "when": "view == xrayview.pullRequests",
+          "group": "navigation@3"
+        },
+        {
+          "command": "xrayview.sortBy",
+          "when": "view == xrayview.pullRequests",
+          "group": "navigation@4"
+        },
+        {
+          "command": "xrayview.showLog",
+          "when": "view == xrayview.pullRequests",
+          "group": "navigation@5"
+        }
+      ],
+      "view/item/context": [
+        {
+          "command": "xrayview.runAgents",
+          "when": "view == xrayview.pullRequests && viewItem =~ /^pr\\.idle/",
+          "group": "inline@1"
+        },
+        {
+          "command": "xrayview.cancelAgents",
+          "when": "view == xrayview.pullRequests && viewItem =~ /^pr\\.running/",
+          "group": "inline@1"
+        },
+        {
+          "command": "xrayview.openOnGitHub",
+          "when": "view == xrayview.pullRequests && viewItem =~ /^pr\\./",
+          "group": "inline@2"
+        },
+        {
+          "command": "xrayview.runAgents",
+          "when": "view == xrayview.pullRequests && viewItem =~ /^pr\\.idle/",
+          "group": "1_agents@1"
+        },
+        {
+          "command": "xrayview.cancelAgents",
+          "when": "view == xrayview.pullRequests && viewItem =~ /^pr\\.running/",
+          "group": "1_agents@2"
+        },
+        {
+          "command": "xrayview.copyAgentReview",
+          "when": "view == xrayview.pullRequests && viewItem =~ /^pr\\.[a-z]+\\.agent/",
+          "group": "1_agents@3"
+        },
+        {
+          "command": "xrayview.openOnGitHub",
+          "when": "view == xrayview.pullRequests && viewItem =~ /^pr\\./",
+          "group": "2_open@1"
+        },
+        {
+          "command": "xrayview.copyLink",
+          "when": "view == xrayview.pullRequests && viewItem =~ /^pr\\./",
+          "group": "2_open@2"
+        },
+        {
+          "command": "xrayview.removePullRequest",
+          "when": "view == xrayview.pullRequests && viewItem =~ /^pr\\..*\\.pinned$/",
+          "group": "3_list@1"
+        }
+      ],
+      "commandPalette": [
+        {
+          "command": "xrayview.open",
+          "when": "false"
+        },
+        {
+          "command": "xrayview.removePullRequest",
+          "when": "false"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "X-RayView",
+      "properties": {
+        "xrayview.harness": {
+          "type": "string",
+          "enum": [
+            "claude",
+            "codex",
+            "pi"
+          ],
+          "enumDescriptions": [
+            "Claude Code CLI (`claude`)",
+            "Codex CLI (`codex`)",
+            "Pi coding agent (`pi`)"
+          ],
+          "default": "claude",
+          "markdownDescription": "The default harness for the review agents. An agent can use another one: set `harness` for it in `~/.xrayview/agents.yml`, or run **X-RayView: Choose Agent Harnesses…**."
+        },
+        "xrayview.claude.path": {
+          "type": "string",
+          "default": "claude",
+          "markdownDescription": "The Claude Code CLI: `claude` when it's on your `PATH`, or the full path to it.",
+          "scope": "machine"
+        },
+        "xrayview.claude.model": {
+          "type": "string",
+          "default": "sonnet",
+          "markdownDescription": "Model for the agents that run on Claude Code, such as `sonnet` or `opus`. Empty uses the Claude Code CLI's default. A model set for one agent in `~/.xrayview/agents.yml` wins over this."
+        },
+        "xrayview.claude.extraArgs": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [],
+          "markdownDescription": "Extra arguments passed to every `claude` run, one item per argument.",
+          "scope": "machine"
+        },
+        "xrayview.codex.path": {
+          "type": "string",
+          "default": "codex",
+          "markdownDescription": "The Codex CLI: `codex` when it's on your `PATH`, or the full path to it.",
+          "scope": "machine"
+        },
+        "xrayview.codex.model": {
+          "type": "string",
+          "default": "",
+          "markdownDescription": "Model for the agents that run on Codex. Empty uses the Codex CLI's default. A model set for one agent in `~/.xrayview/agents.yml` wins over this."
+        },
+        "xrayview.codex.extraArgs": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [],
+          "markdownDescription": "Extra arguments passed to every `codex exec` run, one item per argument, such as `[\"-c\", \"model_reasoning_effort=\\\"high\\\"\"]`.",
+          "scope": "machine"
+        },
+        "xrayview.pi.path": {
+          "type": "string",
+          "default": "pi",
+          "markdownDescription": "The Pi coding agent CLI: `pi` when it's on your `PATH`, or the full path to it.",
+          "scope": "machine"
+        },
+        "xrayview.pi.model": {
+          "type": "string",
+          "default": "",
+          "markdownDescription": "Model for the agents that run on Pi, in Pi's syntax: `provider/id` or a name Pi knows, with an optional `:<thinking>` suffix, such as `anthropic/claude-sonnet-5-5` or `openai/gpt-6.1-sol:high`. Empty uses Pi's default (the model you set in Pi, else its first signed-in provider's). **X-RayView: Choose Agent Harnesses…** lists the models Pi is signed in to. A model set for one agent in `~/.xrayview/agents.yml` wins over this."
+        },
+        "xrayview.pi.thinking": {
+          "type": "string",
+          "enum": [
+            "",
+            "off",
+            "minimal",
+            "low",
+            "medium",
+            "high",
+            "xhigh"
+          ],
+          "enumDescriptions": [
+            "Pi's default (the level you set in Pi, else medium)",
+            "No thinking",
+            "Minimal",
+            "Low",
+            "Medium",
+            "High",
+            "Extra high"
+          ],
+          "default": "",
+          "markdownDescription": "Thinking level for the agents that run on Pi. It wins over a `:<thinking>` suffix in `#xrayview.pi.model#`, but not over one in an agent's own model in `~/.xrayview/agents.yml`. Pi lowers a level the model doesn't support."
+        },
+        "xrayview.pi.extraArgs": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [],
+          "markdownDescription": "Extra arguments passed to every `pi` run, one item per argument.",
+          "scope": "machine"
+        },
+        "xrayview.agents.autoRun": {
+          "type": "boolean",
+          "default": true,
+          "markdownDescription": "Run the agents automatically on pull requests that request your review by name, when they open or get new commits. Any pull request can be run by hand."
+        },
+        "xrayview.agents.enabled": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [],
+          "markdownDescription": "Run only these agents, by their ids in `~/.xrayview/agents.yml` (such as `guide` or `security`). Empty runs every agent that `agents.yml` turns on."
+        },
+        "xrayview.agents.maxParallel": {
+          "type": "integer",
+          "default": 5,
+          "minimum": 1,
+          "maximum": 16,
+          "markdownDescription": "How many agent processes may run at once on this computer."
+        },
+        "xrayview.agents.quietPeriodSeconds": {
+          "type": "integer",
+          "default": 120,
+          "minimum": 0,
+          "markdownDescription": "Wait this many seconds after the last push before an automatic run, so a burst of pushes runs the agents once."
+        },
+        "xrayview.agents.maxAutomaticRuns": {
+          "type": "integer",
+          "default": 5,
+          "minimum": 0,
+          "markdownDescription": "Automatic runs per pull request. After that, run the agents by hand."
+        },
+        "xrayview.agents.skipDrafts": {
+          "type": "boolean",
+          "default": true,
+          "markdownDescription": "Don't run the agents automatically on draft pull requests."
+        },
+        "xrayview.agents.autoRunMaxFiles": {
+          "type": "integer",
+          "default": 100,
+          "minimum": 1,
+          "markdownDescription": "Pull requests with more changed files than this don't get automatic agent runs. Press Run to review one."
+        },
+        "xrayview.agents.autoRunMaxLines": {
+          "type": "integer",
+          "default": 5000,
+          "minimum": 1,
+          "markdownDescription": "Pull requests with more changed lines (added plus removed) than this don't get automatic agent runs. Press Run to review one."
+        },
+        "xrayview.agents.approvedPullRequests": {
+          "type": "string",
+          "enum": [
+            "ask",
+            "skip",
+            "run"
+          ],
+          "enumDescriptions": [
+            "Hold automatic runs on approved pull requests and ask once per push whether to run them; Run asks first.",
+            "Don't run the agents automatically on approved pull requests; Run asks first.",
+            "Run the agents on approved pull requests like any other, without asking."
+          ],
+          "default": "ask",
+          "markdownDescription": "What happens to agent runs on pull requests someone has already approved (with no changes requested), to save model cost. A run that's going when the pull request gets approved offers to stop unless this is `run`."
+        },
+        "xrayview.agents.timeoutMinutes": {
+          "type": "integer",
+          "default": 20,
+          "minimum": 1,
+          "markdownDescription": "Stop an agent that runs longer than this many minutes."
+        },
+        "xrayview.metrics.enabled": {
+          "type": "boolean",
+          "default": true,
+          "markdownDescription": "Keep review metrics: what you do with agent findings (added to your review, dismissed and why, copied, posted, left open), description checks, the reviews you post (with the time spent on them) and each agent run's cost, tokens and duration. They stay on this computer, in the extension's storage, and hold finding titles but no code, diffs or comment text. **X-RayView: Delete Review Metrics** removes them."
+        },
+        "xrayview.watch.reviewRequested": {
+          "type": "boolean",
+          "default": true,
+          "markdownDescription": "Watch open pull requests that request your review by name. The agents run on these automatically when `xrayview.agents.autoRun` is on."
+        },
+        "xrayview.watch.teamRequests": {
+          "type": "boolean",
+          "default": true,
+          "markdownDescription": "List pull requests that request a review from one of your teams. They load a few seconds after the rest of the list, then refresh every 5 minutes (Refresh checks at once). Agents don't run on these automatically; use Run Agents."
+        },
+        "xrayview.watch.assigned": {
+          "type": "boolean",
+          "default": true,
+          "markdownDescription": "List pull requests assigned to you."
+        },
+        "xrayview.watch.reviewed": {
+          "type": "boolean",
+          "default": true,
+          "markdownDescription": "List open pull requests you've reviewed, under **You reviewed**. GitHub takes you off a pull request's requested reviewers once you review it, so without this they'd leave the list until merged."
+        },
+        "xrayview.watch.codeOwners": {
+          "type": "boolean",
+          "default": true,
+          "markdownDescription": "Mark pull requests that change files you or one of your teams own in the repository's `CODEOWNERS`, and list them under **You're a code owner**."
+        },
+        "xrayview.watch.othersToReview": {
+          "type": "boolean",
+          "default": true,
+          "markdownDescription": "At the bottom of the list, show open pull requests in your repositories that nobody asked you to review, that aren't yours and aren't approved yet. Your repositories are the ones in your other groups plus watched ones. They load a few seconds after the rest of the list, then refresh every 5 minutes (Refresh checks at once)."
+        },
+        "xrayview.sidebar.groupBy": {
+          "type": "string",
+          "enum": [
+            "relationship",
+            "repository"
+          ],
+          "enumDescriptions": [
+            "Requested from you, assigned, code owner, your teams, yours, watched, opened here",
+            "One group per repository"
+          ],
+          "default": "relationship",
+          "markdownDescription": "How the sidebar groups pull requests. **Others you could review** stays at the bottom either way."
+        },
+        "xrayview.sidebar.sortBy": {
+          "type": "string",
+          "enum": [
+            "risk",
+            "created",
+            "updated"
+          ],
+          "enumDescriptions": [
+            "Riskiest first",
+            "Most recently created first",
+            "Most recent activity first"
+          ],
+          "default": "risk",
+          "markdownDescription": "How pull requests are ordered within each group."
+        },
+        "xrayview.sidebar.othersLimit": {
+          "type": "integer",
+          "default": 10,
+          "minimum": 0,
+          "maximum": 50,
+          "markdownDescription": "How many pull requests to show under **Others you could review**. 0 hides the group."
+        },
+        "xrayview.watch.authored": {
+          "type": "boolean",
+          "default": true,
+          "markdownDescription": "Watch open pull requests you opened."
+        },
+        "xrayview.watch.repositories": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [],
+          "markdownDescription": "Also watch every open pull request in these repositories (`owner/name`)."
+        },
+        "xrayview.watch.pollSeconds": {
+          "type": "integer",
+          "default": 60,
+          "minimum": 15,
+          "markdownDescription": "How often to check GitHub for new pull requests and pushes, in seconds. Your teams' requests and pull requests you could review refresh every 5 minutes, recently merged or closed ones every 10; Refresh checks everything at once."
+        },
+        "xrayview.watch.recentlyClosedDays": {
+          "type": "integer",
+          "default": 3,
+          "minimum": 0,
+          "maximum": 90,
+          "markdownDescription": "Keep pull requests you reviewed or wrote listed for this many days after they're merged or closed, under **Recently merged or closed**, so you can see how they ended. They load after the rest of the list, then every 10 minutes, when a pull request leaves the list and when you press Refresh. 0 turns it off."
+        },
+        "xrayview.clones": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          },
+          "default": {},
+          "markdownDescription": "Local clones to use, as `\"owner/name\": \"/path/to/clone\"`. Workspace folders are found automatically. Without a clone, X-RayView keeps its own partial clone.",
+          "scope": "machine"
+        }
+      }
+    }
+  },
+  "scripts": {
+    "build": "node esbuild.mjs",
+    "watch": "node esbuild.mjs --watch",
+    "typecheck": "tsc --noEmit -p .",
+    "test": "node --test --test-reporter=spec test/*.test.ts",
+    "vscode:prepublish": "node esbuild.mjs --production",
+    "package": "vsce package --no-dependencies",
+    "install-local": "sh scripts/install-local.sh"
+  },
+  "dependencies": {
+    "yaml": "^2.9.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "@types/vscode": "^1.95.0",
+    "@vscode/vsce": "^4.0.0",
+    "esbuild": "^0.28.2",
+    "typescript": "^7.0.2"
+  },
+  "type": "module",
+  "author": "Ali Qaryan",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Xanadupia/xrayviewer.git"
+  },
+  "bugs": {
+    "url": "https://github.com/Xanadupia/xrayviewer/issues"
+  },
+  "homepage": "https://xanadupia.github.io/xrayviewer"
+}

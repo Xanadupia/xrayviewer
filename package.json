@@ -1,0 +1,27 @@
+{
+  "name": "xrayview-workspace",
+  "private": true,
+  "type": "module",
+  "description": "Builds the X-RayView extension.",
+  "author": "Ali Qaryan",
+  "license": "MIT",
+  "engines": {
+    "node": ">=26"
+  },
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "package": "node scripts/build.mjs --package",
+    "typecheck": "tsc --noEmit -p .",
+    "test": "node --test --test-reporter=spec test/*.test.ts",
+    "site": "node scripts/guide-site.mjs"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.5",
+    "@vscode/vsce": "^4.0.0",
+    "esbuild": "^0.28.2",
+    "typescript": "^7.0.2"
+  },
+  "volta": {
+    "node": "26.12.1"
+  }
+}

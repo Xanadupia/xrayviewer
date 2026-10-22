@@ -1,0 +1,938 @@
+/**
+ * Edits to vendor/base/dist/extension.cjs that add the Cursor harness. Each `find` is text from the base
+ * bundle and must appear exactly once, so a different bundle fails the build instead of being patched blindly.
+ * The minified names are the base bundle's: Q runs a process, F is the harness error, Yn the base environment, Bi the
+ * failure classifier, Qn the JSON parser, Fi the path relativizer, ve the log tail, Cu writes an agent's model to
+ * agents.yml, C is the vscode module, t the log, P the Pi model picker and Yt reads the settings. _w picks the agents
+ * a review runs, Qu gives an agent's harness, z is the guide's id and Jf runs Claude Code. In the review run, _u is the
+ * reviewer schema, Hu turns a reviewer's output into findings, x is the diff index and xn matches skip patterns.
+ */
+import { activityGroups, activityHTML, activitySummary, activityTime } from "./activity-ui.mjs";
+import { commentLevel, findingDrafts, readTag, tagBadge, withTag } from "./comment-tags.mjs";
+import { modelSummary } from "./model-line.mjs";
+
+export const PATCHES = [
+  {
+    id: "harness-list",
+    find: 'var ji=["claude","codex","pi"]',
+    replace: 'var ji=["claude","codex","pi","cursor"]',
+  },
+  {
+    id: "harness-label-and-loader",
+    find: 'var Nt={claude:"Claude Code CLI",codex:"Codex CLI",pi:"Pi coding agent"};',
+    replace:
+      'var Nt={claude:"Claude Code CLI",codex:"Codex CLI",pi:"Pi coding agent",cursor:"Cursor Agent CLI"},xrvCursorHarness;' +
+      'function xrvCursor(){return xrvCursorHarness??=require("./cursor-harness.cjs").createCursorHarness(' +
+      "{run:Q,HarnessError:F,baseEnv:Yn,classifyFailure:Bi,parseJson:Qn,relativizePaths:Fi,tail:ve})}" +
+      "function xrvReview(n,r){let p=xrvCursor().planCodeReview(_w(n.data,n.settings,n.enabled),n.settings,$=>Qu($,n.settings,n.harnesses).id,z,n.harnesses.claude,n.data.mergeBase?`${n.data.mergeBase}...${n.data.head.sha}`:null);return n.settings=r.settings=p.settings,p}",
+  },
+  {
+    id: "code-review-plan",
+    find: "{run:o,skipped:a}=_w(n.data,n.settings,n.enabled)",
+    replace: "{run:o,skipped:a}=xrvReview(n,r)",
+  },
+  {
+    id: "code-review-schema",
+    find: "R($,Iu($,u($)),_u,n.timeoutMs)",
+    replace: "R($,Iu($,u($)),xrvCursor().findingSchema($,n.settings,_u),n.timeoutMs)",
+  },
+  {
+    id: "code-review-findings",
+    find: '$===z?m=Wu(B,n.data,n.detail?.pr.body||"",x,n.settings,D):v.push(Hu($,B,x,n.settings,D)),w.push($)',
+    replace:
+      '$===z?(m=Wu(B,n.data,n.detail?.pr.body||"",x,n.settings,D),w.push($)):xrvCursor().codeReviewResults($,B,n.settings,(a,o)=>Hu(a,o,x,n.settings,D),(a,p)=>xn(x.resolvePath(p)??p,n.settings.agents[a].skip),D).forEach(([a,o])=>{v.push(o),w.push(a)})',
+  },
+  {
+    id: "code-review-request",
+    find: "model:ce||void 0,workDir:",
+    replace: "model:ce||void 0,codeReview:n.settings.agents[$]?.codeReview,activity:xrvA.agent($),workDir:",
+  },
+  {
+    id: "activity-log",
+    find: "l={agents:{}},c=()=>n.onProgress?.({agents:{...l.agents}})",
+    replace: "l={agents:{}},xrvA=xrvCursor().activityLog([n.repoPath,n.runDir],()=>c()),c=()=>n.onProgress?.({agents:{...l.agents},activity:xrvA.snapshot()})",
+  },
+  {
+    id: "activity-covered",
+    find: 'for(let $ of a)l.agents[$.id]={state:"skipped",error:$.why};',
+    replace: 'for(let $ of a)l.agents[$.id]={state:"skipped",error:$.why,...$.by?{by:$.by,name:n.settings.agents[$.id]?.name}:{}};',
+  },
+  {
+    id: "activity-started",
+    find: 'l.agents[$]={state:"running",harness:j.id}',
+    replace: 'l.agents[$]={state:"running",harness:j.id,startedAt:Date.now()}',
+  },
+  {
+    id: "activity-claude-stream",
+    find: '"-p","--output-format","json","--json-schema"',
+    replace: '"-p","--output-format","stream-json","--verbose","--json-schema"',
+  },
+  {
+    id: "activity-claude-result",
+    find: "r=JSON.parse(i.stdout)",
+    replace: "r=xrvCursor().claudeResult(i.stdout)",
+  },
+  {
+    id: "activity-claude-feed",
+    find: "input:e.prompt,timeoutMs:e.timeoutMs,signal:e.signal,onStderr:c=>e.onLog?.(c.trimEnd())}",
+    replace: 'input:e.prompt,timeoutMs:e.timeoutMs,signal:e.signal,onStdout:e.activity?.stream("claude"),onStderr:c=>e.onLog?.(c.trimEnd())}',
+  },
+  {
+    id: "activity-codex-feed",
+    find: "env:Yn(),input:e.prompt,timeoutMs:e.timeoutMs,signal:e.signal,onStderr:d=>e.onLog?.(d.trimEnd())}",
+    replace: 'env:Yn(),input:e.prompt,timeoutMs:e.timeoutMs,signal:e.signal,onStdout:e.activity?.stream("codex"),onStderr:d=>e.onLog?.(d.trimEnd())}',
+  },
+  {
+    id: "dispatcher",
+    find: 'case"claude":return await Jf(n,e);',
+    replace: 'case"claude":return e.codeReview?await xrvCursor().codeReview(n,e,Jf):await Jf(n,e);',
+  },
+  {
+    id: "dispatcher-cursor",
+    find: 'case"pi":return await Qf(n,e)}',
+    replace: 'case"pi":return await Qf(n,e);case"cursor":return await xrvCursor().run(n,e)}',
+  },
+  {
+    id: "settings",
+    find: 'pi:e("pi")}}}function Pt(',
+    replace:
+      'pi:e("pi"),cursor:{...e("cursor"),command:xrvCursor().resolveCommand(n.get("cursor.path")||"cursor-agent")}}}}function Pt(',
+  },
+  {
+    id: "agents-yml-validation",
+    find: "ignored; use claude, codex or pi`",
+    replace: "ignored; use claude, codex, pi or cursor`",
+  },
+  {
+    id: "agents-yml-template",
+    find: '"# harness: claude, codex or pi runs this agent;',
+    replace: '"# harness: claude, codex, pi or cursor runs this agent;',
+  },
+  {
+    id: "prompt-empty-workdir",
+    find: 'u=$=>d($).id==="pi"?{...r,checkout:n.repoPath}:r',
+    replace: 'u=$=>d($).id==="pi"||d($).id==="cursor"?{...r,checkout:n.repoPath}:r',
+  },
+  {
+    id: "model-picker",
+    find: "},R=async()=>{let m=ji,",
+    replace:
+      "},xrvPick=m=>xrvCursor().pickModel({vscode:C,readConfig:()=>Yt().harnesses.cursor,setAgentModel:Cu,log:t},m)," +
+      'xrvClaude=m=>xrvCursor().pickCli({vscode:C,log:t,currentPath:()=>Yt().harnesses.claude.command,currentModel:()=>m&&m.model||Yt().harnesses.claude.model,currentExtraArgs:()=>Yt().harnesses.claude.extraArgs,setAgentModel:Cu},"claude",m),' +
+      'xrvCodex=m=>xrvCursor().pickCli({vscode:C,log:t,currentPath:()=>Yt().harnesses.codex.command,currentModel:()=>m&&m.model||Yt().harnesses.codex.model,currentExtraArgs:()=>Yt().harnesses.codex.extraArgs,setAgentModel:Cu},"codex",m),' +
+      'xrvModel=(h,m)=>h==="pi"?P(m):h==="cursor"?xrvPick(m):h==="claude"?xrvClaude(m):h==="codex"?xrvCodex(m):Promise.resolve(!1),' +
+      'xrvDone=async(h,a)=>{o.notifyModel();let E=Yt().harnesses,{settings:O}=await $t(),g=a?O.agents[a]:null;await xrvCursor().announceChoice({vscode:C,log:t},{harness:h,settings:E[h],agent:g?{name:Ue(g.name),model:g.model||""}:null,inUse:Object.values(O.agents).some(x=>x.enabled&&(x.harness||E.default)===h),agents:O.agents,harnesses:E})},' +
+      'xrvMove=async h=>{let E=Yt().harnesses,{settings:O}=await $t(),w=[];E.default!==h&&await C.workspace.getConfiguration("xrayview").update("harness",h,C.ConfigurationTarget.Global);' +
+      'for(let[d,x]of Object.entries(O.agents)){if(x.harness&&x.harness!==h){await Eu(d,"");w.push(Ue(x.name))}else if(!x.harness&&x.model&&E.default!==h){await Cu(d,"");w.push(Ue(x.name))}}' +
+      '(E.default!==h||w.length)&&t(`Every agent now runs on ${Nt[h]}${w.length?`. ${w.join(", ")} no longer ${w.length>1?"have":"has"} a harness or model of ${w.length>1?"their":"its"} own`:""}`)},' +
+      "R=async()=>{let m=ji,",
+  },
+  {
+    id: "model-picker-default",
+    find: 'j&&await C.workspace.getConfiguration("xrayview").update("harness",j.value,C.ConfigurationTarget.Global),j?.value==="pi"&&await P(null);continue}',
+    replace:
+      'if(j){await C.workspace.getConfiguration("xrayview").update("harness",j.value,C.ConfigurationTarget.Global);if(await xrvModel(j.value,null)){await xrvDone(j.value,null);return}}continue}',
+  },
+  {
+    id: "model-picker-agent",
+    find: 'let _=J.agent,$=O.agents[_].harness,L=await C.window.showQuickPick([{label:`Use the default (${Nt[E.default]})`,description:$?"":"in use",value:""},...m.map(j=>A(j,$===j))],{title:`Harness for the ${Ue(O.agents[_].name).toLowerCase()} agent`});if(!L)continue;let B=null;L.value!==$&&({clearedModel:B}=await Eu(_,L.value),t(`${O.agents[_].name} now runs on ${L.value||`the default (${E.default})`}`));let se=L.value==="pi"&&await P({id:_,name:O.agents[_].name,model:L.value===$?O.agents[_].model:""});',
+    replace:
+      'let _=J.agent,ag=O.agents[_],nm=Ue(ag.name),own=ag.harness||"",cur=own||E.default,cv=v.get("cursor"),co=xrvCursor().installedSummary("codex"),cl=xrvCursor().installedSummary("claude"),' +
+      'L=await C.window.showQuickPick([' +
+      '{label:cv?"Cursor Agent "+cv:"Cursor Agent CLI",description:[cv?"":"Not found",cur==="cursor"?"in use":""].filter(Boolean).join(" \\u00b7 "),detail:cv?"Pick a model on your Cursor account. Then this agent runs on Cursor.":"Install it, or set xrayview.cursor.path to where it is.",value:"cursor"},' +
+      '{label:co?"Codex "+co:"Install Codex\\u2026",description:[co?"":"Not installed",cur==="codex"?"in use":""].filter(Boolean).join(" \\u00b7 "),detail:co?"Pick a model and reasoning level, or another installed version. Then this agent runs on Codex.":"Download the Codex CLI, then pick a model. Then this agent runs on Codex.",value:"codex"},' +
+      '{label:cl?"Claude Code "+cl:"Install Claude Code\\u2026",description:[cl?"":"Not installed",cur==="claude"?"in use":""].filter(Boolean).join(" \\u00b7 "),detail:cl?"Pick a model and effort level, or another installed version. Then this agent runs on Claude Code.":"Download Claude Code, then pick a model. Then this agent runs on Claude Code.",value:"claude"}' +
+      '],{title:`Which CLI runs the ${nm.toLowerCase()} agent?`,placeHolder:`Only the ${nm.toLowerCase()} agent changes. The other agents keep theirs, and they all still run together.`});if(!L)continue;let B=null;L.value!==own&&({clearedModel:B}=await Eu(_,L.value),t(`${ag.name} now runs on ${Nt[L.value]}`));let se=await xrvModel(L.value,{id:_,name:nm,model:L.value===own?ag.model:""});if(se){await xrvDone(L.value,_);return}',
+  },
+  {
+    id: "harness-picker-rows",
+    find:
+      'M=[{label:"Default for all agents",description:Nt[E.default],detail:"Agents without a harness of their own use this one.",agent:"default"},{label:"Agents",kind:C.QuickPickItemKind.Separator},...Object.entries(O.agents).map(([j,ce])=>{let Me=ce.harness,q=Me||E.default,Le=ce.model||E[q].model||(q==="pi"?"Pi\'s default model":"the CLI\'s default model"),gt=q==="pi"&&E.pi.thinking&&!_e(ce.model)?`, thinking ${E.pi.thinking}`:"";return{label:Ue(ce.name),description:`${Nt[q]}${Me?"":" (default)"} \\xB7 ${Le}${gt}${ce.enabled?"":" \\xB7 off"}`,detail:j===z?"Also writes the briefing\'s opening line.":void 0,agent:j}})],J=await C.window.showQuickPick(M,{title:"Which CLI runs each agent?",placeHolder:"Pick the default or an agent to change it"});',
+    replace:
+      'xrvRows=await xrvCursor().harnessPicker(E,O.agents,{cursor:v.get("cursor")||"",codex:xrvCursor().installedSummary("codex"),claude:xrvCursor().installedSummary("claude"),pi:v.get("pi")||""},z),' +
+      "M=xrvRows.rows.map(x=>x.separator?{label:x.label,kind:C.QuickPickItemKind.Separator}:x),J=await C.window.showQuickPick(M,{title:xrvRows.title,placeHolder:xrvRows.placeHolder});",
+  },
+  {
+    id: "effort-record",
+    find: '...i.id==="pi"?{thinking:r&&_e(r)||i.thinking||a||null}:{}',
+    replace:
+      '...i.id==="pi"?{thinking:r&&_e(r)||i.thinking||a||null}:i.id==="codex"?{thinking:(()=>{let g=i.extraArgs||[];for(let q=0;q<g.length;q++)if(g[q]==="-c"&&String(g[q+1]||"").startsWith("model_reasoning_effort="))return String(g[q+1]).slice(24).replace(/^"|"$/g,"")})()}' +
+      ':i.id==="claude"?{thinking:(()=>{let g=i.extraArgs||[];for(let q=0;q<g.length;q++){if(g[q]==="--effort")return g[q+1];if(String(g[q]).startsWith("--effort="))return String(g[q]).slice(9)}})()}:{}',
+  },
+  {
+    id: "reload-fresh",
+    find: "async reload(){this.current&&await this.show(this.current,{home:this.home,...this.view?{view:this.view}:{}})}",
+    replace:
+      "async reload(){this.current&&await this.show(this.current,{home:this.home,...this.view?{view:this.view}:{},fresh:!0})}",
+  },
+  {
+    id: "show-fresh",
+    find: "let u=this.service.hasCachedDetail(e),h={key:N(e),load:i,cached:u,staged:!1};",
+    replace: "let u=!t.fresh&&this.service.hasCachedDetail(e),h={key:N(e),load:i,cached:u,staged:!1};",
+  },
+  {
+    id: "refresh-uncached",
+    find: 's==="/refresh"){this.details.delete(N(e).toLowerCase());let{data:r}=await this.loadData(e);return this.refresh().catch(()=>{}),{ok:!0,head:r.head.sha}}',
+    replace:
+      's==="/refresh"){this.details.delete(N(e).toLowerCase());let d=await this.detail(e,0),{data:r}=await this.loadData(e,d);return this.refresh().catch(()=>{}),{ok:!0,head:r.head.sha}}',
+  },
+  {
+    id: "run-button-state",
+    find: 'let l=this.record(e).run;return l.state==="held"&&l.note&&(o.runNote=l.note),',
+    replace:
+      'let l=this.record(e).run;return l.state==="held"&&l.note&&(o.runNote=l.note),o.agentsRunning=["running","queued","waiting","elsewhere"].includes(l.state),o.agentProgress=l.progress??null,o.runState=l.state,' +
+      "o.modelPlan=await $t().then(c=>xrvCursor().modelPlan(Yt().harnesses,c.settings.agents)).catch(()=>null),",
+  },
+  {
+    id: "run-button-notify",
+    find: "noticeChange(e){",
+    replace:
+      'notifyRun(){if(!this.panel||!this.current)return;let r=this.service.get(this.current)?.run,s=r?.state;this.panel.webview.postMessage({type:"host-run",running:s==="running"||s==="queued"||s==="waiting"||s==="elsewhere",state:s||"idle",automatic:!!r?.automatic,progress:r?.progress??null})}' +
+      'notifyModel(){if(!this.panel)return;$t().then(c=>xrvCursor().modelPlan(Yt().harnesses,c.settings.agents)).then(p=>this.panel?.webview.postMessage({type:"host-model",plan:p}),()=>{})}noticeChange(e){',
+  },
+  {
+    id: "run-button-change",
+    find: 'r.on("change",u),r.on("runFinished"',
+    replace: 'r.on("change",()=>{u(),o.notifyRun()}),r.on("runFinished"',
+  },
+  {
+    id: "run-button-shim",
+    find: 'm.type === "host-view" || m.type === "host-list" || m.type === "host-pr-changed" || m.type === "host-data"',
+    replace:
+      'm.type === "host-view" || m.type === "host-list" || m.type === "host-pr-changed" || m.type === "host-data" || m.type === "host-run" || m.type === "host-model"',
+  },
+  {
+    id: "harness-install-actions",
+    find: 'if(!J?.agent)return;if(J.agent==="default"){',
+    replace:
+      'if(!J?.agent)return;if(J.agent==="pick-cursor"||J.agent==="pick-pi"||J.agent==="install-codex"||J.agent==="install-claude"){let h=J.agent.replace(/^(pick|install)-/,"");if(await xrvModel(h,null)){await xrvMove(h);await xrvDone(h,null);return}continue}if(J.agent==="default"){',
+  },
+  {
+    id: "choose-model-host",
+    find: 'runAgents() { vscode.postMessage({ type: "runAgents", key }); },',
+    replace:
+      'runAgents() { vscode.postMessage({ type: "runAgents", key }); },\n    chooseHarness() { vscode.postMessage({ type: "chooseHarness", key }); },',
+  },
+  {
+    id: "choose-model-command",
+    find: 'else if(e.type==="runAgents")ee.commands.executeCommand("xrayview.runAgents",N(t));',
+    replace:
+      'else if(e.type==="chooseHarness")ee.commands.executeCommand("xrayview.selectHarness");else if(e.type==="runAgents")ee.commands.executeCommand("xrayview.runAgents",N(t));',
+  },
+  {
+    id: "sidebar-settings",
+    find: 'function Ei(){let n=C.workspace.getConfiguration("xrayview.sidebar"),e=n.get("groupBy")==="repository"?"repository":"relationship",t=["risk","created","updated"].find(s=>s===n.get("sortBy"))||"risk";return{groupBy:e,sortBy:t,othersLimit:n.get("othersLimit",10)}}',
+    replace:
+      'function Ei(){let n=C.workspace.getConfiguration("xrayview.sidebar"),e=n.get("groupBy")==="repository"?"repository":n.get("groupBy")==="author"?"author":"relationship",t=["risk","created","updated"].find(s=>s===n.get("sortBy"))||"risk",list=["open","draft","merged","closed"],raw=n.get("status"),st=Array.isArray(raw)?raw.filter(s=>list.includes(s)):list.includes(raw)?[raw]:list,who=n.get("author"),au=Array.isArray(who)?who.filter(s=>typeof s==="string"&&s):typeof who==="string"&&who?[who]:[];if(!st.length)st=list;return{groupBy:e,sortBy:t,othersLimit:n.get("othersLimit",10),author:au,status:st,mine:n.get("mine")===true}}',
+  },
+  {
+    id: "sidebar-author-group",
+    find: '}else for(let a of dd){',
+    replace:
+      '}else if(e.groupBy==="author"){let a=new Map;for(let l of i){let c=l.record.summary?.author?.login||"Unknown";a.set(c,[...a.get(c)||[],l])}for(let[l,c]of[...a].sort(([d],[u])=>d.localeCompare(u)))r.push({id:`author:${l.toLowerCase()}`,label:l,description:String(c.length),rows:c.sort(s)})}else for(let a of dd){',
+  },
+  {
+    id: "sidebar-author-closed",
+    find: 'rows:o}),e.groupBy!=="repository"){let a=i.filter(d=>fd(d.record))',
+    replace: 'rows:o}),e.groupBy==="relationship"){let a=i.filter(d=>fd(d.record))',
+  },
+  {
+    id: "sidebar-author-filter",
+    find: "function pd(n,e,t={}){let s=cd(e.sortBy),i=n.filter(a=>!ld(a.record)&&(a.record.pinned||ud(a.record))),r=[];",
+    replace:
+      'function xrvStatus(rec){let s=rec.summary;return !s?"open":s.state==="MERGED"?"merged":s.state==="CLOSED"?"closed":s.isDraft?"draft":"open"}function pd(n,e,t={}){if(e.mine)n=n.filter(a=>a.record.summary?.own);let au=Array.isArray(e.author)?e.author:[e.author].filter(Boolean);if(au.length){let want=new Set(au.map(s=>String(s).toLowerCase()));n=n.filter(a=>want.has((a.record.summary?.author?.login||"").toLowerCase()))}let st=Array.isArray(e.status)?e.status:e.status&&e.status!=="all"?[e.status]:[];if(st.length&&st.length<4){let want=new Set(st);n=n.filter(a=>want.has(xrvStatus(a.record)))}let s=cd(e.sortBy),i=n.filter(a=>!ld(a.record)&&(a.record.pinned||ud(a.record))),r=[];',
+  },
+  {
+    id: "sidebar-status-text",
+    find: 'function bf(n,e,t=Date.now()){let s=n.summary,i=Ai(s),r=fa(n,t).text;return[e.tag||"",i?"":wf(s)[0]||"",i&&e.risk?`${e.risk.score} ${fi[e.risk.level].toLowerCase()}`:"",i||jv.has(n.run.state)?r:"",...i?wf(s):[],Fv(s,t),e.inRepoGroup?"":n.key.name].filter(Boolean).join(" \\xB7 ")}',
+    replace:
+      'function xrvAgentState(n,t=Date.now()){let run=n.run||{},a=jn(n.agent,n.summary),f=n.agent?n.agent.findings.length:0,fs=f+" finding"+(f===1?"":"s"),c=a.commit?a.commit.slice(0,7):"";' +
+      'if(run.state==="waiting"||run.state==="queued")return{short:fa(n,t).text.replace(/^agents/,"review"),long:run.state==="queued"?"Review queued.":"Review starting soon.",color:"#E2C08D"};' +
+      'if(run.state==="running"){let p=Object.values(run.progress?.agents||{}),d=p.filter(g=>g&&(g.state==="done"||g.state==="failed")).length,all=p.filter(g=>g&&g.state!=="skipped").length;return{short:all?"reviewing "+d+"/"+all:"review starting",long:all?"Reviewing now: "+d+" of "+all+" agents done.":"Review starting.",color:"#4FA3FF"}}' +
+      'if(run.state==="elsewhere")return{short:"reviewing in another window",long:"Reviewing in another window.",color:"#4FA3FF"};' +
+      'if(run.state==="failed")return{short:"review failed",long:"The last review failed."+(n.agent?" The one before found "+fs+".":""),color:"#F85149"};' +
+      'let hold=run.state==="held"?run.hold==="approved-ask"?" Approved, so the agents wait for your choice.":run.hold==="approved-skip"?" Approved, so the agents skipped it.":" Large, so the agents wait for you to press Run.":"";' +
+      'if(a.state==="none")return{short:"not reviewed",long:"Not reviewed yet."+hold,color:"#9AA0A6"};' +
+      'if(a.state==="behind")return{short:"reviewed, new commits",long:"Reviewed "+c+" "+ht(a.ranAt,t)+": "+fs+". New commits came after it."+hold,color:"#E2C08D"};' +
+      'return{short:"\\u2713 reviewed, "+fs,long:"Reviewed "+c+" "+ht(a.ranAt,t)+": "+fs+"."+hold,color:"#3FB950"}}' +
+      'function bf(n,e,t=Date.now()){let s=n.summary,i=Ai(s),state=!s?"":s.state==="MERGED"?"merged":s.state==="CLOSED"?"closed":s.isDraft?"draft":"open";return[state,xrvAgentState(n,t).short,e.tag||"",i&&yf(s)?"conflicts":"",Fv(s,t),e.inRepoGroup?"":n.key.name].filter(Boolean).join(" \\xB7 ")}',
+  },
+  {
+    id: "sidebar-status-icon",
+    find: 'let a=t.run.state==="running"||t.run.state==="queued"||t.run.state==="elsewhere",l=jn(t.agent,s),c=l.state==="current"?"pass-filled":l.state==="behind"?"pass":"circle-large-outline";r.iconPath=a?new oe.ThemeIcon("sync~spin"):t.run.state==="failed"?new oe.ThemeIcon("error",new oe.ThemeColor("list.errorForeground")):new oe.ThemeIcon(c,new oe.ThemeColor(e.risk?Bv[e.risk.level]:"disabledForeground"));',
+    replace:
+      'let a=t.run.state==="running"||t.run.state==="queued"||t.run.state==="elsewhere",xrvSt=!s?"open":s.state==="MERGED"?"merged":s.state==="CLOSED"?"closed":s.isDraft?"draft":"open",xrvIcon=xrvSt==="merged"?"git-merge":xrvSt==="closed"?"git-pull-request-closed":xrvSt==="draft"?"git-pull-request-draft":"git-pull-request",xrvColor=xrvSt==="merged"?"charts.purple":xrvSt==="closed"?"charts.red":xrvSt==="draft"?"disabledForeground":"charts.green";let xrvExt=e.risk&&oe.extensions.getExtension("aliqaryan.xrayview");r.iconPath=a?new oe.ThemeIcon("sync~spin"):t.run.state==="failed"?new oe.ThemeIcon("error",new oe.ThemeColor("list.errorForeground")):xrvExt?oe.Uri.joinPath(xrvExt.extensionUri,"media","risk",xrvSt+"-"+e.risk.level+".svg"):new oe.ThemeIcon(xrvIcon,new oe.ThemeColor(xrvColor));',
+  },
+  {
+    id: "sidebar-group-author",
+    find: '{label:"By repository",description:m==="repository"?"current":"",detail:"One group per repository; each row says why it\'s listed",value:"repository"}]',
+    replace:
+      '{label:"By repository",description:m==="repository"?"current":"",detail:"One group per repository; each row says why it\'s listed",value:"repository"},{label:"By author",description:m==="author"?"current":"",detail:"One group per pull request author",value:"author"}]',
+  },
+  {
+    id: "sidebar-tooltip",
+    find: "tooltip(e,t){let s=e.record,i=s.summary,r=new oe.MarkdownString;r.appendMarkdown(\"**\"),r.appendText(i?.title||N(s.key)),r.appendMarkdown(`**  \n`),r.appendText(`${N(s.key)}${i?.author?.login?` by ${i.author.login}`:\"\"}`),r.appendMarkdown(`  \n`);let o=(i?.reasons||[]).map(c=>hd[c]).filter(Boolean);if(o.length&&r.appendMarkdown(`Listed because ${o.join(\", \")}.  \n`),i&&r.appendMarkdown(`+${i.additions} \\u2212${i.deletions} in ${i.changedFiles} files${i.checks.failed?` \\xB7 ${i.checks.failed} checks failing`:i.checks.running?` \\xB7 ${i.checks.running} checks running`:\"\"}  \n`),i){r.appendMarkdown(`\n`);for(let c of[Sf(i),kf(i),...Rf(i)])r.appendText(c),r.appendMarkdown(`  \n`)}if(e.risk){r.appendMarkdown(`\n**${fi[e.risk.level]} risk, ${e.risk.score}/100**  \n`);for(let c of e.risk.factors.slice(0,4))r.appendMarkdown(\"- \"),r.appendText(`${c.label}${c.detail?`: ${c.detail}`:\"\"} (+${c.points})`),r.appendMarkdown(`\n`)}if([\"waiting\",\"queued\",\"running\",\"elsewhere\",\"held\",\"failed\"].includes(s.run.state)&&t&&r.appendMarkdown(`\nAgents: ${t}  \n`),$f(s).forEach((c,d)=>{r.appendMarkdown(d?`  \n`:`\n`),r.appendText(c)}),s.run.state===\"done\"&&(s.run.tokens||s.run.costUsd!=null)){let c=[s.run.tokens?wt(s.run.tokens):\"\",s.run.costUsd!=null?`$${s.run.costUsd.toFixed(2)}${s.run.tokens?\" for the agents that report one\":\"\"}`:\"\"];r.appendMarkdown(`  \nLast run: ${c.filter(Boolean).join(\", \")}`)}return s.run.note&&(r.appendMarkdown(`  \n`),r.appendText(s.run.note)),s.run.error&&(r.appendMarkdown(`  \n`),r.appendText(s.run.error.slice(0,300))),r}};",
+    replace: "tooltip(e,t){let s=e.record,i=s.summary,r=new oe.MarkdownString,num=n=>Number(n||0).toLocaleString(\"en-US\"),paint=(c,x)=>{r.appendMarkdown('<span style=\"color:'+c+';\">'),r.appendText(String(x)),r.appendMarkdown(\"</span>\")};r.supportHtml=!0;r.appendMarkdown(\"**\"),r.appendText(i?.title||N(s.key)),r.appendMarkdown(\"**\\n\\n\"),r.appendText([N(s.key),i?.author?.login].filter(Boolean).join(\" · \")),r.appendMarkdown(\"\\n\\n\");if(i){let state=i.state===\"MERGED\"?\"Merged\":i.state===\"CLOSED\"?\"Closed\":i.isDraft?\"Draft\":\"Open\",stateCls=state===\"Merged\"?\"#B180D7\":state===\"Closed\"?\"#F14C4C\":state===\"Draft\"?\"#9AA0A6\":\"#3FB950\",review=kf(i);review===\"No approvals yet\"&&(review=\"no approvals yet\");paint(stateCls,state),r.appendMarkdown(\" · \"),r.appendText(review),r.appendMarkdown(\"\\n\\n\"),paint(\"#3FB950\",\"+\"+num(i.additions)),r.appendMarkdown(\" \"),paint(\"#F85149\",\"−\"+num(i.deletions)),r.appendMarkdown(\" in \"+num(i.changedFiles)+\" files\");i.checks?.failed?(r.appendMarkdown(\" · \"),paint(\"#F85149\",num(i.checks.failed)+\" checks failing\")):i.checks?.running&&(r.appendMarkdown(\" · \"),paint(\"#E2C08D\",num(i.checks.running)+\" checks running\"));r.appendMarkdown(\"\\n\\n\");for(let line of Rf(i))r.appendText(line),r.appendMarkdown(\"\\n\\n\")}if(e.risk){let cls=e.risk.level===\"high\"?\"#F85149\":e.risk.level===\"medium\"?\"#E2C08D\":\"#3FB950\";r.appendMarkdown(\"<b>\"),paint(cls,fi[e.risk.level]+\" risk · \"+e.risk.score),r.appendMarkdown(\"</b>\\n\\n\");for(let c of e.risk.factors.slice(0,3))r.appendText(c.label),r.appendMarkdown(\"\\n\\n\")}let xs=xrvAgentState(s);r.appendMarkdown(\"<b>X-RayView</b> · \"),paint(xs.color,xs.long),r.appendMarkdown(\"\\n\\n\");if(s.run.state===\"done\"&&(s.run.tokens||s.run.costUsd!=null)){let c=[s.run.tokens?wt(s.run.tokens):\"\",s.run.costUsd!=null?\"$\"+s.run.costUsd.toFixed(2):\"\"].filter(Boolean);c.length&&(r.appendText(c.join(\" · \")),r.appendMarkdown(\"\\n\\n\"))}return s.run.note&&(r.appendText(s.run.note),r.appendMarkdown(\"\\n\\n\")),s.run.error&&r.appendText(s.run.error.slice(0,300)),r}};",
+  },
+  {
+        id: "sidebar-view-label",
+    find: 'let c=()=>{let{groupBy:m,sortBy:v}=Ei();l.description=`${m==="repository"?"by repository":"by relationship"} \\xB7 ${md[v]}`}',
+    replace:
+      'let c=()=>{let{groupBy:m,sortBy:v,author:au,status:st,mine}=Ei(),by=m==="repository"?"by repository":m==="author"?"by author":"by relationship",shown=Array.isArray(st)&&st.length&&st.length<4?st.join(", "):"",who=Array.isArray(au)?au.join(", "):au||"",extra=[mine?"mine":"",shown,who].filter(Boolean).join(" · ");l.description=`${by}${extra?` · ${extra}`:""} · ${md[v]}`}',
+  },
+  {
+    id: "sidebar-filter-author",
+    find: 'k("xrayview.sortBy",async()=>{',
+    replace:
+      'k("xrayview.filter",()=>{let cur=Ei(),authors=[...new Set(r.all().map(E=>E.summary?.author?.login).filter(Boolean))].sort((E,O)=>E.localeCompare(O)),mine={label:"My pull requests",pick:"mine",value:"mine"},allSt={label:"All",pick:"all-status",value:"all"},statuses=[["Open","open"],["Draft","draft"],["Merged","merged"],["Closed","closed"]].map(([label,value])=>({label,pick:"status",value})),allAu={label:"All authors",pick:"all-author",value:"all"},people=authors.map(E=>({label:E,pick:"author",value:E})),qp=C.window.createQuickPick();qp.canSelectMany=!0;qp.title="Filter pull requests";qp.placeholder="Check any, then press Return. All shows every item in that group.";qp.items=[mine,{label:"Status",kind:C.QuickPickItemKind.Separator},allSt,...statuses,{label:"Author",kind:C.QuickPickItemKind.Separator},allAu,...people];let stAll=!cur.status.length||cur.status.length>=4,auAll=!cur.author.length,on=new Set(cur.status),who=new Set(cur.author.map(E=>String(E).toLowerCase()));qp.selectedItems=qp.items.filter(E=>E.pick==="mine"?cur.mine:E.pick==="all-status"?stAll:E.pick==="status"?!stAll&&on.has(E.value):E.pick==="all-author"?auAll:E.pick==="author"&&!auAll&&who.has(String(E.value).toLowerCase()));let lock=0;qp.onDidChangeSelection(items=>{if(lock)return;let sel=items.filter(E=>E.pick),prev=qp._prev||[],added=sel.filter(E=>!prev.includes(E)),keep=sel.filter(E=>E.pick==="mine"),st=sel.filter(E=>E.pick==="status"||E.pick==="all-status"),au=sel.filter(E=>E.pick==="author"||E.pick==="all-author");if(added.some(E=>E.pick==="all-status"))st=[allSt];else if(added.some(E=>E.pick==="status"))st=st.filter(E=>E.pick==="status");else if(!st.some(E=>E.pick==="status")&&!st.some(E=>E.pick==="all-status"))st=[allSt];if(added.some(E=>E.pick==="all-author"))au=[allAu];else if(added.some(E=>E.pick==="author"))au=au.filter(E=>E.pick==="author");else if(!au.some(E=>E.pick==="author")&&!au.some(E=>E.pick==="all-author"))au=[allAu];let next=[...keep,...st,...au];qp._prev=next;if(next.length!==sel.length||next.some(E=>!sel.includes(E))){lock=1;qp.selectedItems=next;lock=0}});qp._prev=[...qp.selectedItems];qp.onDidAccept(async()=>{let chosen=qp.selectedItems.filter(E=>E.pick),st=chosen.some(E=>E.pick==="all-status")?[]:chosen.filter(E=>E.pick==="status").map(E=>E.value),au=chosen.some(E=>E.pick==="all-author")?[]:chosen.filter(E=>E.pick==="author").map(E=>E.value),cfg=C.workspace.getConfiguration("xrayview.sidebar");await cfg.update("mine",chosen.some(E=>E.pick==="mine"),C.ConfigurationTarget.Global);await cfg.update("status",st,C.ConfigurationTarget.Global);await cfg.update("author",au,C.ConfigurationTarget.Global);qp.hide()});qp.onDidHide(()=>qp.dispose());qp.show()}),k("xrayview.sortBy",async()=>{',
+  },
+];
+
+/** Names the patches add; the original bundle must not use them already. */
+export const ADDED_NAMES = ["xrvCursorHarness", "xrvCursor", "xrvReview", "xrvA", "xrvPick", "xrvClaude", "xrvCodex", "xrvModel", "xrvDone", "xrvRows", "xrvMove", "xrvSt", "xrvIcon", "xrvColor", "xrvExt", "xrvStatus", "xrvAgentState"];
+
+const modelBit = '${modelSummary(AGENTS).line ? ` · ${esc(modelSummary(AGENTS).line)} <button type="button" class="link" data-act="choose-model">Change</button>` : ""}';
+
+/**
+ * The Agent activity sheet on the review page. It redraws when the host posts new progress and keeps the rows the
+ * reader opened, their scroll position and focus. Between posts, a timer updates only the running clocks.
+ */
+const ACTIVITY_PAGE = `${activityTime}
+${activityGroups}
+${activitySummary}
+${activityHTML}
+let agentProgress = (LIVE && LIVE.agentProgress) || null;
+const activityOpen = new Map();
+let activityTimer = 0;
+let activityShown = "";
+let activityDetail = "";
+const activityItemHTML = () => '<button type="button" role="menuitem" class="menu-item" data-act="agent-activity"><b>Agent activity…</b><span>What each agent read, ran and said</span></button>';
+const activityBodyHTML = () => activityHTML(agentProgress, LIVE && LIVE.modelPlan, { esc, icon, avatar: agentAv("xs"), now: Date.now(), open: activityOpen, detail: activityDetail });
+function openActivity() {
+  runMenu(false);
+  activityDetail = "";
+  activityShown = JSON.stringify(agentProgress);
+  openSheet("activity", sheetHead("activity", "Agent activity") + '<div class="sheet-body" id="activity-body">' + activityBodyHTML() + "</div>", "side activity-sheet");
+  clearInterval(activityTimer);
+  activityTimer = setInterval(() => {
+    if (!S.sheet || S.sheet.id !== "activity") { clearInterval(activityTimer); return; }
+    const now = Date.now();
+    for (const el of document.querySelectorAll("#activity-body [data-since]")) el.textContent = activityTime(now - Number(el.dataset.since));
+  }, 1000);
+}
+function refreshActivity() {
+  const body = S.sheet && S.sheet.id === "activity" ? $("#activity-body") : null;
+  if (!body) return;
+  const shown = JSON.stringify(agentProgress);
+  if (shown === activityShown) return;
+  activityShown = shown;
+  const atEnd = body.scrollHeight - body.scrollTop - body.clientHeight < 24;
+  const top = body.scrollTop;
+  const focused = document.activeElement && body.contains(document.activeElement) ? document.activeElement : null;
+  const button = focused && focused.dataset.act ? focused : null;
+  const holder = focused && !button ? focused.closest("[data-key]") : null;
+  const key = holder ? holder.dataset.key : "";
+  body.innerHTML = activityBodyHTML();
+  body.scrollTop = atEnd ? body.scrollHeight : top;
+  if (button) { const again = [...body.querySelectorAll("[data-act]")].find((el) => el.dataset.act === button.dataset.act && el.dataset.id === button.dataset.id && el.className === button.className); if (again) again.focus({ preventScroll: true }); }
+  if (key) { const again = [...body.querySelectorAll("[data-key]")].find((el) => el.dataset.key === key); if (again) again.querySelector("summary").focus({ preventScroll: true }); }
+}
+function showActivity(id) {
+  const body = S.sheet && S.sheet.id === "activity" ? $("#activity-body") : null;
+  if (!body) return;
+  const from = activityDetail;
+  activityDetail = id;
+  for (const key of [...activityOpen.keys()]) if (key.startsWith("m:")) activityOpen.delete(key);
+  activityShown = JSON.stringify(agentProgress);
+  body.innerHTML = activityBodyHTML();
+  body.scrollTop = 0;
+  const target = id ? body.querySelector('[data-act="activity-back"]') : [...body.querySelectorAll(".check-name")].find((el) => el.dataset.id === from);
+  if (target) target.focus();
+}
+document.addEventListener("click", (e) => {
+  for (const menu of document.querySelectorAll("#activity-body details.check-more[open]")) if (!menu.contains(e.target)) menu.open = false;
+});
+document.addEventListener("toggle", (e) => {
+  const el = e.target;
+  if (!(el instanceof HTMLDetailsElement) || !el.dataset.key || !el.closest("#activity-body")) return;
+  if (el.open === (el.dataset.was === "1")) return;
+  el.dataset.was = el.open ? "1" : "0";
+  activityOpen.set(el.dataset.key, el.open);
+}, true);`;
+
+/** Edits to the review page so a finished run shows the harness and model, or each combination. */
+export const UI_PATCHES = [
+  {
+    id: "brand-mark",
+    find: 'const LOGO = `<svg class="logo" viewBox="0 0 30 16" aria-hidden="true"><path d="M1.5 8h27" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" fill="none"/><circle cx="15" cy="8" r="5" fill="var(--sheet)" stroke="currentColor" stroke-width="2.6"/></svg>`;',
+    replace:
+      'const LOGO = `<svg class="logo" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 8V5.5A2.5 2.5 0 0 1 5.5 3H8M16 3h2.5A2.5 2.5 0 0 1 21 5.5V8M21 16v2.5a2.5 2.5 0 0 1-2.5 2.5H16M8 21H5.5A2.5 2.5 0 0 1 3 18.5V16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M8.5 8.5l7 7M15.5 8.5l-7 7" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>`;',
+  },
+  {
+    id: "comment-tags",
+    find: "const LABEL_PREFIX = /^\\s*\\**(nit|question|blocking|suggestion|praise)\\**\\s*(?:\\([^)]*\\))?\\s*:\\s*/i;",
+    replace: [tagBadge, commentLevel, readTag, withTag, findingDrafts].map(String).join("\n"),
+  },
+  {
+    id: "adopt-all-button",
+    find: '${FIND.length ? `<ol class="brief-list">${items}</ol>` : ""}',
+    replace: '${FIND.length ? `<ol class="brief-list">${items}</ol>${adoptAllHTML()}` : ""}',
+  },
+  {
+    id: "adopt-all",
+    find: "function adoptFinding(id) {",
+    replace: `let lastAdopted = [];
+const adoptAllHTML = () => {
+  const n = openFindings().length;
+  return n > 1 ? \`<div class="brief-bulk"><button type="button" class="btn sm agent" data-act="adopt-all">\${icon("plus")}Add all \${n} to my review</button><span>Each finding becomes its suggested comment on its line, at its level. Edit or remove any of them before you post.</span></div>\` : "";
+};
+function adoptAll(quiet) {
+  const open = openFindings();
+  if (!open.length) { if (!quiet) toast("Every finding is already decided."); return; }
+  if (S.composer && S.composer.fromFinding && open.some((x) => x.id === S.composer.fromFinding)) closeComposer();
+  const { drafts, decisions } = findingDrafts(open.map((x) => ({ ...x, verbatim: verbatimOf(x) })), { newId: uid, lineText, at: nowISO(), run: AGENT_RUN_AT });
+  S.drafts.push(...drafts);
+  Object.assign(S.findings, decisions);
+  lastAdopted = drafts.map((d) => d.id);
+  save();
+  sendMetrics(open.map((x) => ({ kind: "finding", action: "added", finding: x.id })));
+  new Set(open.map((x) => x.f)).forEach((f) => refreshFile(f));
+  refreshChrome();
+  refreshFlow();
+  if (!quiet) toast(\`Added \${plural(open.length, "finding")} to your review. They post when you finish.\`, { act: "adopt-all-undo", label: "Undo" });
+}
+function adoptAllCardHTML() {
+  const n = openFindings().length;
+  return n > 1 ? \`<button type="button" class="btn sm ghost" data-act="adopt-all" data-n="\${n}" title="Add every open finding to your review, each as its suggested comment">\${icon("plus")}Add all \${n}</button>\` : "";
+}
+function syncAdoptAll() {
+  const html = adoptAllCardHTML();
+  const n = String(openFindings().length);
+  $$(".finding-foot").forEach((foot) => {
+    const all = foot.querySelector('[data-act="adopt-all"]');
+    if (all && all.dataset.n === n) return;
+    if (all) all.remove();
+    const add = foot.querySelector('[data-act="finding-adopt"]');
+    if (add && html) add.insertAdjacentHTML("afterend", html);
+  });
+}
+function undoAdoptAll() {
+  const ids = new Set(lastAdopted);
+  lastAdopted = [];
+  const undone = S.drafts.filter((d) => ids.has(d.id));
+  if (!undone.length) return;
+  S.drafts = S.drafts.filter((d) => !ids.has(d.id));
+  for (const d of undone) if (S.findings[d.fromFinding] && S.findings[d.fromFinding].draft === d.id) delete S.findings[d.fromFinding];
+  save();
+  sendMetrics(undone.map((d) => ({ kind: "finding", action: "undone", finding: d.fromFinding, reason: "added" })));
+  new Set(undone.map((d) => d.f)).forEach((f) => refreshFile(f));
+  refreshChrome();
+  refreshFlow();
+  toast(\`Took \${plural(undone.length, "comment")} back out of your review.\`);
+}
+function adoptFinding(id) {`,
+  },
+  {
+    id: "xray-pill",
+    find: "function prHeadHTML() {",
+    replace: `function xrayState() {
+  const agents = agentProgress && agentProgress.agents ? Object.values(agentProgress.agents).filter((a) => a && a.state !== "skipped") : [];
+  if (agentsRunning) {
+    const done = agents.filter((a) => a.state === "done" || a.state === "failed").length;
+    return { kind: "running", label: "X-RayView reviewing", sub: agents.length ? \`\${done}/\${agents.length}\` : "", title: "X-RayView's agents are reviewing this pull request. Click to watch them." };
+  }
+  if (!AG) {
+    if (agents.some((a) => a.state === "failed")) return { kind: "failed", label: "X-RayView review failed", sub: "", title: "The last X-RayView review failed. Click to see what happened." };
+    return { kind: "none", label: "Not reviewed by X-RayView", sub: "", title: "X-RayView's agents haven't reviewed this pull request yet. Run agents starts a review." };
+  }
+  const when = AGENT_RUN_AT ? \` \${ago(AGENT_RUN_AT)}\` : "";
+  const commit = String(AG.commit || "").slice(0, 7);
+  const found = plural(FINDINGS.length, "finding");
+  if (agentsBehind()) return { kind: "behind", label: "X-RayView reviewed an older push", sub: found, title: \`X-RayView reviewed \${commit}\${when}. New commits came after it, and Rerun reviews the latest.\` };
+  return { kind: "current", label: "X-RayView reviewed", sub: found, title: \`X-RayView reviewed \${commit}\${when}: \${found}.\` };
+}
+function xrayPillHTML() {
+  const s = xrayState();
+  const marks = { running: '<span class="spin" aria-hidden="true"></span>', failed: icon("x-circle"), none: icon("circle"), behind: icon("clock"), current: icon("check-circle") };
+  return \`<button type="button" class="xray-pill is-\${s.kind}" id="xray-pill" data-act="agent-activity" title="\${esc(s.title)}">\${marks[s.kind]}<span>\${esc(s.label)}</span>\${s.sub ? \`<span class="xray-sub">\${esc(s.sub)}</span>\` : ""}</button>\`;
+}
+function applyXrayPill() {
+  const el = document.getElementById("xray-pill");
+  if (!el) return;
+  const focused = document.activeElement === el;
+  el.outerHTML = xrayPillHTML();
+  if (focused) document.getElementById("xray-pill").focus({ preventScroll: true });
+}
+function prHeadHTML() {`,
+  },
+  {
+    id: "xray-pill-head",
+    find: '${PENDING ? "" : riskPillHTML(currentRisk())}<span class="mono dim">',
+    replace: '${PENDING ? "" : riskPillHTML(currentRisk())}${xrayPillHTML()}<span class="mono dim">',
+  },
+  {
+    id: "adopt-all-card",
+    find: '${icon("plus")}Add to my review</button>',
+    replace: '${icon("plus")}Add to my review</button>${adoptAllCardHTML()}',
+  },
+  {
+    id: "adopt-all-sync",
+    find: 'function refreshChrome() {\n  if (S.view !== "pr") return;',
+    replace: 'function refreshChrome() {\n  if (S.view !== "pr") return;\n  syncAdoptAll();',
+  },
+  {
+    id: "adopt-all-actions",
+    find: '"finding-adopt": (el) => adoptFinding(el.dataset.id),',
+    replace: '"finding-adopt": (el) => adoptFinding(el.dataset.id),\n  "adopt-all": () => adoptAll(),\n  "adopt-all-undo": () => undoAdoptAll(),',
+  },
+  {
+    id: "comment-tags-read",
+    find:
+      "    const m = bodies[0].match(LABEL_PREFIX);\n" +
+      "    return {\n" +
+      '      id: t.id, gh: true, f: f.i, k, label: m ? m[1].toLowerCase() : "", outdated: t.outdated,',
+    replace:
+      "    const m = readTag(bodies[0]);\n" +
+      "    return {\n" +
+      '      id: t.id, gh: true, f: f.i, k, label: m ? m.label : "", level: m ? m.level : "", outdated: t.outdated,',
+  },
+  {
+    id: "comment-tags-body",
+    find: "body: i === 0 && m ? bodies[0].slice(m[0].length) : bodies[i]",
+    replace: "body: i === 0 && m ? bodies[0].slice(m.length) : bodies[i]",
+  },
+  {
+    id: "comment-levels",
+    find: 'const withLabel = (label, body) => (label && !new RegExp(`^\\\\s*\\\\**${label}\\\\b`, "i").test(body) ? `${label}: ${body}` : body);',
+    replace: [
+      "function draftLevel(d) { return commentLevel(d, d.fromFinding ? findingById(d.fromFinding) : null); }",
+      'function levelChip(level) { return SEV[level] ? `<span class="sev sev-${level}">${SEV[level]}</span>` : ""; }',
+      "function levelRowHTML(c) {",
+      "  const now = draftLevel(c);",
+      '  return `<div class="labels levels" role="radiogroup" aria-label="Level"><span class="levels-name">Level</span>${Object.entries(SEV).map(([v, l]) => `<button type="button" role="radio" class="lab lv-${v}" aria-checked="${now === v}" data-act="level" data-v="${v}">${l}</button>`).join("")}</div>`;',
+      "}",
+      "function setLevel(value) {",
+      "  const c = S.composer;",
+      "  if (!c) return;",
+      '  const ta = $("#composer-text");',
+      "  if (ta) c.text = ta.value;",
+      "  c.level = value;",
+      '  replaceHTML("#composer", composerHTML());',
+      '  const next = $("#composer-text");',
+      "  if (next) { next.focus({ preventScroll: true }); next.setSelectionRange(next.value.length, next.value.length); }",
+      "}",
+    ].join("\n"),
+  },
+  {
+    id: "comment-levels-post",
+    find: "body: withLabel(d.label, d.body)",
+    replace: "body: withTag(draftLevel(d), d.body)",
+  },
+  {
+    id: "comment-levels-composer",
+    find: '    f: fi, k, label: opts.label ?? "", text: opts.text ?? "",',
+    replace: '    f: fi, k, label: opts.label ?? "", level: opts.level ?? "", text: opts.text ?? "",',
+  },
+  {
+    id: "comment-levels-row",
+    find: 'data-act="label" data-v="${v}">${l}</button>`).join("")}</div>`}',
+    replace: 'data-act="label" data-v="${v}">${l}</button>`).join("")}</div>${levelRowHTML(c)}`}',
+  },
+  {
+    id: "comment-levels-action",
+    find: "  label: (el) => setLabel(el.dataset.v),",
+    replace: "  label: (el) => setLabel(el.dataset.v),\n  level: (el) => setLevel(el.dataset.v),",
+  },
+  {
+    id: "comment-levels-save",
+    find:
+      "    if (d) { d.body = text; if (!c.replyTo) d.label = c.label; }\n" +
+      "  } else if (c.replyTo) {\n" +
+      "    S.drafts.push({ id: uid(), replyTo: c.replyTo, body: text });\n" +
+      "  } else {\n" +
+      "    const id = uid();\n" +
+      "    S.drafts.push({ id, f: c.f, k: c.k, lineText: lineText(c.f, c.k), label: c.label, body: text,",
+    replace:
+      "    if (d) { d.body = text; if (!c.replyTo) { d.label = c.label; d.level = draftLevel({ ...c, fromFinding: d.fromFinding }); } }\n" +
+      "  } else if (c.replyTo) {\n" +
+      "    S.drafts.push({ id: uid(), replyTo: c.replyTo, body: text });\n" +
+      "  } else {\n" +
+      "    const id = uid();\n" +
+      "    S.drafts.push({ id, f: c.f, k: c.k, lineText: lineText(c.f, c.k), label: c.label, level: draftLevel(c), body: text,",
+  },
+  {
+    id: "comment-levels-edit",
+    find: '{ label: d.label || "", text: d.body, editing: d.id, replyTo: d.replyTo || null }',
+    replace: '{ label: d.label || "", level: d.level || "", text: d.body, editing: d.id, replyTo: d.replyTo || null }',
+  },
+  {
+    id: "comment-levels-chip",
+    find: '<header class="cmt-head"><b>${esc(nameOf(c.by))}</b>${label ?',
+    replace: '<header class="cmt-head"><b>${esc(nameOf(c.by))}</b>${levelChip(c.level)}${label ?',
+  },
+  {
+    id: "comment-levels-draft",
+    find: 'commentHTML({ by: "you", body: d.body, draft: d.id, via: d.fromFinding, verbatim: d.verbatim }, d.label, d)',
+    replace: 'commentHTML({ by: "you", body: d.body, draft: d.id, via: d.fromFinding, verbatim: d.verbatim, level: draftLevel(d) }, d.label, d)',
+  },
+  {
+    id: "comment-levels-thread",
+    find: '${t.comments.map((c, i) => commentHTML(c, i === 0 ? t.label : "", t)).join("")}',
+    replace: '${t.comments.map((c, i) => commentHTML(i === 0 ? { ...c, level: t.level } : c, i === 0 ? t.label : "", t)).join("")}',
+  },
+  {
+    id: "comment-levels-list",
+    find: '<span class="titem-top">${t.label ? `<span class="label l-${t.label}">${t.label}</span>` : ""}',
+    replace: '<span class="titem-top">${levelChip(t.level)}${t.label ? `<span class="label l-${t.label}">${t.label}</span>` : ""}',
+  },
+  {
+    id: "comment-levels-list-detached",
+    find: '<span class="label l-draft">draft</span>${d.label ?',
+    replace: '<span class="label l-draft">draft</span>${levelChip(draftLevel(d))}${d.label ?',
+  },
+  {
+    id: "comment-levels-list-draft",
+    find: '<span class="label l-draft">${t ? "reply" : "draft"}</span>${d.label ?',
+    replace: '<span class="label l-draft">${t ? "reply" : "draft"}</span>${t ? "" : levelChip(draftLevel(d))}${d.label ?',
+  },
+  {
+    id: "model-summary",
+    find: "const agentsBehind = () => !!(AG && AG.commit && D.head && AG.commit !== D.head.sha);",
+    replace:
+      "const agentsBehind = () => !!(AG && AG.commit && D.head && AG.commit !== D.head.sha);\n" +
+      modelSummary.toString(),
+  },
+  {
+    id: "briefing-model",
+    find: '${decided ? `, ${decided} decided` : ""}${agentsBehind() ? ` · <b>an older push than the one you\'re reviewing</b>` : ""}</p>',
+    replace:
+      '${decided ? `, ${decided} decided` : ""}${agentsBehind() ? ` · <b>an older push than the one you\'re reviewing</b>` : ""}' +
+      modelBit +
+      "</p>",
+  },
+  {
+    id: "pending-briefing-model",
+    find: '${FINDINGS.length ? ", listed with the changes" : ""}${agentsBehind() ? ` · <b>an older push than the one you\'re reviewing</b>` : ""}</p>',
+    replace:
+      '${FINDINGS.length ? ", listed with the changes" : ""}${agentsBehind() ? ` · <b>an older push than the one you\'re reviewing</b>` : ""}' +
+      modelBit +
+      "</p>",
+  },
+  {
+    id: "workflow-model",
+    find:
+      'out.push({ id: "agents", name: "Agent review", short: "Agents", st: "done", note: STAGE_NOTE_AGENTS,\n' +
+      "      gates: AGENTS.map((a) => {\n" +
+      "        const n = found.filter((x) => x.agent === a.id).length;\n" +
+      '        return { id: `agent-${a.id}`, agent: true, name: a.name, role: a.focus, st: "passed",\n' +
+      '          detail: a.id === "guide" ? `Drafted ${plural((PR.plan || []).length, "chapter")}` : n ? plural(n, "finding") : "Nothing to flag" };\n' +
+      "      }),\n" +
+      '      caption: found.length ? `${plural(found.length, "finding")}${high ? `, ${high} high` : ""}` : "Nothing flagged" });',
+    replace:
+      "const models = modelSummary(AGENTS);\n" +
+      '    out.push({ id: "agents", name: "Agent review", short: "Agents", st: "done", note: STAGE_NOTE_AGENTS + (models.line ? ` ${models.line}.` : ""),\n' +
+      "      gates: AGENTS.map((a) => {\n" +
+      "        const n = found.filter((x) => x.agent === a.id).length;\n" +
+      '        return { id: `agent-${a.id}`, agent: true, name: a.name, role: a.focus, st: "passed",\n' +
+      '          detail: (a.id === "guide" ? `Drafted ${plural((PR.plan || []).length, "chapter")}` : n ? plural(n, "finding") : "Nothing to flag") + models.detail(a) };\n' +
+      "      }),\n" +
+      '      caption: (found.length ? `${plural(found.length, "finding")}${high ? `, ${high} high` : ""}` : "Nothing flagged") + models.caption });',
+  },
+  {
+    id: "run-button",
+    find: 'const hostRunHTML = (label) => `<button type="button" class="btn sm ghost" data-act="host-run-agents">${icon("play")}${label}</button>`;',
+    replace:
+      "let agentsRunning = !!(LIVE && LIVE.agentsRunning);\n" +
+      "let runState = (LIVE && LIVE.runState) || \"\";\n" +
+      "let runButtonLabel = \"Rerun\";\n" +
+      "const runMainHTML = (label) => agentsRunning\n" +
+      "  ? `<button type=\"button\" class=\"btn sm ghost\" id=\"host-run\" data-act=\"agent-activity\" title=\"See what each agent is doing\"><span class=\"spin\" aria-hidden=\"true\"></span>Agents are running</button>`\n" +
+      "  : `<button type=\"button\" class=\"btn sm ghost\" id=\"host-run\" data-act=\"host-run-agents\">${icon(\"play\")}${label}</button>`;\n" +
+      "// Choose model stays in the run menu even while the agents run.\n" +
+      "const hostRunHTML = (label) => {\n" +
+      "  runButtonLabel = label;\n" +
+      "  return `<div class=\"run-tools\"><div class=\"split-btn\" id=\"host-run-wrap\">${runMainHTML(label)}\n" +
+      "      <button type=\"button\" class=\"btn sm ghost sb-caret\" data-act=\"run-menu\" aria-haspopup=\"menu\" aria-expanded=\"false\" aria-controls=\"run-menu\" aria-label=\"Choose the model the agents run on\">${icon(\"chev\")}</button>\n" +
+      "      <div class=\"menu\" id=\"run-menu\" role=\"menu\" aria-label=\"Agent runs\" hidden>${chooseModelHTML()}${activityItemHTML()}</div></div>${postAllHTML()}</div>`;\n" +
+      "};\n" +
+      "const applyRunButton = () => { const btn = document.getElementById(\"host-run\"); if (btn) btn.outerHTML = runMainHTML(runButtonLabel); applyXrayPill(); };\n" +
+      "const modelNow = () => {\n" +
+      "  const line = LIVE && LIVE.modelPlan && LIVE.modelPlan.length ? modelSummary(LIVE.modelPlan).line : \"\";\n" +
+      "  if (!line) return { text: \"\", title: \"Choose model\" };\n" +
+      "  return line.startsWith(\"Model: \") ? { text: line.slice(7), title: line } : { text: \"Mixed models\", title: line };\n" +
+      "};\n" +
+      "const chooseModelHTML = () => {\n" +
+      "  const now = modelNow();\n" +
+      "  return `<button type=\"button\" role=\"menuitem\" class=\"menu-item\" id=\"choose-model\" data-act=\"choose-model\" title=\"${esc(now.title)}\"><b>Choose model…</b><span>${esc(now.text || \"The CLI and model the agents run on\")}</span></button>`;\n" +
+      "};\n" +
+      "const applyModelNow = () => { const item = document.getElementById(\"choose-model\"); if (item) item.outerHTML = chooseModelHTML(); };\n" +
+      "const runMenuOpen = () => { const m = $(\"#run-menu\"); return !!(m && !m.hidden); };\n" +
+      "function runMenu(open) {\n" +
+      "  const menu = $(\"#run-menu\"), caret = $(\"#host-run-wrap .sb-caret\");\n" +
+      "  if (!menu || !caret) return;\n" +
+      "  menu.hidden = !open;\n" +
+      "  caret.setAttribute(\"aria-expanded\", String(open));\n" +
+      "  if (open) { const first = menu.querySelector(\".menu-item\"); if (first) first.focus(); }\n" +
+      "}\n" +
+      "function postAllKey() { return PR.repo + \"#\" + PR.number; }\n" +
+      "function postAllOn() { try { return localStorage.getItem(\"xrv:postAll\") === \"1\"; } catch { return false; } }\n" +
+      "function postAllArmed() { try { return localStorage.getItem(\"xrv:postAllFor\") === postAllKey(); } catch { return false; } }\n" +
+      "function armPostAll() { try { localStorage.setItem(\"xrv:postAllFor\", postAllKey()); } catch { /* the run still starts */ } }\n" +
+      "function disarmPostAll() { try { localStorage.removeItem(\"xrv:postAllFor\"); } catch { /* optional */ } }\n" +
+      "function setPostAll(on) {\n" +
+      "  try { localStorage.setItem(\"xrv:postAll\", on ? \"1\" : \"0\"); } catch { /* optional */ }\n" +
+      "  const live = [\"queued\", \"running\", \"waiting\", \"elsewhere\"].includes(runState);\n" +
+      "  if (on && agentsRunning && live) armPostAll();\n" +
+      "  else if (!on) disarmPostAll();\n" +
+      "}\n" +
+      "function postAllHTML() {\n" +
+      "  return `<label class=\"post-all\" title=\"After you run the agents, every open finding is added and posted to the pull request.\"><input type=\"checkbox\" id=\"post-all\"${postAllOn() ? \" checked\" : \"\"}><span>Post all findings when finished</span></label>`;\n" +
+      "}\n" +
+      "let postingAll = false;\n" +
+      "function onHostRun(m) {\n" +
+      "  const was = agentsRunning;\n" +
+      "  agentsRunning = !!m.running;\n" +
+      "  if (m.state) runState = m.state;\n" +
+      "  if (m.progress) agentProgress = m.progress;\n" +
+      "  applyRunButton();\n" +
+      "  refreshActivity();\n" +
+      "  if (postAllOn() && agentsRunning && !m.automatic) armPostAll();\n" +
+      "  if (!postAllArmed()) return;\n" +
+      "  if (was && !agentsRunning && m.state === \"done\" && typeof HOST.reload === \"function\") HOST.reload();\n" +
+      "  if (was && !agentsRunning && (m.state === \"failed\" || m.state === \"cancelled\")) {\n" +
+      "    disarmPostAll();\n" +
+      "    toast(m.state === \"cancelled\" ? \"The agents stopped, so the review was not posted.\" : \"The agents failed, so the review was not posted.\");\n" +
+      "  }\n" +
+      "}\n" +
+      "async function postFinishedReview() {\n" +
+      "  if (postingAll || PENDING || S.view !== \"pr\") return;\n" +
+      "  postingAll = true;\n" +
+      "  disarmPostAll();\n" +
+      "  try {\n" +
+      "    const open = openFindings();\n" +
+      "    if (!open.length && !S.drafts.length) {\n" +
+      "      toast(FINDINGS.length ? \"The agents finished, but no finding landed on a line to post.\" : \"The agents finished with nothing to post.\");\n" +
+      "      return;\n" +
+      "    }\n" +
+      "    if (!LIVE.github) { toast(\"The agents finished. Sign in with gh auth login, then post the review.\"); return; }\n" +
+      "    if (open.length) adoptAll(true);\n" +
+      "    if (!S.drafts.length) { toast(\"The agents finished with nothing to post.\"); return; }\n" +
+      "    S.pushDecision = \"comment\";\n" +
+      "    openFinish();\n" +
+      "    S.pushConfirm = true;\n" +
+      "    refreshPushFoot();\n" +
+      "    await postPush();\n" +
+      "  } finally { postingAll = false; }\n" +
+      "}\n" +
+      "function maybePostAll() {\n" +
+      "  if (!postAllArmed() || agentsRunning || runState !== \"done\") return;\n" +
+      "  void postFinishedReview();\n" +
+      "}\n" +
+      ACTIVITY_PAGE,
+  },
+  {
+    id: "run-button-click",
+    find: '"host-run-agents": () => {\n    HOST.runAgents();\n    toast("The agents are running. X-RayView tells you when they finish.");\n  },',
+    replace:
+      '"host-run-agents": () => {\n' +
+      "    if (agentsRunning) return;\n" +
+      "    agentsRunning = true;\n" +
+      "    applyRunButton();\n" +
+      "    HOST.runAgents();\n" +
+      "  },\n" +
+      '  "run-menu": () => runMenu(!runMenuOpen()),\n' +
+      '  "agent-activity": () => openActivity(),\n  "activity-detail": (el) => showActivity(el.dataset.id),\n  "activity-back": () => showActivity(""),\n' +
+      '  "choose-model": () => { runMenu(false); if (typeof HOST.chooseHarness === "function") HOST.chooseHarness(); },',
+  },
+  {
+    id: "run-menu-close",
+    find: '  if (agentMenuOpen() && !e.target.closest("#agent-copy")) agentMenu(false);',
+    replace:
+      '  if (agentMenuOpen() && !e.target.closest("#agent-copy")) agentMenu(false);\n' +
+      '  if (runMenuOpen() && !e.target.closest("#host-run-wrap")) runMenu(false);',
+  },
+  {
+    id: "run-menu-keys",
+    find: '  if (agentMenuOpen() && t.closest("#agent-copy")) {',
+    replace:
+      '  if (runMenuOpen() && t.closest("#host-run-wrap")) {\n' +
+      '    if (e.key === "Escape") { e.preventDefault(); runMenu(false); const c = $("#host-run-wrap .sb-caret"); if (c) c.focus(); return; }\n' +
+      '    if (["ArrowDown", "ArrowUp", "Home", "End"].includes(e.key)) {\n' +
+      "      e.preventDefault();\n" +
+      '      const items = [...document.querySelectorAll("#run-menu .menu-item")], at = items.indexOf(document.activeElement);\n' +
+      '      const next = e.key === "Home" ? 0 : e.key === "End" ? items.length - 1 : at < 0 ? 0 : (at + (e.key === "ArrowDown" ? 1 : -1) + items.length) % items.length;\n' +
+      "      if (items[next]) items[next].focus();\n" +
+      "      return;\n" +
+      "    }\n" +
+      '    if (e.key === "Tab") runMenu(false);\n' +
+      "    return;\n" +
+      "  }\n" +
+      '  if (agentMenuOpen() && t.closest("#agent-copy")) {',
+  },
+  {
+    id: "post-review-button",
+    find: `function finishBtnHTML(where) {
+  const badge = S.drafts.length ? \`<i class="badge">\${S.drafts.length}</i>\` : "";
+  return \`<button type="button" class="btn primary finish finish-\${where}" data-act="finish">Finish review\${badge}</button>\`;
+}`,
+    replace: `function finishBtnHTML(where) {
+  const posted = !S.drafts.length && !!MY_REVIEW;
+  const label = posted ? "Update review" : "Post review";
+  const badge = S.drafts.length ? \`<i class="badge">\${S.drafts.length}</i>\` : "";
+  const tip = posted ? "You already posted a review. This sends another one." : "Post your review to GitHub";
+  return \`<button type="button" class="btn\${posted ? "" : " primary"} finish finish-\${where}" data-act="finish" title="\${tip}">\${label}\${badge}</button>\`;
+}`,
+  },
+  {
+    id: "post-review-gate",
+    find: 'const gate = { id: "you", who: "you", name: "You", mine: true, action: { act: "finish", label: "Finish review" } };',
+    replace:
+      'const gate = { id: "you", who: "you", name: "You", mine: true, action: { act: "finish", label: S.drafts.length || !MY_REVIEW ? "Post review" : "Update review" } };',
+  },
+  {
+    id: "state-pill-colors",
+    find: `function prState() {
+  const p = LIVE.pr || {};
+  if (p.state === "MERGED") return { label: "Merged", cls: "s-ok" };
+  if (p.state === "CLOSED") return { label: "Closed", cls: "s-bad" };
+  if (p.isDraft) return { label: "Draft", cls: "s-blue" };
+  const verdict = reviewVerdict();
+  if (verdict === "CHANGES_REQUESTED") return { label: "Changes requested", cls: "s-bad" };
+  if (verdict === "APPROVED") return { label: "Approved", cls: "s-ok" };
+  return { label: "In review", cls: "s-blue" };`,
+    replace: `function prState() {
+  const p = LIVE.pr || {};
+  if (p.state === "MERGED") return { label: "Merged", cls: "s-merged" };
+  if (p.state === "CLOSED") return { label: "Closed", cls: "s-bad" };
+  if (p.isDraft) return { label: "Draft", cls: "s-draft" };
+  const verdict = reviewVerdict();
+  if (verdict === "CHANGES_REQUESTED") return { label: "Changes requested", cls: "s-bad" };
+  if (verdict === "APPROVED") return { label: "Approved", cls: "s-ok" };
+  return { label: "In review", cls: "s-open" };`,
+  },
+  {
+    id: "brand-word",
+    find: '<span class="brand-word">xrayview</span>',
+    replace: '<span class="brand-word">X-RayView</span>',
+  },
+  {
+    id: "ribbon-plain",
+    find: '<span class="ribbon-tag">Local</span>',
+    replace: '<span class="ribbon-tag">This computer</span>',
+  },
+  {
+    id: "ribbon-drafts",
+    find: "Drafts stay on this machine until you post them.",
+    replace: "Comments stay here until you post them.",
+  },
+  {
+    id: "post-still-reloads",
+    find: 'showPushPanel(`<p class="push-ok">${icon("check-circle")}<span>Posted to GitHub.${review && review.url ? ` <a class="link" href="${esc(review.url)}" target="_blank" rel="noopener">Open the review</a>.` : ""} Reloading with the latest from GitHub…</span></p>`);\n    await api("POST", "/refresh");\n    reloadPage();',
+    replace:
+      'showPushPanel(`<p class="push-ok">${icon("check-circle")}<span>Posted to GitHub.${review && review.url ? ` <a class="link" href="${esc(review.url)}" target="_blank" rel="noopener">Open the review</a>.` : ""} Reloading with the latest from GitHub…</span></p>`);\n' +
+      "    try { await api(\"POST\", \"/refresh\"); } catch { /* reload fetches GitHub again */ }\n" +
+      "    reloadPage();",
+  },
+  {
+    id: "your-review-on-top",
+    find: `function statusLine() {
+  const p = LIVE.pr || {};
+  if (p.state === "MERGED") return { tone: "merged", icon: "merge", html: esc(endedLine(p)) };
+  if (p.state === "CLOSED") return { tone: "closed", icon: "x-circle", html: esc(endedLine(p)) };
+  if (ownPR() || !LIVE.viewer) return null;
+  if (!MY_REVIEW) return { tone: "todo", icon: "eye", html: REQUESTED ? "Your review is requested · you haven't reviewed this yet" : "You haven't reviewed this yet" };
+  const at = \`\${timeAgo(MY_REVIEW.at)}\${MY_REVIEW.commit ? \` at <code>\${esc(MY_REVIEW.commit.slice(0, 7))}</code>\` : ""}\`;
+  const did = myDid();
+  const lead = MY_REVIEW.state === "DISMISSED" ? \`your review from \${at} was dismissed\` : \`you \${did}\${did === "approved" ? " this" : ""} \${at}\`;
+  const tone = MY_REVIEW.state === "DISMISSED" ? "todo" : MY_OPINION === "APPROVED" ? "ok" : MY_OPINION === "CHANGES_REQUESTED" ? "bad" : "info";
+  const ic = tone === "ok" ? "check-circle" : tone === "bad" ? "x-circle" : tone === "info" ? "message" : "eye";
+  return { tone, icon: ic, html: cap(\`\${REQUESTED ? "your review is requested again · " : ""}\${lead} · \${sinceWords()}\`) };
+}
+
+function statusLineHTML() {
+  const st = statusLine();
+  return st ? \`<p class="pr-status ps-\${st.tone}" id="pr-status">\${icon(st.icon)}<span>\${st.html}</span></p>\` : "";
+}`,
+    replace: `function yourReviewLine() {
+  if (ownPR() || !LIVE.viewer) return null;
+  if (!MY_REVIEW) return { tone: "todo", icon: "eye", html: REQUESTED ? "Your review is requested · you haven't reviewed this yet" : "You haven't reviewed this yet" };
+  const at = \`\${timeAgo(MY_REVIEW.at)}\${MY_REVIEW.commit ? \` at <code>\${esc(MY_REVIEW.commit.slice(0, 7))}</code>\` : ""}\`;
+  const did = myDid();
+  const lead = MY_REVIEW.state === "DISMISSED" ? \`your review from \${at} was dismissed\` : \`you \${did}\${did === "approved" ? " this" : ""} \${at}\`;
+  const tone = MY_REVIEW.state === "DISMISSED" ? "todo" : MY_OPINION === "APPROVED" ? "ok" : MY_OPINION === "CHANGES_REQUESTED" ? "bad" : "info";
+  const ic = tone === "ok" ? "check-circle" : tone === "bad" ? "x-circle" : tone === "info" ? "message" : "eye";
+  return { tone, icon: ic, html: cap(\`\${REQUESTED ? "your review is requested again · " : ""}\${lead} · \${sinceWords()}\`) };
+}
+
+function statusLine() {
+  const p = LIVE.pr || {};
+  if (p.state === "MERGED") return { tone: "merged", icon: "merge", html: esc(endedLine(p)) };
+  if (p.state === "CLOSED") return { tone: "closed", icon: "x-circle", html: esc(endedLine(p)) };
+  return yourReviewLine();
+}
+
+function statusLineHTML() {
+  const p = LIVE.pr || {};
+  const ended = p.state === "MERGED" || p.state === "CLOSED";
+  const lines = [ended ? yourReviewLine() : null, statusLine()].filter(Boolean);
+  return lines.map((st, i) => \`<p class="pr-status ps-\${st.tone}"\${i ? "" : \` id="pr-status"\`}>\${icon(st.icon)}<span>\${st.html}</span></p>\`).join("");
+}`,
+  },
+  {
+    id: "run-button-message",
+    find: 'if (m.type === "host-pr-changed") { showChange(m); return; }',
+    replace:
+      'if (m.type === "host-run") { onHostRun(m); return; }\n' +
+      '  if (m.type === "host-model") { if (LIVE) LIVE.modelPlan = m.plan; applyModelNow(); return; }\n' +
+      '  if (m.type === "host-pr-changed") { showChange(m); return; }',
+  },
+  {
+    id: "post-all-checkbox",
+    find:
+      'document.addEventListener("change", (e) => {\n' +
+      "  const t = e.target;\n" +
+      "  if (t.dataset && t.dataset.planFile && S.planDraft) movePlanFile(t.dataset.planFile, t.value);\n" +
+      '  if (t.name === "decision") S.pushDecision = t.value;\n' +
+      "}, { signal });",
+    replace:
+      'document.addEventListener("change", (e) => {\n' +
+      "  const t = e.target;\n" +
+      '  if (t.id === "post-all") setPostAll(!!t.checked);\n' +
+      "  if (t.dataset && t.dataset.planFile && S.planDraft) movePlanFile(t.dataset.planFile, t.value);\n" +
+      '  if (t.name === "decision") S.pushDecision = t.value;\n' +
+      "}, { signal });",
+  },
+  {
+    id: "post-all-after-load",
+    find: "render();\nwatchActivity();\n// Starting again ends this start:",
+    replace: "render();\nwatchActivity();\nmaybePostAll();\n// Starting again ends this start:",
+  },
+];
+
+export const UI_ADDED_NAMES = [
+  "modelSummary", "runMainHTML", "modelNow", "chooseModelHTML", "applyModelNow", "runMenuOpen", "runMenu",
+  "tagBadge", "commentLevel", "readTag", "withTag", "draftLevel", "levelChip", "levelRowHTML", "setLevel",
+  "activityTime", "activityGroups", "activitySummary", "activityHTML", "agentProgress", "activityOpen", "activityTimer",
+  "activityShown", "activityItemHTML", "activityBodyHTML", "openActivity", "refreshActivity", "activityDetail", "showActivity",
+  "findingDrafts", "lastAdopted", "adoptAllHTML", "adoptAll", "undoAdoptAll", "adoptAllCardHTML", "syncAdoptAll", "xrayState", "xrayPillHTML", "applyXrayPill",
+  "postAllKey", "postAllOn", "postAllArmed", "armPostAll", "disarmPostAll", "setPostAll", "postAllHTML", "postingAll", "onHostRun", "postFinishedReview", "maybePostAll", "runState",
+];
+
+export function countOccurrences(text, needle) {
+  let count = 0;
+  for (let at = text.indexOf(needle); at !== -1; at = text.indexOf(needle, at + needle.length)) count++;
+  return count;
+}
+
+export function applyPatches(source, patches = PATCHES, addedNames = ADDED_NAMES) {
+  for (const name of addedNames) {
+    if (new RegExp(`\\b${name}\\b`).test(source)) throw new Error(`The bundle already uses the name ${name}.`);
+  }
+  let text = source;
+  for (const patch of patches) {
+    const count = countOccurrences(text, patch.find);
+    if (count !== 1) throw new Error(`Patch "${patch.id}": expected its anchor once, found it ${count} times.`);
+    text = text.replace(patch.find, () => patch.replace);
+  }
+  return text;
+}
