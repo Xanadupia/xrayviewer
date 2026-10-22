@@ -4,7 +4,7 @@
  * @param {Array<{ id?: string, name?: string, short?: string, harness?: string, model?: string, thinking?: string | null, effort?: string | null }> | null | undefined} agents
  */
 export function modelSummary(agents) {
-  const names = { claude: "Claude", codex: "Codex", pi: "Pi", cursor: "Cursor" };
+  const names = { claude: "Claude", codex: "Codex", cursor: "Cursor" };
   const harnessName = (id) => names[id] || id || "Unknown harness";
   const groups = [];
   for (const agent of agents || []) {

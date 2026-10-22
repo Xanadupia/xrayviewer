@@ -44,7 +44,9 @@ describe("the built extension", () => {
     assert.equal(manifest.displayName, "X-RayViewer");
     assert.equal(manifest.publisher, "aliqaryan");
     assert.equal(manifest.author, "Ali Qaryan");
-    assert.equal(manifest.version, "0.4.3");
+    assert.equal(manifest.version, "0.4.8");
+    assert.ok(bundle.includes("ensurePanel(e)"), "each pull request opens in its own tab");
+    assert.ok(bundle.includes("this.xrvTabs"), "open pull requests keep their tabs");
     const page = await readFile(path.join(dir, "media", "ui", "app.js"), "utf8");
     assert.match(page, /function modelSummary\(agents\)/);
     assert.match(page, /Update review/);
@@ -98,6 +100,7 @@ describe("the built extension", () => {
     assert.equal(bundle.includes("circle-small-filled"), false);
     await readFile(path.join(dir, "media", "risk", "open-low.svg"));
     assert.equal(manifest.contributes.configuration.properties["xrayviewer.sidebar.groupBy"].enum.includes("author"), true);
+    assert.equal(manifest.contributes.configuration.properties["xrayviewer.sidebar.groupBy"].enum.includes("review"), true);
     assert.match(page, /M8\.5 8\.5l7 7/);
     assert.equal(page.includes("M1.5 8h27"), false);
     assert.match(page, /modelSummary\(AGENTS\)\.line/);
@@ -129,13 +132,16 @@ describe("the built extension", () => {
     const properties = manifest.contributes.configuration.properties;
     const keys = Object.keys(properties);
 
-    assert.deepEqual(properties["xrayviewer.harness"].enum, ["claude", "codex", "pi", "cursor"]);
-    assert.equal(properties["xrayviewer.harness"].enumDescriptions.length, 4);
+    assert.deepEqual(properties["xrayviewer.harness"].enum, ["claude", "codex", "cursor"]);
+    assert.equal(properties["xrayviewer.pi.path"], undefined);
+    assert.equal(bundle.includes("Pi coding agent"), false);
+    assert.equal(bundle.includes("xrayviewer.pi"), false);
+    assert.equal(properties["xrayviewer.harness"].enumDescriptions.length, 3);
     assert.equal(properties["xrayviewer.cursor.path"].default, "cursor-agent");
     assert.equal(properties["xrayviewer.cursor.path"].scope, "machine");
     assert.equal(properties["xrayviewer.cursor.extraArgs"].scope, "machine");
     assert.equal(properties["xrayviewer.cursor.model"].default, "");
-    assert.equal(keys.indexOf("xrayviewer.cursor.path"), keys.indexOf("xrayviewer.pi.extraArgs") + 1);
+    assert.equal(keys.indexOf("xrayviewer.cursor.path"), keys.indexOf("xrayviewer.codex.extraArgs") + 1);
     assert.ok(manifest.capabilities.untrustedWorkspaces.restrictedConfigurations.includes("xrayviewer.cursor.path"));
     assert.ok(manifest.capabilities.untrustedWorkspaces.restrictedConfigurations.includes("xrayviewer.cursor.extraArgs"));
   });
@@ -164,14 +170,17 @@ describe("the built extension", () => {
     const agent = { commit: "a9dca66f00", ranAt: "2026-10-21T09:00:00Z", findings: [{}, {}, {}] };
     const row = (run: Record<string, unknown>, extra: Record<string, unknown> = {}) => state({ run, summary: { headRefOid: "a9dca66f00" }, ...extra });
 
-    assert.deepEqual(row({ state: "idle" }), { short: "not reviewed", long: "Not reviewed yet.", color: "#9AA0A6" });
-    assert.deepEqual(row({ state: "done" }, { agent }), { short: "\u2713 reviewed, 3 findings", long: "Reviewed a9dca66 3 hours ago: 3 findings.", color: "#3FB950" });
-    assert.equal(row({ state: "done" }, { agent, summary: { headRefOid: "b000000" } }).short, "reviewed, new commits");
-    assert.equal(row({ state: "running", progress: { agents: { a: { state: "done" }, b: { state: "running" }, c: { state: "skipped" } } } }).short, "reviewing 1/2");
-    assert.equal(row({ state: "queued" }).short, "review queued");
-    assert.equal(row({ state: "elsewhere" }).short, "reviewing in another window");
-    assert.deepEqual(row({ state: "failed" }, { agent }), { short: "review failed", long: "The last review failed. The one before found 3 findings.", color: "#F85149" });
+    assert.deepEqual(row({ state: "idle" }), { short: "Not reviewed", long: "Not reviewed yet.", color: "#9AA0A6", flag: "never" });
+    assert.deepEqual(row({ state: "done" }, { agent }), { short: "Reviewed, 3 findings", long: "Reviewed a9dca66 3 hours ago: 3 findings.", color: "#3FB950", flag: "reviewed" });
+    assert.equal(row({ state: "done" }, { agent, summary: { headRefOid: "b000000" } }).short, "Reviewed, new commits");
+    assert.equal(row({ state: "done" }, { agent, summary: { headRefOid: "b000000" } }).flag, "reviewed");
+    assert.equal(row({ state: "running", progress: { agents: { a: { state: "done" }, b: { state: "running" }, c: { state: "skipped" } } } }).short, "Reviewing 1/2");
+    assert.equal(row({ state: "running" }).flag, "ongoing");
+    assert.equal(row({ state: "queued" }).short, "Reviewing, queued");
+    assert.equal(row({ state: "elsewhere" }).short, "Reviewing in another window");
+    assert.deepEqual(row({ state: "failed" }, { agent }), { short: "Review failed", long: "The last review failed. The one before found 3 findings.", color: "#F85149", flag: "reviewed" });
     assert.equal(row({ state: "held", hold: "large" }).long, "Not reviewed yet. Large, so the agents wait for you to press Run.");
+    assert.equal(row({ state: "held", hold: "large" }).flag, "never");
     assert.ok(bundle.includes("return[state,xrvAgentState(n,t).short,"), "every row's description carries the state");
     assert.ok(bundle.includes('let xs=xrvAgentState(s);r.appendMarkdown("<b>X-RayViewer</b> \u00B7 "),paint(xs.color,xs.long)'), "the hover card says it in full");
   });

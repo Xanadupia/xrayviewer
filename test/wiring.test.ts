@@ -127,9 +127,11 @@ process.stdin.on("data", (chunk) => (input += chunk)).on("end", () => {
 }
 
 const systemPath = process.env.PATH ?? "";
+const previousHome = process.env.HOME;
 
 before(async () => {
   root = await mkdtemp(path.join(tmpdir(), "xrayviewer-wiring-"));
+  process.env.HOME = root;
   await mkdir(path.join(root, "bin"));
   await mkdir(path.join(root, "storage"));
   process.env.XRAYVIEWER_HOME = path.join(root, "home");
@@ -149,6 +151,8 @@ before(async () => {
 });
 
 after(() => {
+  if (previousHome === undefined) delete process.env.HOME;
+  else process.env.HOME = previousHome;
   for (const subscription of context?.subscriptions ?? []) subscription.dispose?.();
   ext?.deactivate();
 });

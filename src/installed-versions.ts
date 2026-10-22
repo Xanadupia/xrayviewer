@@ -1,13 +1,17 @@
 import { readdirSync, realpathSync, statSync } from "node:fs";
 import path from "node:path";
+import { resolveCommand } from "./cursor-harness.ts";
 
 export interface CliVersion {
   version: string;
   path: string;
 }
 
+export type InstalledCli = "claude" | "codex" | "cursor";
+
 const CLAUDE_BINS = ["/opt/homebrew/bin/claude", "/usr/local/bin/claude"];
 const CODEX_BINS = ["/opt/homebrew/bin/codex", "/usr/local/bin/codex"];
+const CURSOR_BINS = ["/opt/homebrew/bin/cursor-agent", "/usr/local/bin/cursor-agent"];
 
 /** Claude Code builds the native installer keeps under ~/.local/share/claude/versions. */
 export function listClaudeVersions(home: string, extraBins: readonly string[] = CLAUDE_BINS): CliVersion[] {
@@ -33,6 +37,45 @@ export function installedSummary(id: "claude" | "codex", home: string): string {
       return never;
     }
   }
+}
+
+/**
+ * The binary a run should start. A versioned install wins, newest first, even when a setting still names an older
+ * copy. The configured command is the fallback when this machine has no installed version of that CLI.
+ */
+export function latestCommand(id: InstalledCli, configured: string, home: string): string {
+  return listed(id, home)[0]?.path || resolveCommand(configured, process.env, [path.join(home, ".local", "bin")]);
+}
+
+function listed(id: InstalledCli, home: string): CliVersion[] {
+  switch (id) {
+    case "claude":
+      return listClaudeVersions(home);
+    case "codex":
+      return listCodexVersions(home);
+    case "cursor":
+      return listCursorVersions(home);
+    default: {
+      const never: never = id;
+      return never;
+    }
+  }
+}
+
+/** Cursor Agent builds the installer keeps under ~/.local/share/cursor-agent/versions. */
+export function listCursorVersions(home: string, extraBins: readonly string[] = CURSOR_BINS): CliVersion[] {
+  const versions = path.join(home, ".local", "share", "cursor-agent", "versions");
+  const fromVersions: string[] = [];
+  for (const name of readableNames(versions)) {
+    if (name.startsWith(".")) continue;
+    const binary = firstFile([
+      path.join(versions, name, "cursor-agent"),
+      path.join(versions, name, "cursor-agent.cmd"),
+      path.join(versions, name, "cursor-agent.exe"),
+    ]);
+    if (binary) fromVersions.push(binary);
+  }
+  return collect([...fromVersions, path.join(home, ".local", "bin", "cursor-agent"), ...extraBins], versionFromCursorPath);
 }
 
 /** Codex builds the official installer keeps under ~/.codex/packages/standalone/releases. */
@@ -70,6 +113,10 @@ function versionFromCodexPath(file: string): string {
   return release.match(/^\d+\.\d+\.\d+/)?.[0] ?? "installed";
 }
 
+function versionFromCursorPath(file: string): string {
+  return file.match(/[/\\]versions[/\\]([^/\\]+)[/\\]cursor-agent(?:\.(?:cmd|exe))?$/)?.[1] ?? "installed";
+}
+
 function filesIn(dir: string): string[] {
   return readableNames(dir)
     .filter((name) => !name.startsWith("."))
@@ -95,6 +142,12 @@ function isFile(file: string): boolean {
   } catch {
     return false;
   }
+}
+
+/** True when `candidate` is a newer version string than `current`. */
+export function isNewerVersion(candidate: string, current: string): boolean {
+  if (!candidate || !current) return false;
+  return compareVersions(candidate, current) > 0;
 }
 
 function compareVersions(left: string, right: string): number {

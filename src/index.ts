@@ -15,7 +15,8 @@ import {
 import { resolveCommand, runCursorAgent, type AgentRequest, type AgentResult, type BundleInternals, type CursorConfig } from "./cursor-harness.ts";
 import { pickCursorModel, type AgentRef, type PickerDeps } from "./cursor-model-picker.ts";
 import { listCursorModels } from "./cursor-models.ts";
-import { installedSummary, listClaudeVersions, listCodexVersions } from "./installed-versions.ts";
+import { availableUpdates, updateInstalledCli } from "./cli-updates.ts";
+import { installedSummary, latestCommand, listClaudeVersions, listCodexVersions, type InstalledCli } from "./installed-versions.ts";
 import { listCodexModels } from "./codex-models.ts";
 import { harnessPicker, type PickerAgent } from "./harness-picker.ts";
 import { announceChoice, plannedAgents, type AgentSetting, type HarnessId, type HarnessTable, type NoticeDeps, type RunChoice } from "./run-confirm.ts";
@@ -55,6 +56,7 @@ export function createCursorHarness(internals: BundleInternals) {
     codeReview: (config: ClaudeConfig, request: CodeReviewRequest, runClaude: (config: ClaudeConfig, request: AgentRequest) => Promise<AgentResult>) =>
       runCodeReview(internals, config, request, runClaude),
     resolveCommand: (command: string) => resolveCommand(command),
+    latestCommand: (id: InstalledCli, configured: string) => latestCommand(id, configured, homedir()),
     pickModel: (deps: Omit<PickerDeps, "listModels">, agent: AgentRef | null) =>
       pickCursorModel({ ...deps, listModels: () => listCursorModels(internals, deps.readConfig()) }, agent),
     installedSummary: (id: CliId) => installedSummary(id, homedir()),
@@ -67,7 +69,8 @@ export function createCursorHarness(internals: BundleInternals) {
       return announceChoice(deps, { ...choice, plan, modelName: claudeModelName(catalog, choice.agent?.model || choice.settings.model) });
     },
     harnessPicker: async (harnesses: HarnessTable, agents: Record<string, AgentSetting & PickerAgent>, installed: Record<HarnessId, string>, guideId: string) =>
-      harnessPicker({ agents, plan: await namedPlan(harnesses, agents, true), installed, guideId }),
+      harnessPicker({ agents, plan: await namedPlan(harnesses, agents, true), installed, updates: await availableUpdates(installed), guideId }),
+    updateCli: (deps: Parameters<typeof updateInstalledCli>[0], id: InstalledCli) => updateInstalledCli(deps, id, homedir()),
     modelPlan: async (harnesses: HarnessTable, agents: Record<string, AgentSetting>) =>
       plannedWithCodeReview(await namedPlan(harnesses, agents), "guide"),
   };

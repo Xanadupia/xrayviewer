@@ -8,7 +8,7 @@ The user guide, with the review page, the model picker, and every setting, is at
 
 ## Install
 
-You need VS Code 1.95 or later, or Cursor, plus `gh auth login`, `git`, and one of Cursor Agent, Claude Code, Codex, or Pi.
+You need VS Code 1.95 or later, or Cursor, plus `gh auth login`, `git`, and one of Cursor Agent, Claude Code, or Codex.
 
 Once the listing is live, search for **X-RayViewer** by Ali Qaryan. The id is `aliqaryan.xrayviewer`. VS Code installs it from the Visual Studio Marketplace. Cursor installs it from Open VSX.
 
@@ -18,8 +18,8 @@ From a checkout, before or after that listing. Building needs Node 26 or later: 
 npm install
 npm test
 npm run package
-cursor --install-extension build/xrayviewer-0.4.3.vsix --force
-# or: code --install-extension build/xrayviewer-0.4.3.vsix --force
+cursor --install-extension build/xrayviewer-0.4.8.vsix --force
+# or: code --install-extension build/xrayviewer-0.4.8.vsix --force
 ```
 
 ## Develop
@@ -41,7 +41,7 @@ cursor --install-extension build/xrayviewer-0.4.3.vsix --force
 npm test
 npm run typecheck
 npm run site             # rewrite docs/index.html after a guide edit
-npm run package          # build/xrayviewer-0.4.3.vsix
+npm run package          # build/xrayviewer-0.4.8.vsix
 ```
 
 `node test/live/review-e2e.ts [model] [report.json]` runs a real review with the signed-in Cursor Agent CLI. It uses account usage, so it is not part of `npm test`.

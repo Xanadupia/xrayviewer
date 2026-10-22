@@ -3,7 +3,7 @@
  * bundle and must appear exactly once, so a different bundle fails the build instead of being patched blindly.
  * The minified names are the base bundle's: Q runs a process, F is the harness error, Yn the base environment, Bi the
  * failure classifier, Qn the JSON parser, Fi the path relativizer, ve the log tail, Cu writes an agent's model to
- * agents.yml, C is the vscode module, t the log, P the Pi model picker and Yt reads the settings. _w picks the agents
+ * agents.yml, C is the vscode module, t the log, and Yt reads the settings. _w picks the agents
  * a review runs, Qu gives an agent's harness, z is the guide's id and Jf runs Claude Code. In the review run, _u is the
  * reviewer schema, Hu turns a reviewer's output into findings, x is the diff index and xn matches skip patterns.
  */
@@ -15,13 +15,13 @@ export const PATCHES = [
   {
     id: "harness-list",
     find: 'var ji=["claude","codex","pi"]',
-    replace: 'var ji=["claude","codex","pi","cursor"]',
+    replace: 'var ji=["claude","codex","cursor"]',
   },
   {
     id: "harness-label-and-loader",
     find: 'var Nt={claude:"Claude Code CLI",codex:"Codex CLI",pi:"Pi coding agent"};',
     replace:
-      'var Nt={claude:"Claude Code CLI",codex:"Codex CLI",pi:"Pi coding agent",cursor:"Cursor Agent CLI"},xrvCursorHarness;' +
+      'var Nt={claude:"Claude Code CLI",codex:"Codex CLI",cursor:"Cursor Agent CLI"},xrvCursorHarness;' +
       'function xrvCursor(){return xrvCursorHarness??=require("./cursor-harness.cjs").createCursorHarness(' +
       "{run:Q,HarnessError:F,baseEnv:Yn,classifyFailure:Bi,parseJson:Qn,relativizePaths:Fi,tail:ve})}" +
       "function xrvReview(n,r){let p=xrvCursor().planCodeReview(_w(n.data,n.settings,n.enabled),n.settings,$=>Qu($,n.settings,n.harnesses).id,z,n.harnesses.claude,n.data.mergeBase?`${n.data.mergeBase}...${n.data.head.sha}`:null);return n.settings=r.settings=p.settings,p}",
@@ -90,37 +90,57 @@ export const PATCHES = [
   {
     id: "dispatcher-cursor",
     find: 'case"pi":return await Qf(n,e)}',
-    replace: 'case"pi":return await Qf(n,e);case"cursor":return await xrvCursor().run(n,e)}',
+    replace: 'case"cursor":return await xrvCursor().run(n,e)}',
   },
   {
     id: "settings",
-    find: 'pi:e("pi")}}}function Pt(',
+    find: 'claude:e("claude"),codex:e("codex"),pi:e("pi")}}}function Pt(',
     replace:
-      'pi:e("pi"),cursor:{...e("cursor"),command:xrvCursor().resolveCommand(n.get("cursor.path")||"cursor-agent")}}}}function Pt(',
+      'claude:{...e("claude"),command:xrvCursor().latestCommand("claude",n.get("claude.path")||"claude")},codex:{...e("codex"),command:xrvCursor().latestCommand("codex",n.get("codex.path")||"codex")},cursor:{...e("cursor"),command:xrvCursor().latestCommand("cursor",n.get("cursor.path")||"cursor-agent")}}}}function Pt(',
   },
   {
     id: "agents-yml-validation",
     find: "ignored; use claude, codex or pi`",
-    replace: "ignored; use claude, codex, pi or cursor`",
+    replace: "ignored; use claude, codex or cursor`",
   },
   {
     id: "agents-yml-template",
     find: '"# harness: claude, codex or pi runs this agent;',
-    replace: '"# harness: claude, codex, pi or cursor runs this agent;',
+    replace: '"# harness: claude, codex or cursor runs this agent;',
+  },
+  {
+    id: "agents-yml-model-comment",
+    find: '"# model: a model for this agent, a name its harness knows (sonnet for claude, for example; for pi, provider/id with","#   an optional :<thinking> suffix, such as openai/gpt-6.1-sol:high); empty uses that harness\'s model setting in",',
+    replace: '"# model: a model for this agent, a name its harness knows (sonnet for claude, for example); empty uses that harness\'s model setting in",',
+  },
+  {
+    id: "settings-no-pi-thinking",
+    find: 'extraArgs:n.get(`${i}.extraArgs`)||[],...i==="pi"?{thinking:n.get("pi.thinking")||""}:{}',
+    replace: 'extraArgs:n.get(`${i}.extraArgs`)||[]',
+  },
+  {
+    id: "run-log-no-pi-thinking",
+    find: 'return L.id==="pi"&&L.thinking&&!(B&&_e(B))?`, thinking ${L.thinking}`:""',
+    replace: 'return ""',
   },
   {
     id: "prompt-empty-workdir",
     find: 'u=$=>d($).id==="pi"?{...r,checkout:n.repoPath}:r',
-    replace: 'u=$=>d($).id==="pi"||d($).id==="cursor"?{...r,checkout:n.repoPath}:r',
+    replace: 'u=$=>d($).id==="cursor"?{...r,checkout:n.repoPath}:r',
+  },
+  {
+    id: "drop-pi-runner",
+    find: "function Vf(n,e){if(/no models available|no api key found/i.test(n))return new F(\"auth\",\"Pi isn't signed in to a model provider. Run pi in a terminal and use /login, or set the provider's API key, then run the agents again.\",ve(n));let t=/(model \"[^\"]*\" not found|unknown provider \"[^\"]*\")/i.exec(n);return t?new F(\"failed\",`Pi: ${t[1]}. Check xrayviewer.pi.model, or the agent's model in agents.yml; pi --list-models lists the ones you can use.`,ve(n)):Bi(n,e,\"Pi\")}async function Qf(n,e){if(n.thinking&&!Pa(n.thinking))throw new F(\"failed\",`xrayviewer.pi.thinking is \"${n.thinking}\". Use ${Zn.join(\", \")}, or leave it empty for Pi's default.`);let t=e.workDir??await(0,ae.mkdtemp)(Ke.default.join(zn.default.tmpdir(),\"xrayviewer-pi-\"));await(0,ae.rm)(t,{recursive:!0,force:!0}),await(0,ae.mkdir)(t,{recursive:!0});let s=`${e.prompt}\n\nReply with only a JSON object matching this JSON Schema:\n\n${JSON.stringify(e.schema)}\n`,i=Date.now();try{let r=await Q(n.command,Wf(n,e.model,await Hf(n)),{cwd:t,env:qi(),input:s,timeoutMs:e.timeoutMs,signal:e.signal,onStderr:f=>e.onLog?.(f.trimEnd())});if(r.killed)throw e.signal?.aborted?new F(\"cancelled\",\"Stopped.\"):new F(\"timeout\",\"The agent took too long and was stopped.\");if(r.code!==0)throw Vf(r.stderr||r.stdout,r.code);let o=Bf(r.stdout);if(!o)throw new F(\"badOutput\",\"Pi didn't reply.\",ve(r.stderr||r.stdout));if(o.stopReason===\"error\"||o.stopReason===\"aborted\"){let f=o.errorMessage||`the request ended (${o.stopReason})`;throw/login|auth|api key|401|credit|billing/i.test(f)?new F(\"auth\",`Pi: ${f.slice(0,300)}`,ve(r.stderr)):new F(\"failed\",`Pi: ${f.slice(0,300)}`,ve(r.stderr))}if(o.stopReason===\"length\")throw new F(\"badOutput\",\"Pi's reply was cut off before it finished.\",ve(o.text));let a=o.text.trim(),l=Qn(a)??Qn(a.slice(a.indexOf(\"{\"),a.lastIndexOf(\"}\")+1));if(l===void 0)throw new F(\"badOutput\",\"Pi didn't return JSON.\",ve(a||r.stdout));let c=[...new Set([Ke.default.resolve(e.cwd),await(0,ae.realpath)(e.cwd).catch(()=>Ke.default.resolve(e.cwd))])],{tokens:d,costUsd:u,model:h}=jf(r.stdout);return{output:Fi(l,c),costUsd:u,tokens:d,model:h||e.model||n.model||null,durationMs:Date.now()-i}}finally{await(0,ae.rm)(t,{recursive:!0,force:!0})}}function $a(n){let e=n.replace(/\\x1b\\[[0-9;]*m/g,\"\").split(/\\r?\\n/);if(e.some(d=>/^no models available/i.test(d.trim())))return[];let t=e.findIndex(d=>/^provider\\s+model\\s+context\\s+max-out\\s+thinking\\s+images\\s*$/.test(d.trim()));if(t<0)return null;let s=e[t],i=d=>s.search(new RegExp(`(?<=^|\\\\s)${d}(?=\\\\s|$)`)),[r,o,a,l]=[\"model\",\"context\",\"thinking\",\"images\"].map(i),c=[];for(let d of e.slice(t+1)){if(!d.trim())continue;let u=d.slice(0,r).trim(),h=d.slice(r,o).trim();!u||!h||/\\s/.test(u)||/\\s/.test(h)||c.push({provider:u,id:h,thinking:d.slice(a,l).trim()===\"yes\"})}return c}async function Ca(n){let e=await(0,ae.mkdtemp)(Ke.default.join(zn.default.tmpdir(),\"xrayviewer-pi-\"));try{let t=await Q(n.command,[\"--list-models\",\"--offline\",...Ea],{cwd:e,env:qi(),timeoutMs:3e4});return t.killed||t.code!==0?null:$a(t.stdout)??$a(t.stderr)}catch{return null}finally{await(0,ae.rm)(e,{recursive:!0,force:!0})}}",
+    replace: "",
   },
   {
     id: "model-picker",
-    find: "},R=async()=>{let m=ji,",
+    find: "let P=async m=>{let v=Yt().harnesses.pi,A=m?`the ${Ue(m.name).toLowerCase()} agent`:\"agents on Pi\",E=`the other Pi agents' model (${v.model||\"Pi's default\"})`,M=(B=>_e(B)?B.replace(/:[a-z]+$/,\"\"):B)(m?m.model:v.model),J=await C.window.withProgress({location:C.ProgressLocation.Window,title:\"Listing Pi's models\"},()=>Ca(v)),_,$=!0;if(J===null){let B=await C.window.showInputBox({title:`Pi model for ${A}`,prompt:`Pi couldn't list its models. Type one as provider/id or a name Pi knows, with an optional :<thinking> suffix. Empty uses ${m?E:\"Pi's default\"}.`,placeHolder:\"anthropic/claude-sonnet-5-5\",value:m?m.model:v.model});if(B===void 0)return!1;_=B.trim()}else if(J.length){let B=[{label:m?\"Same as the other Pi agents\":\"Pi's default\",description:[m?v.model||\"Pi's default\":\"\",M?\"\":\"in use\"].filter(Boolean).join(\" \\xB7 \"),detail:m?\"Uses xrayviewer.pi.model.\":\"The model you set in Pi, else its first signed-in provider's.\",value:\"\",thinking:!0},...J.map(j=>{let ce=`${j.provider}/${j.id}`;return{label:j.id,description:[j.provider,j.thinking?\"\":\"no thinking\",ce===M?\"in use\":\"\"].filter(Boolean).join(\" \\xB7 \"),value:ce,thinking:j.thinking}})],se=await C.window.showQuickPick(B,{title:`Pi model for ${A}`,placeHolder:\"Models Pi is signed in to\",matchOnDescription:!0});if(!se)return!1;_=se.value,$=se.thinking}else return C.window.showWarningMessage(\"Pi has no models to use yet. Run pi in a terminal and use /login, or set a provider's API key, then choose again.\"),!1;let L=\"\";if($&&!_e(_)&&(_||!m)){let B=m?_e(m.model)||\"\":v.thinking||\"\",se=await C.window.showQuickPick([{label:m?\"Same as the other Pi agents\":\"Pi's default\",description:[m?v.thinking||\"Pi's default\":\"\",B?\"\":\"in use\"].filter(Boolean).join(\" \\xB7 \"),detail:m?\"Uses xrayviewer.pi.thinking.\":\"The level you set in Pi, else medium.\",value:\"\"},...Zn.map(j=>({label:j,description:j===B?\"in use\":\"\",value:j}))],{title:`Thinking for ${A}`,placeHolder:\"Pi lowers a level the model doesn't support\"});if(!se)return!1;L=se.value}if(m){let B=_&&L?`${_}:${L}`:_;await Cu(m.id,B),t(`${m.name} now runs on Pi with ${B||\"the other Pi agents' model\"}`)}else{let B=C.workspace.getConfiguration(\"xrayviewer\");await B.update(\"pi.model\",_,C.ConfigurationTarget.Global),await B.update(\"pi.thinking\",L,C.ConfigurationTarget.Global),t(`Pi agents now use ${_||\"Pi's default model\"}${L?`, thinking ${L}`:\"\"}`)}return!0},R=async()=>{let m=ji,",
     replace:
-      "},xrvPick=m=>xrvCursor().pickModel({vscode:C,readConfig:()=>Yt().harnesses.cursor,setAgentModel:Cu,log:t},m)," +
+      "let xrvPick=m=>xrvCursor().pickModel({vscode:C,readConfig:()=>Yt().harnesses.cursor,setAgentModel:Cu,log:t},m)," +
       'xrvClaude=m=>xrvCursor().pickCli({vscode:C,log:t,currentPath:()=>Yt().harnesses.claude.command,currentModel:()=>m&&m.model||Yt().harnesses.claude.model,currentExtraArgs:()=>Yt().harnesses.claude.extraArgs,setAgentModel:Cu},"claude",m),' +
       'xrvCodex=m=>xrvCursor().pickCli({vscode:C,log:t,currentPath:()=>Yt().harnesses.codex.command,currentModel:()=>m&&m.model||Yt().harnesses.codex.model,currentExtraArgs:()=>Yt().harnesses.codex.extraArgs,setAgentModel:Cu},"codex",m),' +
-      'xrvModel=(h,m)=>h==="pi"?P(m):h==="cursor"?xrvPick(m):h==="claude"?xrvClaude(m):h==="codex"?xrvCodex(m):Promise.resolve(!1),' +
+      'xrvModel=(h,m)=>h==="cursor"?xrvPick(m):h==="claude"?xrvClaude(m):h==="codex"?xrvCodex(m):Promise.resolve(!1),' +
       'xrvDone=async(h,a)=>{o.notifyModel();let E=Yt().harnesses,{settings:O}=await $t(),g=a?O.agents[a]:null;await xrvCursor().announceChoice({vscode:C,log:t},{harness:h,settings:E[h],agent:g?{name:Ue(g.name),model:g.model||""}:null,inUse:Object.values(O.agents).some(x=>x.enabled&&(x.harness||E.default)===h),agents:O.agents,harnesses:E})},' +
       'xrvMove=async h=>{let E=Yt().harnesses,{settings:O}=await $t(),w=[];E.default!==h&&await C.workspace.getConfiguration("xrayviewer").update("harness",h,C.ConfigurationTarget.Global);' +
       'for(let[d,x]of Object.entries(O.agents)){if(x.harness&&x.harness!==h){await Eu(d,"");w.push(Ue(x.name))}else if(!x.harness&&x.model&&E.default!==h){await Cu(d,"");w.push(Ue(x.name))}}' +
@@ -140,8 +160,8 @@ export const PATCHES = [
       'let _=J.agent,ag=O.agents[_],nm=Ue(ag.name),own=ag.harness||"",cur=own||E.default,cv=v.get("cursor"),co=xrvCursor().installedSummary("codex"),cl=xrvCursor().installedSummary("claude"),' +
       'L=await C.window.showQuickPick([' +
       '{label:cv?"Cursor Agent "+cv:"Cursor Agent CLI",description:[cv?"":"Not found",cur==="cursor"?"in use":""].filter(Boolean).join(" \\u00b7 "),detail:cv?"Pick a model on your Cursor account. Then this agent runs on Cursor.":"Install it, or set xrayviewer.cursor.path to where it is.",value:"cursor"},' +
-      '{label:co?"Codex "+co:"Install Codex\\u2026",description:[co?"":"Not installed",cur==="codex"?"in use":""].filter(Boolean).join(" \\u00b7 "),detail:co?"Pick a model and reasoning level, or another installed version. Then this agent runs on Codex.":"Download the Codex CLI, then pick a model. Then this agent runs on Codex.",value:"codex"},' +
-      '{label:cl?"Claude Code "+cl:"Install Claude Code\\u2026",description:[cl?"":"Not installed",cur==="claude"?"in use":""].filter(Boolean).join(" \\u00b7 "),detail:cl?"Pick a model and effort level, or another installed version. Then this agent runs on Claude Code.":"Download Claude Code, then pick a model. Then this agent runs on Claude Code.",value:"claude"}' +
+      '{label:co?"Codex "+co:"Install Codex\\u2026",description:[co?"":"Not installed",cur==="codex"?"in use":""].filter(Boolean).join(" \\u00b7 "),detail:co?"Pick a model and reasoning level. The run uses the newest Codex on this machine.":"Download the Codex CLI, then pick a model. Then this agent runs on Codex.",value:"codex"},' +
+      '{label:cl?"Claude Code "+cl:"Install Claude Code\\u2026",description:[cl?"":"Not installed",cur==="claude"?"in use":""].filter(Boolean).join(" \\u00b7 "),detail:cl?"Pick a model and effort level. The run uses the newest Claude Code on this machine.":"Download Claude Code, then pick a model. Then this agent runs on Claude Code.",value:"claude"}' +
       '],{title:`Which CLI runs the ${nm.toLowerCase()} agent?`,placeHolder:`Only the ${nm.toLowerCase()} agent changes. The other agents keep theirs, and they all still run together.`});if(!L)continue;let B=null;L.value!==own&&({clearedModel:B}=await Eu(_,L.value),t(`${ag.name} now runs on ${Nt[L.value]}`));let se=await xrvModel(L.value,{id:_,name:nm,model:L.value===own?ag.model:""});if(se){await xrvDone(L.value,_);return}',
   },
   {
@@ -149,14 +169,14 @@ export const PATCHES = [
     find:
       'M=[{label:"Default for all agents",description:Nt[E.default],detail:"Agents without a harness of their own use this one.",agent:"default"},{label:"Agents",kind:C.QuickPickItemKind.Separator},...Object.entries(O.agents).map(([j,ce])=>{let Me=ce.harness,q=Me||E.default,Le=ce.model||E[q].model||(q==="pi"?"Pi\'s default model":"the CLI\'s default model"),gt=q==="pi"&&E.pi.thinking&&!_e(ce.model)?`, thinking ${E.pi.thinking}`:"";return{label:Ue(ce.name),description:`${Nt[q]}${Me?"":" (default)"} \\xB7 ${Le}${gt}${ce.enabled?"":" \\xB7 off"}`,detail:j===z?"Also writes the briefing\'s opening line.":void 0,agent:j}})],J=await C.window.showQuickPick(M,{title:"Which CLI runs each agent?",placeHolder:"Pick the default or an agent to change it"});',
     replace:
-      'xrvRows=await xrvCursor().harnessPicker(E,O.agents,{cursor:v.get("cursor")||"",codex:xrvCursor().installedSummary("codex"),claude:xrvCursor().installedSummary("claude"),pi:v.get("pi")||""},z),' +
+      'xrvRows=await xrvCursor().harnessPicker(E,O.agents,{cursor:v.get("cursor")||"",codex:xrvCursor().installedSummary("codex"),claude:xrvCursor().installedSummary("claude")},z),' +
       "M=xrvRows.rows.map(x=>x.separator?{label:x.label,kind:C.QuickPickItemKind.Separator}:x),J=await C.window.showQuickPick(M,{title:xrvRows.title,placeHolder:xrvRows.placeHolder});",
   },
   {
     id: "effort-record",
-    find: '...i.id==="pi"?{thinking:r&&_e(r)||i.thinking||a||null}:{}',
+    find: 'a=i.id==="pi"?_e(o):null,l=s||(a?o.replace(/:[a-z]+$/,""):o)||null;return{harness:i.id,model:l,...i.id==="pi"?{thinking:r&&_e(r)||i.thinking||a||null}:{}',
     replace:
-      '...i.id==="pi"?{thinking:r&&_e(r)||i.thinking||a||null}:i.id==="codex"?{thinking:(()=>{let g=i.extraArgs||[];for(let q=0;q<g.length;q++)if(g[q]==="-c"&&String(g[q+1]||"").startsWith("model_reasoning_effort="))return String(g[q+1]).slice(24).replace(/^"|"$/g,"")})()}' +
+      'l=s||o||null;return{harness:i.id,model:l,...i.id==="codex"?{thinking:(()=>{let g=i.extraArgs||[];for(let q=0;q<g.length;q++)if(g[q]==="-c"&&String(g[q+1]||"").startsWith("model_reasoning_effort="))return String(g[q+1]).slice(24).replace(/^"|"$/g,"")})()}' +
       ':i.id==="claude"?{thinking:(()=>{let g=i.extraArgs||[];for(let q=0;q<g.length;q++){if(g[q]==="--effort")return g[q+1];if(String(g[q]).startsWith("--effort="))return String(g[q]).slice(9)}})()}:{}',
   },
   {
@@ -205,7 +225,7 @@ export const PATCHES = [
     id: "harness-install-actions",
     find: 'if(!J?.agent)return;if(J.agent==="default"){',
     replace:
-      'if(!J?.agent)return;if(J.agent==="pick-cursor"||J.agent==="pick-pi"||J.agent==="install-codex"||J.agent==="install-claude"){let h=J.agent.replace(/^(pick|install)-/,"");if(await xrvModel(h,null)){await xrvMove(h);await xrvDone(h,null);return}continue}if(J.agent==="default"){',
+      'if(!J?.agent)return;if(J.agent.startsWith("update-")){if(await xrvCursor().updateCli({vscode:C,log:t},J.agent.slice(7)))o.notifyModel();continue}if(J.agent==="pick-cursor"||J.agent==="install-codex"||J.agent==="install-claude"){let h=J.agent.replace(/^(pick|install)-/,"");if(await xrvModel(h,null)){await xrvMove(h);await xrvDone(h,null);return}continue}if(J.agent==="default"){',
   },
   {
     id: "choose-model-host",
@@ -223,13 +243,13 @@ export const PATCHES = [
     id: "sidebar-settings",
     find: 'function Ei(){let n=C.workspace.getConfiguration("xrayviewer.sidebar"),e=n.get("groupBy")==="repository"?"repository":"relationship",t=["risk","created","updated"].find(s=>s===n.get("sortBy"))||"risk";return{groupBy:e,sortBy:t,othersLimit:n.get("othersLimit",10)}}',
     replace:
-      'function Ei(){let n=C.workspace.getConfiguration("xrayviewer.sidebar"),e=n.get("groupBy")==="repository"?"repository":n.get("groupBy")==="author"?"author":"relationship",t=["risk","created","updated"].find(s=>s===n.get("sortBy"))||"risk",list=["open","draft","merged","closed"],raw=n.get("status"),st=Array.isArray(raw)?raw.filter(s=>list.includes(s)):list.includes(raw)?[raw]:list,who=n.get("author"),au=Array.isArray(who)?who.filter(s=>typeof s==="string"&&s):typeof who==="string"&&who?[who]:[];if(!st.length)st=list;return{groupBy:e,sortBy:t,othersLimit:n.get("othersLimit",10),author:au,status:st,mine:n.get("mine")===true}}',
+      'function Ei(){let n=C.workspace.getConfiguration("xrayviewer.sidebar"),e=n.get("groupBy")==="repository"?"repository":n.get("groupBy")==="author"?"author":n.get("groupBy")==="review"?"review":"relationship",t=["risk","created","updated"].find(s=>s===n.get("sortBy"))||"risk",list=["open","draft","merged","closed"],raw=n.get("status"),st=Array.isArray(raw)?raw.filter(s=>list.includes(s)):list.includes(raw)?[raw]:list,who=n.get("author"),au=Array.isArray(who)?who.filter(s=>typeof s==="string"&&s):typeof who==="string"&&who?[who]:[];if(!st.length)st=list;return{groupBy:e,sortBy:t,othersLimit:n.get("othersLimit",10),author:au,status:st,mine:n.get("mine")===true}}',
   },
   {
     id: "sidebar-author-group",
     find: '}else for(let a of dd){',
     replace:
-      '}else if(e.groupBy==="author"){let a=new Map;for(let l of i){let c=l.record.summary?.author?.login||"Unknown";a.set(c,[...a.get(c)||[],l])}for(let[l,c]of[...a].sort(([d],[u])=>d.localeCompare(u)))r.push({id:`author:${l.toLowerCase()}`,label:l,description:String(c.length),rows:c.sort(s)})}else for(let a of dd){',
+      '}else if(e.groupBy==="author"){let a=new Map;for(let l of i){let c=l.record.summary?.author?.login||"Unknown";a.set(c,[...a.get(c)||[],l])}for(let[l,c]of[...a].sort(([d],[u])=>d.localeCompare(u)))r.push({id:`author:${l.toLowerCase()}`,label:l,description:String(c.length),rows:c.sort(s)})}else if(e.groupBy==="review"){let order=[["ongoing","Reviewing"],["never","Not reviewed"],["reviewed","Reviewed"]],buckets={ongoing:[],never:[],reviewed:[]};for(let l of i)buckets[xrvAgentState(l.record).flag].push(l);for(let[l,c]of order){let d=buckets[l];d.length&&r.push({id:`review:${l}`,label:c,description:String(d.length),rows:d.sort(s)})}}else for(let a of dd){',
   },
   {
     id: "sidebar-author-closed",
@@ -246,28 +266,77 @@ export const PATCHES = [
     id: "sidebar-status-text",
     find: 'function bf(n,e,t=Date.now()){let s=n.summary,i=Ai(s),r=fa(n,t).text;return[e.tag||"",i?"":wf(s)[0]||"",i&&e.risk?`${e.risk.score} ${fi[e.risk.level].toLowerCase()}`:"",i||jv.has(n.run.state)?r:"",...i?wf(s):[],Fv(s,t),e.inRepoGroup?"":n.key.name].filter(Boolean).join(" \\xB7 ")}',
     replace:
-      'function xrvAgentState(n,t=Date.now()){let run=n.run||{},a=jn(n.agent,n.summary),f=n.agent?n.agent.findings.length:0,fs=f+" finding"+(f===1?"":"s"),c=a.commit?a.commit.slice(0,7):"";' +
-      'if(run.state==="waiting"||run.state==="queued")return{short:fa(n,t).text.replace(/^agents/,"review"),long:run.state==="queued"?"Review queued.":"Review starting soon.",color:"#E2C08D"};' +
-      'if(run.state==="running"){let p=Object.values(run.progress?.agents||{}),d=p.filter(g=>g&&(g.state==="done"||g.state==="failed")).length,all=p.filter(g=>g&&g.state!=="skipped").length;return{short:all?"reviewing "+d+"/"+all:"review starting",long:all?"Reviewing now: "+d+" of "+all+" agents done.":"Review starting.",color:"#4FA3FF"}}' +
-      'if(run.state==="elsewhere")return{short:"reviewing in another window",long:"Reviewing in another window.",color:"#4FA3FF"};' +
-      'if(run.state==="failed")return{short:"review failed",long:"The last review failed."+(n.agent?" The one before found "+fs+".":""),color:"#F85149"};' +
+      'function xrvAgentState(n,t=Date.now()){let run=n.run||{},a=jn(n.agent,n.summary),f=n.agent?n.agent.findings.length:0,fs=f+" finding"+(f===1?"":"s"),c=a.commit?a.commit.slice(0,7):"",flag=["waiting","queued","running","elsewhere"].includes(run.state)?"ongoing":a.state==="current"||a.state==="behind"?"reviewed":"never";' +
+      'if(run.state==="waiting"||run.state==="queued")return{short:run.state==="queued"?"Reviewing, queued":"Reviewing",long:run.state==="queued"?"Review queued.":"Review starting soon.",color:"#4FA3FF",flag};' +
+      'if(run.state==="running"){let p=Object.values(run.progress?.agents||{}),d=p.filter(g=>g&&(g.state==="done"||g.state==="failed")).length,all=p.filter(g=>g&&g.state!=="skipped").length;return{short:all?"Reviewing "+d+"/"+all:"Reviewing",long:all?"Reviewing now: "+d+" of "+all+" agents done.":"Review starting.",color:"#4FA3FF",flag}}' +
+      'if(run.state==="elsewhere")return{short:"Reviewing in another window",long:"Reviewing in another window.",color:"#4FA3FF",flag};' +
+      'if(run.state==="failed")return{short:"Review failed",long:"The last review failed."+(n.agent?" The one before found "+fs+".":""),color:"#F85149",flag};' +
       'let hold=run.state==="held"?run.hold==="approved-ask"?" Approved, so the agents wait for your choice.":run.hold==="approved-skip"?" Approved, so the agents skipped it.":" Large, so the agents wait for you to press Run.":"";' +
-      'if(a.state==="none")return{short:"not reviewed",long:"Not reviewed yet."+hold,color:"#9AA0A6"};' +
-      'if(a.state==="behind")return{short:"reviewed, new commits",long:"Reviewed "+c+" "+ht(a.ranAt,t)+": "+fs+". New commits came after it."+hold,color:"#E2C08D"};' +
-      'return{short:"\\u2713 reviewed, "+fs,long:"Reviewed "+c+" "+ht(a.ranAt,t)+": "+fs+"."+hold,color:"#3FB950"}}' +
+      'if(a.state==="none")return{short:"Not reviewed",long:"Not reviewed yet."+hold,color:"#9AA0A6",flag};' +
+      'if(a.state==="behind")return{short:"Reviewed, new commits",long:"Reviewed "+c+" "+ht(a.ranAt,t)+": "+fs+". New commits came after it."+hold,color:"#E2C08D",flag};' +
+      'return{short:"Reviewed, "+fs,long:"Reviewed "+c+" "+ht(a.ranAt,t)+": "+fs+"."+hold,color:"#3FB950",flag}}' +
       'function bf(n,e,t=Date.now()){let s=n.summary,i=Ai(s),state=!s?"":s.state==="MERGED"?"merged":s.state==="CLOSED"?"closed":s.isDraft?"draft":"open";return[state,xrvAgentState(n,t).short,e.tag||"",i&&yf(s)?"conflicts":"",Fv(s,t),e.inRepoGroup?"":n.key.name].filter(Boolean).join(" \\xB7 ")}',
   },
   {
     id: "sidebar-status-icon",
     find: 'let a=t.run.state==="running"||t.run.state==="queued"||t.run.state==="elsewhere",l=jn(t.agent,s),c=l.state==="current"?"pass-filled":l.state==="behind"?"pass":"circle-large-outline";r.iconPath=a?new oe.ThemeIcon("sync~spin"):t.run.state==="failed"?new oe.ThemeIcon("error",new oe.ThemeColor("list.errorForeground")):new oe.ThemeIcon(c,new oe.ThemeColor(e.risk?Bv[e.risk.level]:"disabledForeground"));',
     replace:
-      'let a=t.run.state==="running"||t.run.state==="queued"||t.run.state==="elsewhere",xrvSt=!s?"open":s.state==="MERGED"?"merged":s.state==="CLOSED"?"closed":s.isDraft?"draft":"open",xrvIcon=xrvSt==="merged"?"git-merge":xrvSt==="closed"?"git-pull-request-closed":xrvSt==="draft"?"git-pull-request-draft":"git-pull-request",xrvColor=xrvSt==="merged"?"charts.purple":xrvSt==="closed"?"charts.red":xrvSt==="draft"?"disabledForeground":"charts.green";let xrvExt=e.risk&&oe.extensions.getExtension("aliqaryan.xrayviewer");r.iconPath=a?new oe.ThemeIcon("sync~spin"):t.run.state==="failed"?new oe.ThemeIcon("error",new oe.ThemeColor("list.errorForeground")):xrvExt?oe.Uri.joinPath(xrvExt.extensionUri,"media","risk",xrvSt+"-"+e.risk.level+".svg"):new oe.ThemeIcon(xrvIcon,new oe.ThemeColor(xrvColor));',
+      'let xrvSt=!s?"open":s.state==="MERGED"?"merged":s.state==="CLOSED"?"closed":s.isDraft?"draft":"open",xrvIcon=xrvSt==="merged"?"git-merge":xrvSt==="closed"?"git-pull-request-closed":xrvSt==="draft"?"git-pull-request-draft":"git-pull-request",xrvColor=xrvSt==="merged"?"charts.purple":xrvSt==="closed"?"charts.red":xrvSt==="draft"?"disabledForeground":"charts.green",xrvExt=oe.extensions.getExtension("aliqaryan.xrayviewer"),xrvFlag=xrvAgentState(t).flag;r.resourceUri=oe.Uri.from({scheme:"xrayviewer",path:"/"+t.key.owner+"/"+t.key.name+"/"+t.key.number,query:xrvFlag});r.iconPath=xrvExt&&e.risk?oe.Uri.joinPath(xrvExt.extensionUri,"media","risk",xrvSt+"-"+e.risk.level+".svg"):new oe.ThemeIcon(xrvIcon,new oe.ThemeColor(xrvColor));',
+  },
+  {
+    id: "review-tabs-state",
+    find: "Ri=class{panel=null;current=null;home=!1;view;loadSeq=0;shownSeq=-1;template=null;shownPr=null;noticed=null;extensionUri;service;log;drawing=new Map;timings=[];",
+    replace:
+      'Ri=class{xrvTabs=new Map;xrvSlot=null;template=null;extensionUri;service;log;timings=[];xrvHold(){return this.xrvSlot||(this.xrvSlot={panel:null,current:null,home:!1,view:void 0,loadSeq:0,shownSeq:-1,shownPr:null,noticed:null,drawing:new Map})}get panel(){return this.xrvSlot?.panel??null}set panel(v){this.xrvHold().panel=v}get current(){return this.xrvSlot?.current??null}set current(v){this.xrvHold().current=v}get home(){return this.xrvSlot?.home??!1}set home(v){this.xrvHold().home=v}get view(){return this.xrvSlot?.view}set view(v){this.xrvHold().view=v}get loadSeq(){return this.xrvSlot?.loadSeq??0}set loadSeq(v){this.xrvHold().loadSeq=v}get shownSeq(){return this.xrvSlot?.shownSeq??-1}set shownSeq(v){this.xrvHold().shownSeq=v}get shownPr(){return this.xrvSlot?.shownPr??null}set shownPr(v){this.xrvHold().shownPr=v}get noticed(){return this.xrvSlot?.noticed??null}set noticed(v){this.xrvHold().noticed=v}get drawing(){return this.xrvHold().drawing}',
+  },
+  {
+    id: "review-tabs-panel",
+    find: 'ensurePanel(){if(this.panel)return this.panel;let e=ee.window.createWebviewPanel("xrayviewer.review","X-RayViewer",ee.ViewColumn.Active,{enableScripts:!0,retainContextWhenHidden:!0,localResourceRoots:[this.ui()]});return e.iconPath=ee.Uri.joinPath(this.extensionUri,"media","xrayviewer.svg"),e.onDidDispose(()=>{this.panel=null,this.current=null,this.shownSeq=-1,this.shownPr=null}),e.webview.onDidReceiveMessage(t=>{this.onMessage(t)}),this.panel=e,e}',
+    replace:
+      'ensurePanel(pr){let id=pr?N(pr).toLowerCase():"";if(id){let tab=this.xrvTabs.get(id);if(tab?.panel)return this.xrvSlot=tab,tab.panel}else if(this.panel)return this.panel;let e=ee.window.createWebviewPanel("xrayviewer.review",pr?`#${pr.number}`:"X-RayViewer",ee.ViewColumn.Active,{enableScripts:!0,retainContextWhenHidden:!0,localResourceRoots:[this.ui()]});let tab={panel:e,current:pr||null,home:!1,view:void 0,loadSeq:0,shownSeq:-1,shownPr:null,noticed:null,drawing:new Map};id&&this.xrvTabs.set(id,tab);this.xrvSlot=tab;e.iconPath=ee.Uri.joinPath(this.extensionUri,"media","xrayviewer.svg");e.onDidDispose(()=>{id&&this.xrvTabs.delete(id);this.xrvSlot===tab&&(this.xrvSlot=null)});e.onDidChangeViewState(v=>{v.webviewPanel.active&&(this.xrvSlot=tab)});e.webview.onDidReceiveMessage(t=>{this.xrvSlot=tab,this.onMessage(t)});return e}',
+  },
+  {
+    id: "review-tabs-show",
+    find: "async show(e,t={}){let s=this.ensurePanel();s.reveal(s.viewColumn??ee.ViewColumn.Active,!1);let i=++this.loadSeq,r=()=>i!==this.loadSeq||this.panel!==s;this.current=e,this.home=!!t.home,this.view=t.view;let o=this.home,a=this.view,",
+    replace:
+      "async show(e,t={}){let s=this.ensurePanel(e),slot=this.xrvSlot;s.reveal(s.viewColumn??ee.ViewColumn.Active,!1);let i=++slot.loadSeq,r=()=>i!==slot.loadSeq||slot.panel!==s;slot.current=e,slot.home=!!t.home,slot.view=t.view;let o=slot.home,a=slot.view,",
+  },
+  {
+    id: "review-tabs-shown",
+    find: 's.webview.html=P,this.shownSeq=i,this.shown(g.live.pr);',
+    replace: 'this.xrvSlot=slot,s.webview.html=P,slot.shownSeq=i,slot.shownPr=g.live.pr?{state:g.live.pr.state??null,headRefOid:g.live.pr.headRefOid??null,updatedAt:g.live.pr.updatedAt??null}:null,slot.noticed=null;',
+  },
+  {
+    id: "review-tabs-drawn-page",
+    find: 'let R=this.drawn(i,"page")',
+    replace: 'let R=(this.xrvSlot=slot,this.drawn(i,"page"))',
+  },
+  {
+    id: "review-tabs-drawn-changes",
+    find: 'let A=this.drawn(i,"changes")',
+    replace: 'let A=(this.xrvSlot=slot,this.drawn(i,"changes"))',
+  },
+  {
+    id: "review-tabs-refresh",
+    find: "s.webview.html=w,this.shown(x.live.pr),this.log(`Updated ${N(e)} with the latest from GitHub`)",
+    replace: "s.webview.html=w,slot.shownPr=x.live.pr?{state:x.live.pr.state??null,headRefOid:x.live.pr.headRefOid??null,updatedAt:x.live.pr.updatedAt??null}:null,slot.noticed=null,this.log(`Updated ${N(e)} with the latest from GitHub`)",
+  },
+  {
+    id: "review-tabs-show-error",
+    find: "if(this.log(`Couldn't open ${N(e)}: ${h}`),r()||this.shownSeq===i)return;",
+    replace: "if(this.log(`Couldn't open ${N(e)}: ${h}`),r()||slot.shownSeq===i)return;",
+  },
+  {
+    id: "review-decoration",
+    find: 'l=C.window.createTreeView("xrayviewer.pullRequests",{treeDataProvider:a,showCollapseAll:!0});n.subscriptions.push(l,a,{dispose:()=>r.dispose()},{dispose:()=>o.dispose()});',
+    replace:
+      'l=C.window.createTreeView("xrayviewer.pullRequests",{treeDataProvider:a,showCollapseAll:!0});n.subscriptions.push(l,a,{dispose:()=>r.dispose()},{dispose:()=>o.dispose()},C.window.registerFileDecorationProvider({provideFileDecoration(u){if(u.scheme!=="xrayviewer")return;let f=u.query;return f==="ongoing"?{badge:"\\u25cf",color:new C.ThemeColor("charts.blue"),tooltip:"Reviewing"}:f==="reviewed"?{badge:"\\u2713",color:new C.ThemeColor("charts.green"),tooltip:"Reviewed by X-RayViewer"}:{badge:"\\u2013",color:new C.ThemeColor("disabledForeground"),tooltip:"Not reviewed by X-RayViewer"}}}));',
   },
   {
     id: "sidebar-group-author",
     find: '{label:"By repository",description:m==="repository"?"current":"",detail:"One group per repository; each row says why it\'s listed",value:"repository"}]',
     replace:
-      '{label:"By repository",description:m==="repository"?"current":"",detail:"One group per repository; each row says why it\'s listed",value:"repository"},{label:"By author",description:m==="author"?"current":"",detail:"One group per pull request author",value:"author"}]',
+      '{label:"By repository",description:m==="repository"?"current":"",detail:"One group per repository; each row says why it\'s listed",value:"repository"},{label:"By author",description:m==="author"?"current":"",detail:"One group per pull request author",value:"author"},{label:"By X-RayViewer review",description:m==="review"?"current":"",detail:"Reviewing, not reviewed, or reviewed",value:"review"}]',
   },
   {
     id: "sidebar-tooltip",
@@ -278,7 +347,7 @@ export const PATCHES = [
         id: "sidebar-view-label",
     find: 'let c=()=>{let{groupBy:m,sortBy:v}=Ei();l.description=`${m==="repository"?"by repository":"by relationship"} \\xB7 ${md[v]}`}',
     replace:
-      'let c=()=>{let{groupBy:m,sortBy:v,author:au,status:st,mine}=Ei(),by=m==="repository"?"by repository":m==="author"?"by author":"by relationship",shown=Array.isArray(st)&&st.length&&st.length<4?st.join(", "):"",who=Array.isArray(au)?au.join(", "):au||"",extra=[mine?"mine":"",shown,who].filter(Boolean).join(" · ");l.description=`${by}${extra?` · ${extra}`:""} · ${md[v]}`}',
+      'let c=()=>{let{groupBy:m,sortBy:v,author:au,status:st,mine}=Ei(),by=m==="repository"?"by repository":m==="author"?"by author":m==="review"?"by review":"by relationship",shown=Array.isArray(st)&&st.length&&st.length<4?st.join(", "):"",who=Array.isArray(au)?au.join(", "):au||"",extra=[mine?"mine":"",shown,who].filter(Boolean).join(" · ");l.description=`${by}${extra?` · ${extra}`:""} · ${md[v]}`}',
   },
   {
     id: "sidebar-filter-author",
@@ -289,7 +358,7 @@ export const PATCHES = [
 ];
 
 /** Names the patches add; the original bundle must not use them already. */
-export const ADDED_NAMES = ["xrvCursorHarness", "xrvCursor", "xrvReview", "xrvA", "xrvPick", "xrvClaude", "xrvCodex", "xrvModel", "xrvDone", "xrvRows", "xrvMove", "xrvSt", "xrvIcon", "xrvColor", "xrvExt", "xrvStatus", "xrvAgentState"];
+export const ADDED_NAMES = ["xrvCursorHarness", "xrvCursor", "xrvReview", "xrvA", "xrvPick", "xrvClaude", "xrvCodex", "xrvModel", "xrvDone", "xrvRows", "xrvMove", "xrvSt", "xrvIcon", "xrvColor", "xrvExt", "xrvStatus", "xrvAgentState", "xrvTabs", "xrvSlot", "xrvHold"];
 
 const modelBit = '${modelSummary(AGENTS).line ? ` · ${esc(modelSummary(AGENTS).line)} <button type="button" class="link" data-act="choose-model">Change</button>` : ""}';
 

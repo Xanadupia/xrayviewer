@@ -1,7 +1,7 @@
 {
   "name": "xrayviewer",
   "displayName": "X-RayViewer",
-  "description": "Review GitHub pull requests in VS Code with Claude Code, Codex or Pi agents that run on your computer: description checks, reading order, flow maps and findings, then post your review.",
+  "description": "Review GitHub pull requests in VS Code with Claude Code or Codex agents that run on your computer: description checks, reading order, flow maps and findings, then post your review.",
   "version": "0.3.2",
   "publisher": "aliqaryan",
   "preview": true,
@@ -28,7 +28,6 @@
     "claude",
     "claude code",
     "codex",
-    "pi",
     "gh"
   ],
   "main": "./dist/extension.cjs",
@@ -39,14 +38,12 @@
   "capabilities": {
     "untrustedWorkspaces": {
       "supported": "limited",
-      "description": "In Restricted Mode, X-RayViewer ignores workspace values for the settings that choose which programs run (the Claude Code, Codex and Pi paths and arguments) and where clones are.",
+      "description": "In Restricted Mode, X-RayViewer ignores workspace values for the settings that choose which programs run (the Claude Code and Codex paths and arguments) and where clones are.",
       "restrictedConfigurations": [
         "xrayviewer.claude.path",
         "xrayviewer.codex.path",
-        "xrayviewer.pi.path",
         "xrayviewer.claude.extraArgs",
         "xrayviewer.codex.extraArgs",
-        "xrayviewer.pi.extraArgs",
         "xrayviewer.clones"
       ]
     },
@@ -296,13 +293,11 @@
           "type": "string",
           "enum": [
             "claude",
-            "codex",
-            "pi"
+            "codex"
           ],
           "enumDescriptions": [
             "Claude Code CLI (`claude`)",
-            "Codex CLI (`codex`)",
-            "Pi coding agent (`pi`)"
+            "Codex CLI (`codex`)"
           ],
           "default": "claude",
           "markdownDescription": "The default harness for the review agents. An agent can use another one: set `harness` for it in `~/.xrayviewer/agents.yml`, or run **X-RayViewer: Choose Agent Harnesses…**."
@@ -345,49 +340,6 @@
           },
           "default": [],
           "markdownDescription": "Extra arguments passed to every `codex exec` run, one item per argument, such as `[\"-c\", \"model_reasoning_effort=\\\"high\\\"\"]`.",
-          "scope": "machine"
-        },
-        "xrayviewer.pi.path": {
-          "type": "string",
-          "default": "pi",
-          "markdownDescription": "The Pi coding agent CLI: `pi` when it's on your `PATH`, or the full path to it.",
-          "scope": "machine"
-        },
-        "xrayviewer.pi.model": {
-          "type": "string",
-          "default": "",
-          "markdownDescription": "Model for the agents that run on Pi, in Pi's syntax: `provider/id` or a name Pi knows, with an optional `:<thinking>` suffix, such as `anthropic/claude-sonnet-5-5` or `openai/gpt-6.1-sol:high`. Empty uses Pi's default (the model you set in Pi, else its first signed-in provider's). **X-RayViewer: Choose Agent Harnesses…** lists the models Pi is signed in to. A model set for one agent in `~/.xrayviewer/agents.yml` wins over this."
-        },
-        "xrayviewer.pi.thinking": {
-          "type": "string",
-          "enum": [
-            "",
-            "off",
-            "minimal",
-            "low",
-            "medium",
-            "high",
-            "xhigh"
-          ],
-          "enumDescriptions": [
-            "Pi's default (the level you set in Pi, else medium)",
-            "No thinking",
-            "Minimal",
-            "Low",
-            "Medium",
-            "High",
-            "Extra high"
-          ],
-          "default": "",
-          "markdownDescription": "Thinking level for the agents that run on Pi. It wins over a `:<thinking>` suffix in `#xrayviewer.pi.model#`, but not over one in an agent's own model in `~/.xrayviewer/agents.yml`. Pi lowers a level the model doesn't support."
-        },
-        "xrayviewer.pi.extraArgs": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          },
-          "default": [],
-          "markdownDescription": "Extra arguments passed to every `pi` run, one item per argument.",
           "scope": "machine"
         },
         "xrayviewer.agents.autoRun": {

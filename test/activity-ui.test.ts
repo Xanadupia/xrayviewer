@@ -58,7 +58,7 @@ describe("activitySummary", () => {
 describe("activityHTML: the agents, like GitHub's checks", () => {
   const plan = [
     { id: "correctness", name: "Correctness agent", harness: "codex", model: "gpt-5.5" },
-    { id: "tests", name: "Test agent", harness: "pi", model: "" },
+    { id: "tests", name: "Test agent", harness: "cursor", model: "" },
   ];
 
   test("invites a run when there's no progress yet", () => {
@@ -70,7 +70,7 @@ describe("activityHTML: the agents, like GitHub's checks", () => {
       agents: {
         style: { state: "skipped", error: "Turned off" },
         correctness: { state: "running", harness: "codex", startedAt: 28_000 },
-        tests: { state: "done", harness: "pi", ms: 41_000, costUsd: 0.0123 },
+        tests: { state: "done", harness: "cursor", ms: 41_000, costUsd: 0.0123 },
         security: { state: "failed", harness: "codex", ms: 65_000 },
       },
       activity: {},
@@ -81,7 +81,7 @@ describe("activityHTML: the agents, like GitHub's checks", () => {
     assert.deepEqual(text(html, "checks-tally"), ["1 failing, 1 in progress, 1 skipped, 1 successful agents"]);
     assert.deepEqual(text(html, "checks-group-name"), ["1 failing agent", "1 agent in progress", "1 skipped agent", "1 successful agent"]);
     assert.deepEqual(openKeys(html), ["c:failing", "c:progress", "c:skipped", "c:successful"]);
-    assert.deepEqual(text(html, "check-name"), ["Security / Codex", "Correctness agent / Codex · gpt-5.5", "Style", "Test agent / Pi · CLI default"]);
+    assert.deepEqual(text(html, "check-name"), ["Security / Codex", "Correctness agent / Codex · gpt-5.5", "Style", "Test agent / Cursor Agent · CLI default"]);
     assert.deepEqual(text(html, "check-status"), ["Failed after 1m 05s", "In progress for 1m 12s", "Skipped: Turned off", "Successful in 41s"]);
     assert.match(html, /In progress for <span class="act-time" data-since="28000">1m 12s<\/span>/, "the running clock ticks");
     assert.match(html, /<span class="check-pill">\$0\.012<\/span>/);
@@ -229,6 +229,6 @@ describe("activityHTML: one agent's log, like a GitHub job", () => {
 
     assert.match(log("queued"), /Waiting for a free slot\./);
     assert.match(log("skipped"), /This agent didn't run\./);
-    assert.match(log("done", "pi"), /Pi reports its work when it finishes/);
+    assert.match(log("done"), /No steps reported\./);
   });
 });

@@ -93,7 +93,7 @@ export function activityHTML(progress, plan, view) {
   if (!ids.length) {
     return `<p class="act-empty">No agent run on this pull request yet. Run the agents to watch each one read the change, run commands and write its review here.</p>`;
   }
-  const harnesses = { claude: "Claude Code", codex: "Codex", pi: "Pi", cursor: "Cursor Agent" };
+  const harnesses = { claude: "Claude Code", codex: "Codex", cursor: "Cursor Agent" };
   const verbs = { command: "Ran", read: "Read", search: "Searched" };
   const planned = (id) => (plan || []).find((agent) => agent.id === id) || null;
   const byOf = (id) => {
@@ -178,7 +178,6 @@ export function activityHTML(progress, plan, view) {
     const info = agents[id] || {};
     const state = stateOf(id);
     const live = state === "running";
-    const { harness } = metaOf(id);
     const record = activity[id] || { steps: [], dropped: 0 };
     const parts = [];
     if (record.dropped) parts.push(`<p class="act-note">${record.dropped} earlier ${record.dropped === 1 ? "step isn't" : "steps aren't"} shown.</p>`);
@@ -200,7 +199,6 @@ export function activityHTML(progress, plan, view) {
     }
     if (state === "queued") parts.push(`<p class="act-note">Waiting for a free slot.</p>`);
     else if (state === "skipped") parts.push(`<p class="act-note">This agent didn't run.</p>`);
-    else if (!record.steps.length && harness === "pi") parts.push(`<p class="act-note">Pi reports its work when it finishes, so its steps don't show here.</p>`);
     else if (!record.steps.length && live) parts.push(`<p class="act-note">Starting…</p>`);
     else if (!record.steps.length) parts.push(`<p class="act-note">No steps reported.</p>`);
     if ((state === "failed" || state === "cancelled") && info.error) parts.push(`<p class="act-error">${icon("alert")}<span>${esc(info.error)}</span></p>`);

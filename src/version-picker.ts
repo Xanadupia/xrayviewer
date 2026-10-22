@@ -17,6 +17,7 @@ export interface VersionPickerDeps {
     };
   };
   list(): readonly CliVersion[] | Promise<readonly CliVersion[]>;
+  /** The path last saved. A run uses the newest install instead of this when one exists. */
   currentPath(): string;
   install(): Promise<{ ok: boolean; output: string }>;
   log(line: string): void;
@@ -84,11 +85,12 @@ export function officialInstallCommand(id: CliId): string {
   return spec(id).command;
 }
 
-export function versionItems(versions: readonly CliVersion[], currentPath: string, install: Pick<CliSpec, "title" | "installLabel" | "installDetail">): PickItem[] {
+export function versionItems(versions: readonly CliVersion[], install: Pick<CliSpec, "title" | "installLabel" | "installDetail">): PickItem[] {
+  const newest = versions[0]?.path;
   return [
     ...versions.map((version) => ({
       label: version.version === "installed" ? "Installed copy" : version.version,
-      description: [version.path, version.path === currentPath ? "in use" : ""].filter(Boolean).join(" · "),
+      description: [version.path, version.path === newest ? "in use" : ""].filter(Boolean).join(" · "),
       value: version.path,
     })),
     {
@@ -107,7 +109,7 @@ async function pickModel(
   who: string,
 ): Promise<boolean | "version"> {
   const { window, workspace, ProgressLocation, ConfigurationTarget } = deps.vscode;
-  const command = versions.find((version) => version.path === deps.currentPath())?.path ?? versions[0].path;
+  const command = versions[0].path;
   const models = await window.withProgress(
     { location: ProgressLocation.Notification, title: `Asking ${chosen.title} for its models…` },
     () => deps.listModels?.(command) ?? Promise.resolve(null),
@@ -167,9 +169,9 @@ async function pickModel(
 }
 
 /**
- * Asks which model an installed Claude Code or Codex uses, with its level, and which installed copy runs it.
- * Offers the official installer when none is installed, and also when some are, so another version can be added.
- * Saves the chosen binary in the harness path setting.
+ * Asks which model an installed Claude Code or Codex uses, with its level.
+ * Offers the official installer when none is installed, and also when some are, so a newer version can be added.
+ * The run uses the newest installed binary. Choosing an older row does not pin it.
  */
 export async function pickCliVersion(deps: VersionPickerDeps, id: CliId, agent: { id?: string; name: string } | null): Promise<boolean> {
   const { window, workspace, ProgressLocation, ConfigurationTarget } = deps.vscode;
@@ -191,15 +193,16 @@ export async function pickCliVersion(deps: VersionPickerDeps, id: CliId, agent: 
       return choice;
     }
     showVersion = false;
-    const picked = await window.showQuickPick(versionItems(versions, deps.currentPath(), chosen), {
+    const picked = await window.showQuickPick(versionItems(versions, chosen), {
       title: `${chosen.title} version for ${who}`,
       placeHolder: versions.length ? "Installed on this machine" : `${chosen.title} is not installed`,
       matchOnDescription: true,
     });
     if (!picked) return false;
     if (picked.value !== INSTALL) {
-      await workspace.getConfiguration("xrayviewer").update(chosen.setting, picked.value, ConfigurationTarget.Global);
-      deps.log(`${chosen.title} agents now use ${picked.label} at ${picked.value}`);
+      const newest = versions[0];
+      await workspace.getConfiguration("xrayviewer").update(chosen.setting, newest.path, ConfigurationTarget.Global);
+      deps.log(`${chosen.title} agents now use ${newest.version} at ${newest.path}`);
       const choice = await thenModel();
       if (choice !== "version") return choice;
       showVersion = true;

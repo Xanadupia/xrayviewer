@@ -4,7 +4,7 @@ import { mkdir, mkdtemp, symlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { describe, test } from "node:test";
-import { listClaudeVersions, listCodexVersions } from "../src/installed-versions.ts";
+import { latestCommand, listClaudeVersions, listCodexVersions, listCursorVersions } from "../src/installed-versions.ts";
 
 async function home(): Promise<string> {
   return mkdtemp(path.join(tmpdir(), "xrayviewer-clis-"));
@@ -54,5 +54,36 @@ describe("installed CLI versions", () => {
 
     assert.deepEqual(listClaudeVersions(root, []), []);
     assert.deepEqual(listCodexVersions(root, []), []);
+    assert.deepEqual(listCursorVersions(root, []), []);
+  });
+
+  test("uses the newest Cursor Agent build, not an older path", async () => {
+    const root = await home();
+    const versions = path.join(root, ".local", "share", "cursor-agent", "versions");
+    const older = path.join(versions, "2026.10.14-0f9edde");
+    const current = path.join(versions, "2026.10.19-6bbf2c4");
+    await mkdir(older, { recursive: true });
+    await mkdir(current, { recursive: true });
+    await writeFile(path.join(older, "cursor-agent"), "");
+    await writeFile(path.join(current, "cursor-agent"), "");
+    await mkdir(path.join(root, ".local", "bin"), { recursive: true });
+    await symlink(path.join(older, "cursor-agent"), path.join(root, ".local", "bin", "cursor-agent"));
+
+    const found = listCursorVersions(root, []);
+
+    assert.deepEqual(
+      found.map((item) => item.version),
+      ["2026.10.19-6bbf2c4", "2026.10.14-0f9edde"],
+    );
+    assert.equal(latestCommand("cursor", path.join(older, "cursor-agent"), root), realpathSync(path.join(current, "cursor-agent")));
+  });
+
+  test("keeps a configured command when that CLI is not installed", async () => {
+    const root = await home();
+    const configured = path.join(root, "bin", "claude");
+    await mkdir(path.join(root, "bin"), { recursive: true });
+    await writeFile(configured, "");
+
+    assert.equal(latestCommand("claude", configured, root), configured);
   });
 });

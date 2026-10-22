@@ -13,15 +13,15 @@ You need:
 - **VS Code** 1.95 or later, or **Cursor**
 - **GitHub CLI**, signed in: `gh auth login` ([cli.github.com](https://cli.github.com))
 - **git**
-- One program that can run the agents: Cursor Agent, Claude Code, Codex, or Pi
+- One program that can run the agents: Cursor Agent, Claude Code, or Codex
 
 Install **X-RayViewer** from the Extensions view. The id is `aliqaryan.xrayviewer`. Cursor installs it from Open VSX. VS Code installs it from the Visual Studio Marketplace. Reload the window when the editor asks.
 
 Then:
 
 1. Click the X-RayViewer icon in the activity bar.
-2. Run **X-RayViewer: Choose Agent Harnesses…** and pick Cursor, Claude Code, Codex, or Pi, then a model. Claude Code, Codex, and Pi also ask for a level.
-3. Open a pull request and press **Run**.
+2. Run **X-RayViewer: Choose Agent Harnesses…** and pick Cursor, Claude Code, or Codex, then a model. Claude Code and Codex also ask for a level.
+3. Open a pull request and press **Run**. Each pull request opens in its own tab, and opening it again shows that tab.
 
 If the sidebar stays empty, run `gh auth login`, then **Refresh**.
 
@@ -64,13 +64,13 @@ Replies post as written, since the thread's first comment has the level. When X-
 
 | Part | What it does |
 |---|---|
-| **Change all agents** | **Cursor Agent**, **Codex**, and **Claude Code**, plus **Pi** when it's installed. Each says how many agents use it. Pick one, then a model, and every agent moves to it. |
+| **Change all agents** | **Cursor Agent**, **Codex**, and **Claude Code**. Each says how many agents use it. Pick one, then a model, and every agent moves to it. |
 | **Change one agent** | **Guide**, **Architecture**, **Correctness**, **Test**, and **Security**, each with its CLI, model, and what it looks at. Pick one to move only that agent. |
+| **Updates** | Shown when Claude Code, Codex, or Cursor Agent has a newer version. Pick one to download it. The list shows the new version when the download finishes. |
 
 - **Cursor** lists the models on your Cursor account. The first row keeps whatever `cursor-agent` used last. Pick a model by name if you care which one reviews.
 - **Codex** lists the models that CLI provides, then a reasoning level such as medium or high.
 - **Claude Code** lists its models with their versions, such as Opus 5.5 and Sonnet 5.5, then an effort level from low to max. Each row is Claude Code's short name, such as `opus`, so it moves to the newest version when Claude Code updates. To keep one version, set `xrayviewer.claude.model` to its full id, such as `claude-opus-5-5`.
-- **Pi** lists the models it is signed in to, then a thinking level.
 
 For Codex and Claude Code, **Change installed version…** at the bottom of the model list picks another installed copy, or installs one.
 
@@ -89,7 +89,7 @@ With several windows open, one window starts the automatic runs. A pull request'
 ## If something looks wrong
 
 - **The sidebar is empty.** Run `gh auth status`, then `gh auth login`. Team requests and code owners also need `gh auth refresh -s read:org`.
-- **An agent program is not found.** **Choose Agent Harnesses…** says so, and can install Codex or Claude Code. Or set `xrayviewer.cursor.path`, `xrayviewer.claude.path`, `xrayviewer.codex.path`, or `xrayviewer.pi.path` to the full path. Sign in by running that program once. For Cursor: `cursor-agent login`.
+- **An agent program is not found.** **Choose Agent Harnesses…** says so, and can install Codex or Claude Code. A run uses the newest version installed. Set `xrayviewer.cursor.path`, `xrayviewer.claude.path`, or `xrayviewer.codex.path` only when that program lives somewhere else. Sign in by running that program once. For Cursor: `cursor-agent login`.
 - **Cursor cannot use a model.** Open **Choose model…** beside **Run agents**, or **Choose Agent Harnesses…**, and pick a model from the list.
 - **Agents fail or find nothing.** **X-RayViewer: Show Agent Log** lists the agents, errors, tokens, and cost.
 - **Agents are running in another window.** Stop them there, or wait.
@@ -112,29 +112,29 @@ A pull request appears in the first group it fits.
 | Others you could review | Up to 10 more open pull requests in those repositories. |
 | Recently merged or closed | Ones you reviewed or wrote, for the last 3 days. |
 
-The icon on a row is the pull request: green is open, a draft icon is a draft, purple is merged, and red is closed. The colored dot beside it is the risk: green is low, orange is medium, and red is high. The full score is in the row's tooltip. While agents are running, the icon is a spinner.
+A colored bar at the left of each row is the risk: green is low, orange is medium, and red is high. The icon beside it is the pull request: green is open, a draft icon is a draft, purple is merged, and red is closed. The full score is in the row's tooltip. A mark on that icon is the X-RayViewer review: green when it has been reviewed, blue while a review is running, and gray when it has never been reviewed.
 
-Each row also says where X-RayViewer's review stands, right after the pull request's state:
+Each row also says that review in words, right after the pull request's state. **Group Pull Requests…** can group the list into Reviewing, Not reviewed, and Reviewed.
 
 | Row says | What it means |
 |---|---|
-| ✓ reviewed, 13 findings | The agents reviewed the latest commit. |
-| reviewed, new commits | The agents reviewed an older commit. Rerun reviews the latest. |
-| not reviewed | The agents haven't reviewed it yet. |
-| reviewing 2/5, review queued | A review is running or waiting to start. |
-| review failed | The last review failed. The tooltip has the error. |
+| Reviewed, 13 findings | X-RayViewer reviewed the latest commit. |
+| Reviewed, new commits | X-RayViewer reviewed an older commit. Rerun reviews the latest. |
+| Not reviewed | X-RayViewer has not reviewed it yet. |
+| Reviewing 2/5, Reviewing, queued | A review is running or waiting to start. |
+| Review failed | The last review failed. The tooltip has the error. |
 
 The tooltip says it in full on its **X-RayViewer** line, such as "Reviewed a9dca66 3 hours ago: 13 findings." On the review page, the same state is a pill beside the risk score, such as **X-RayViewer reviewed · 13 findings** or **X-RayViewer reviewing · 2/5**. Click it to open **Agent activity**.
 
-The view menu groups by relationship, repository, or author. **Filter…** is one checklist. **My pull requests** shows only ones you opened. Each of status and author has its own **All**. Check any of the rest, then press Return. The list only contains the pull requests it has already loaded, including recently merged and closed ones.
+The view menu groups by relationship, repository, author, or X-RayViewer review. **Filter…** is one checklist. **My pull requests** shows only ones you opened. Each of status and author has its own **All**. Check any of the rest, then press Return. The list only contains the pull requests it has already loaded, including recently merged and closed ones.
 
 ## The agents
 
 Five agents ship. The **guide** checks the description, sets a reading order, and draws the flow. **Architecture**, **correctness**, **tests**, and **security** look for problems. You can add more with **X-RayViewer: New Agent…**.
 
-On Claude Code, the agents that look for problems hand over to Claude Code's own **/code-review**. It runs once, at the effort level you picked, and its findings show under one **Code review** agent. Then Claude Code checks the pull request against the instructions of each agent it replaced, such as **Architecture**. A problem in those instructions that /code-review missed shows under that agent, within its own max findings, minimum confidence, and skipped files. In **Agent activity**, those agents sit under **Code review agent** and show its status, such as "Covered by Code review agent · In progress". The guide keeps its own instructions, and agents on Cursor, Codex, or Pi run as usual. /code-review reads the diff with `git` in Claude Code's sandbox, which writes nothing and reads only the checkout and its git history. **X-RayViewer: Show Agent Log** has its report.
+On Claude Code, the agents that look for problems hand over to Claude Code's own **/code-review**. It runs once, at the effort level you picked, and its findings show under one **Code review** agent. Then Claude Code checks the pull request against the instructions of each agent it replaced, such as **Architecture**. A problem in those instructions that /code-review missed shows under that agent, within its own max findings, minimum confidence, and skipped files. In **Agent activity**, those agents sit under **Code review agent** and show its status, such as "Covered by Code review agent · In progress". The guide keeps its own instructions, and agents on Cursor or Codex run as usual. /code-review reads the diff with `git` in Claude Code's sandbox, which writes nothing and reads only the checkout and its git history. **X-RayViewer: Show Agent Log** has its report.
 
-To watch the agents work, click **Agents are running**, or open the arrow beside **Run agents** and choose **Agent activity…**. The agents are listed the way GitHub lists a pull request's checks: a line that sums them up, such as "1 failing, 1 in progress, 2 successful agents", then each agent under its status with its harness, model, and time. Click an agent's name, or open its **⋯** menu and choose **View details**, to see its log. **All agents** goes back. In the log, what the agent says stands as text, and the commands, reads, and searches between those messages fold into one line, such as "Ran 2 commands, read cart.js". Open that line for each step, and open a command for its output. The activity stays after the run until the next one. Pi reports its work when it finishes, so its steps don't show.
+To watch the agents work, click **Agents are running**, or open the arrow beside **Run agents** and choose **Agent activity…**. The agents are listed the way GitHub lists a pull request's checks: a line that sums them up, such as "1 failing, 1 in progress, 2 successful agents", then each agent under its status with its harness, model, and time. Click an agent's name, or open its **⋯** menu and choose **View details**, to see its log. **All agents** goes back. In the log, what the agent says stands as text, and the commands, reads, and searches between those messages fold into one line, such as "Ran 2 commands, read cart.js". Open that line for each step, and open a command for its output. The activity stays after the run until the next one.
 
 The first run writes `~/.xrayviewer` (`XRAYVIEWER_HOME` moves it): `agents.yml` for the list, and one instruction file per agent. **Customize Agents…** opens those files. Changes apply on the next run.
 
@@ -156,7 +156,7 @@ X-RayViewer adds no charge of its own. Usage counts against the account of the p
 | Command | What it does |
 |---|---|
 | Open a Pull Request… | Open a review from a GitHub link or `owner/name` and a number. |
-| Choose Agent Harnesses… | Pick Cursor, Claude Code, Codex, or Pi, then a model. |
+| Choose Agent Harnesses… | Pick Cursor, Claude Code, or Codex, then a model. |
 | Run Agents / Stop Agents | Start or stop the agents. |
 | Show Agent Log | Tokens, cost, errors. |
 | Customize Agents… | Open the agent files. |
@@ -168,13 +168,14 @@ X-RayViewer adds no charge of its own. Usage counts against the account of the p
 
 ## Settings
 
+Claude Code, Codex, and Cursor Agent run the newest version installed on this machine. A path below is used only when that program has no installed version to choose from.
+
 | Setting | Default | What it does |
 |---|---|---|
-| `xrayviewer.harness` | `claude` | Default program: `claude`, `codex`, `pi`, or `cursor` |
+| `xrayviewer.harness` | `claude` | Default program: `claude`, `codex`, or `cursor` |
 | `xrayviewer.cursor.path` / `.model` / `.extraArgs` | `cursor-agent` / empty / none | Cursor Agent CLI and model |
 | `xrayviewer.claude.path` / `.model` / `.extraArgs` | `claude` / `sonnet` / none | Claude Code |
 | `xrayviewer.codex.path` / `.model` / `.extraArgs` | `codex` / empty / none | Codex. Empty model uses the CLI's default |
-| `xrayviewer.pi.path` / `.model` / `.thinking` / `.extraArgs` | `pi` / empty / empty / none | Pi. Model looks like `provider/id` |
 | `xrayviewer.agents.autoRun` | on | Automatic runs when your review is requested by name |
 | `xrayviewer.agents.enabled` | empty | Only these agent ids. Empty runs every enabled agent |
 | `xrayviewer.agents.maxParallel` | 5 | Agent processes at once |
@@ -187,7 +188,7 @@ X-RayViewer adds no charge of its own. Usage counts against the account of the p
 | `xrayviewer.watch.repositories` | none | Also list open pull requests in these `owner/name` repositories |
 | `xrayviewer.watch.pollSeconds` | 60 | How often to check GitHub. At least 15 |
 | `xrayviewer.watch.recentlyClosedDays` | 3 | How long merged or closed pull requests stay listed. 0 hides them |
-| `xrayviewer.sidebar.groupBy` | `relationship` | `relationship`, `repository`, or `author` |
+| `xrayviewer.sidebar.groupBy` | `relationship` | `relationship`, `repository`, `author`, or `review` |
 | `xrayviewer.sidebar.mine` | off | Only pull requests you opened |
 | `xrayviewer.sidebar.author` | empty | GitHub logins to show. Empty shows everyone |
 | `xrayviewer.sidebar.status` | empty | Statuses to show: `open`, `draft`, `merged`, `closed`. Empty shows all of them |

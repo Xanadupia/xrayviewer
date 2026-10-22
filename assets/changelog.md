@@ -1,5 +1,26 @@
 # Changelog
 
+## 0.4.8
+
+- **Update Claude Code, Codex, and Cursor Agent from the model list.** When a newer version is published, **Choose model** lists it under **Updates**. Pick it to download. The list shows the new version when the download finishes, and the next run uses it.
+
+## 0.4.7
+
+- **Pi is no longer a harness.** Agents run on Cursor Agent, Claude Code, or Codex. An agent that was set to Pi uses the default harness.
+
+## 0.4.6
+
+- **Agents run the newest CLI on this machine.** Claude Code, Codex, and Cursor Agent use the latest version installed, even when a setting still names an older copy. The path setting is used only when no installed version is found.
+
+## 0.4.5
+
+- **Each pull request opens in its own tab.** Opening another pull request leaves the one you already have open. Opening the same pull request again shows its tab.
+
+## 0.4.4
+
+- **Each pull request says whether X-RayViewer has reviewed it.** The row reads Reviewed, Not reviewed, or Reviewing, and a mark on the icon uses the same three colors. **Group Pull Requests…** can group the list that way.
+- **The risk is a bar at the left of the row.** Green is low, orange is medium, and red is high. The pull request icon sits beside it.
+
 ## 0.4.3
 
 - **The name in the guide and commands is X-RayViewer.**
@@ -11,7 +32,7 @@
 ## 0.4.1
 
 - **A blue icon.** The viewfinder mark is white on blue.
-- **Choose model says how a run works.** The picker has two parts: **Change all agents** and **Change one agent**. Each CLI says how many agents use it, and each agent shows its CLI, model, and what it looks at. **Run agents** runs every agent that's on, together. The **Default for all agents** row is gone, and Pi has its own row when it's installed.
+- **Choose model says how a run works.** The picker has two parts: **Change all agents** and **Change one agent**. Each CLI says how many agents use it, and each agent shows its CLI, model, and what it looks at. **Run agents** runs every agent that's on, together. The **Default for all agents** row is gone.
 - **Picking a model only saves it.** After you pick, a short note says what changed, such as "Saved. Claude Code agents will use Opus 5.5 at xhigh effort. Run agents starts all 5 agents together." Nothing runs until you press **Run agents**.
 - **Each agent picks Cursor, Codex, or Claude Code.** Guide, Architecture, Correctness, Test, and Security open the same choice as **Change all agents**, then a model. The choice applies to that agent. Its instructions are left as they are.
 - **/code-review also checks each agent's instructions.** On Claude Code, after /code-review reports, Claude Code checks the pull request against the instructions of each agent it replaced, such as Architecture. A problem /code-review missed shows under that agent, within its own max findings, minimum confidence, and skipped files. **Agent activity** lists those agents under **Code review agent**, with its status, rather than as skipped.
@@ -28,7 +49,7 @@ The first X-RayViewer release.
 - **Every comment is tagged by level.** Each comment you post opens with a Greptile-style priority tag in place of the `blocking:` text: **P1** for High, **P2** for Medium, **P3** for Low. A comment from an agent finding starts at the finding's severity, and the comment box has a Level row to change it. Drafts, threads, and the Comments list show the level, and Greptile's P0, P1, and P2 comments show as High or Medium.
 - **Claude Code reviews with its own /code-review.** On Claude Code, /code-review runs once in place of the agents that look for problems, at the effort level you picked. Its findings show under one **Code review** agent, on the right lines, with levels and suggested comments as usual. The guide keeps its own instructions. /code-review reads the diff with `git` in Claude Code's sandbox, which writes nothing and reads only the checkout and its git history.
 - **Cursor, Codex, and Claude Code each have a row at the top of the picker.** Pick one, then a model, and every agent moves onto it, including agents that had a harness or model of their own. The row in use says so.
-- **Every harness ends the same way.** After you pick a model for Cursor, Claude Code, Codex, or Pi, X-RayViewer says what the agents will use, and **OK** runs them on the open pull request. It no longer goes back to the harness list.
+- **Every harness ends the same way.** After you pick a model for Cursor, Claude Code, or Codex, X-RayViewer says what the agents will use, and **OK** runs them on the open pull request. It no longer goes back to the harness list.
 - **Choose model is always under Run agents.** The arrow beside **Run agents** or **Rerun** opens **Choose model…**, which names the harness, the model with its version, and the level the agents will use, such as Codex · gpt-6-astra · medium. It stays there after a run and while the agents run, and changes as soon as you pick another model.
 - **Claude Code lists its models with their versions.** Opus 5.5, Sonnet 5.5, and the other models Claude Code knows, read from the installed Claude Code, then an effort level from low to max. **Change installed version…** is at the bottom, as with Codex. The level shows on the finished review.
 - **A pull request's tooltip is a short card.** The title, who wrote it, the state, the size, and up to three reasons for the risk. The point math is left out.

@@ -125,9 +125,9 @@ describe("createActivityLog", () => {
     assert.equal(activity.steps[0].title, "Step 5");
   });
 
-  test("lets Pi run without steps, since it doesn't stream them", () => {
+  test("ignores a stream from a harness it does not know", () => {
     const log = createActivityLog([], () => {}, 60_000);
-    log.agent("a").stream("pi")(`${JSON.stringify({ type: "message", text: "hi" })}\n`);
+    log.agent("a").stream("other")(`${JSON.stringify({ type: "message", text: "hi" })}\n`);
 
     assert.deepEqual(log.snapshot().a.steps, []);
   });

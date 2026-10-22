@@ -192,8 +192,9 @@ describe("pickCliVersion", () => {
     assert.deepEqual(updates, [{ key: "claude.extraArgs", value: [] }]);
   });
 
-  test("Change installed version… shows the versions, then the models of the one picked", async () => {
+  test("Change installed version… keeps the newest binary and lists its models", async () => {
     const answers = ["\0version", "/claude-old", "sonnet"];
+    const asked: string[] = [];
     const { deps, picks, updates } = setup({
       versions: [
         { version: "2.1.294", path: "/claude" },
@@ -201,7 +202,10 @@ describe("pickCliVersion", () => {
       ],
       choose: next(answers),
     });
-    deps.listModels = async () => [{ slug: "sonnet", name: "Sonnet", description: "", defaultEffort: "", efforts: [] }];
+    deps.listModels = async (command) => {
+      asked.push(command);
+      return [{ slug: "sonnet", name: "Sonnet", description: "", defaultEffort: "", efforts: [] }];
+    };
 
     assert.equal(await pickCliVersion(deps, "claude", null), true);
 
@@ -209,8 +213,9 @@ describe("pickCliVersion", () => {
       picks.map((pick) => pick.title),
       ["Model for agents on Claude Code", "Claude Code version for agents on Claude Code", "Model for agents on Claude Code"],
     );
+    assert.deepEqual(asked, ["/claude", "/claude"]);
     assert.deepEqual(updates, [
-      { key: "claude.path", value: "/claude-old" },
+      { key: "claude.path", value: "/claude" },
       { key: "claude.model", value: "sonnet" },
       { key: "claude.extraArgs", value: [] },
     ]);

@@ -44,9 +44,9 @@ describe("model summary", () => {
   });
 
   test("says when an agent left the model to the CLI", () => {
-    const summary = modelSummary([agent("guide", "Guide", "pi", "")]);
+    const summary = modelSummary([agent("guide", "Guide", "cursor", "")]);
 
-    assert.equal(summary.line, "Model: Pi · CLI default");
+    assert.equal(summary.line, "Model: Cursor · CLI default");
     assert.equal(summary.caption, " · CLI default");
   });
 

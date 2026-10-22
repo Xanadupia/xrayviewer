@@ -15,7 +15,7 @@ const input: PickerInput = {
     { id: "correctness", name: "Correctness agent", short: "Correctness", harness: "claude", model: "Opus 5.5", thinking: "xhigh" },
     { id: "security", name: "Security agent", short: "Security", harness: "cursor", model: "", thinking: "" },
   ],
-  installed: { cursor: "2026.10.19", codex: "0.162.1", claude: "2.1.294", pi: "" },
+  installed: { cursor: "2026.10.19", codex: "0.162.1", claude: "2.1.294" },
   guideId: "guide",
 };
 
@@ -45,7 +45,7 @@ describe("harnessPicker", () => {
     assert.deepEqual(cursor, { label: "Cursor Agent 2026.10.19", description: "", detail: "Move all 4 agents to Cursor, then pick a model on your Cursor account.", agent: "pick-cursor" });
     assert.equal(codex.description, "used by 1 of 3 agents");
     assert.equal(claude.description, "used by 2 of 3 agents");
-    assert.equal(claude.detail, "Move all 4 agents to Claude Code, then pick a model and effort level, or another installed version.");
+    assert.equal(claude.detail, "Move all 4 agents to Claude Code, then pick a model and effort level. The run uses the newest Claude Code on this machine.");
 
     const allClaude = harnessPicker({ ...input, plan: input.plan.map((p) => ({ ...p, harness: "claude" as const })) });
     assert.equal(allClaude.rows[3].description, "used by all 3 agents");
@@ -71,12 +71,28 @@ describe("harnessPicker", () => {
     assert.equal(picker.placeHolder, "A change here is saved for the next run.");
   });
 
-  test("lists Pi only when it is installed, and says when a CLI is missing", () => {
-    const picker = harnessPicker({ ...input, installed: { cursor: "", codex: "", claude: "2.1.294", pi: "0.9.0" } });
+  test("offers an update for each CLI that has a newer version, then shows that version when it is picked", () => {
+    const picker = harnessPicker({
+      ...input,
+      updates: { claude: "2.1.308", codex: "0.163.0", cursor: "2026.10.22-27dcf5f" },
+    });
+    const byAgent = Object.fromEntries(picker.rows.map((row) => [row.agent, row]));
+
+    assert.equal(byAgent["pick-cursor"].description, "update to 2026.10.22-27dcf5f");
+    assert.equal(byAgent["update-claude"].label, "Update Claude Code to 2.1.308…");
+    assert.equal(byAgent["update-claude"].description, "2.1.294 installed");
+    assert.equal(byAgent["update-codex"].label, "Update Codex to 0.163.0…");
+    assert.equal(byAgent["update-cursor"].label, "Update Cursor Agent to 2026.10.22-27dcf5f…");
+    assert.deepEqual(
+      picker.rows.filter((row) => row.separator).map((row) => row.label),
+      ["Change all agents", "Updates", "Change one agent"],
+    );
+  });
+
+  test("says when a CLI is missing", () => {
+    const picker = harnessPicker({ ...input, installed: { cursor: "", codex: "", claude: "2.1.294" } });
     const byAgent = Object.fromEntries(picker.rows.map((row) => [row.agent, row]));
     assert.deepEqual([byAgent["pick-cursor"].label, byAgent["pick-cursor"].description], ["Cursor Agent CLI", "Not found"]);
     assert.deepEqual([byAgent["install-codex"].label, byAgent["install-codex"].description], ["Install Codex…", "Not installed"]);
-    assert.equal(byAgent["pick-pi"].label, "Pi 0.9.0");
-    assert.ok(!harnessPicker(input).rows.some((row) => row.agent === "pick-pi"));
   });
 });

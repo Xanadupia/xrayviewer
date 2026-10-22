@@ -29,26 +29,13 @@ describe("choiceSentence", () => {
       "Codex agents will use gpt-6.1-sol at medium reasoning.",
     );
     assert.equal(choiceSentence({ harness: "cursor", settings: { model: "", extraArgs: [] }, agent: null, inUse: true }), "Cursor agents will use Cursor's default.");
-    assert.equal(
-      choiceSentence({ harness: "pi", settings: { model: "anthropic/claude-sonnet-5-5", thinking: "off" }, agent: null, inUse: true }),
-      "Pi agents will use anthropic/claude-sonnet-5-5 with thinking off.",
-    );
   });
 
   test("shows the model's name with its version when it is known", () => {
     assert.equal(choiceSentence({ ...claude, modelName: "Opus 5.5" }), "Claude Code agents will use Opus 5.5 at high effort.");
   });
 
-  test("uses one agent's own model, and a Pi level in that model wins over the shared one", () => {
-    assert.equal(
-      choiceSentence({
-        harness: "pi",
-        settings: { model: "anthropic/claude-sonnet-5-5", thinking: "low" },
-        agent: { name: "Security", model: "openai/gpt-6.1-sol:high" },
-        inUse: true,
-      }),
-      "The security agent will use Pi with openai/gpt-6.1-sol at high thinking.",
-    );
+  test("uses one agent's own model", () => {
     assert.equal(
       choiceSentence({ ...claude, agent: { name: "Guide", model: "" } }),
       "The guide agent will use Claude Code with opus at high effort.",
@@ -94,7 +81,6 @@ describe("plannedAgents", () => {
     default: "codex",
     claude: { command: "claude", model: "opus", extraArgs: ["--effort", "high"] },
     codex: { model: "gpt-6-astra", extraArgs: ["-c", 'model_reasoning_effort="medium"'] },
-    pi: { model: "anthropic/claude-sonnet-5-5", thinking: "low" },
     cursor: { model: "", extraArgs: [] },
   };
   const versions = (harness: string, model: string) => (harness === "claude" && model === "opus" ? "Opus 5.5" : "");
@@ -104,7 +90,7 @@ describe("plannedAgents", () => {
       {
         guide: { name: "Guide agent", harness: "", model: "", enabled: true },
         security: { name: "Security", harness: "claude", model: "", enabled: true },
-        tests: { name: "Tests", harness: "pi", model: "openai/gpt-6.1-sol:high", enabled: true },
+        tests: { name: "Tests", harness: "cursor", model: "gpt-6.1-sol", enabled: true },
         old: { name: "Old", harness: "cursor", enabled: false },
       },
       harnesses,
@@ -114,7 +100,7 @@ describe("plannedAgents", () => {
     assert.deepEqual(plan, [
       { id: "guide", name: "Guide agent", short: "Guide", harness: "codex", model: "gpt-6-astra", thinking: "medium" },
       { id: "security", name: "Security", short: "Security", harness: "claude", model: "Opus 5.5", thinking: "high" },
-      { id: "tests", name: "Tests", short: "Tests", harness: "pi", model: "openai/gpt-6.1-sol", thinking: "high" },
+      { id: "tests", name: "Tests", short: "Tests", harness: "cursor", model: "gpt-6.1-sol", thinking: "" },
     ]);
   });
 

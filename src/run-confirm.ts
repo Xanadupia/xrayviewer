@@ -1,7 +1,7 @@
 import { claudeEffort } from "./claude-models.ts";
 import { reasoningEffort } from "./codex-models.ts";
 
-export type HarnessId = "claude" | "codex" | "pi" | "cursor";
+export type HarnessId = "claude" | "codex" | "cursor";
 
 export interface HarnessSettings {
   command?: string;
@@ -28,16 +28,12 @@ export interface NoticeDeps {
   log(line: string): void;
 }
 
-const PI_LEVEL = /:(off|minimal|low|medium|high|xhigh)$/;
-
 export function harnessName(id: HarnessId): string {
   switch (id) {
     case "claude":
       return "Claude Code";
     case "codex":
       return "Codex";
-    case "pi":
-      return "Pi";
     case "cursor":
       return "Cursor";
     default: {
@@ -57,11 +53,6 @@ export function chosenModel(choice: RunChoice): { model: string; level: string; 
       return { model, level: claudeEffort(extraArgs), levelWord: "effort" };
     case "codex":
       return { model, level: reasoningEffort(extraArgs), levelWord: "reasoning" };
-    case "pi": {
-      const ownLevel = PI_LEVEL.exec(own)?.[1] ?? "";
-      const level = ownLevel || choice.settings.thinking || PI_LEVEL.exec(model)?.[1] || "";
-      return { model: model.replace(PI_LEVEL, ""), level, levelWord: "thinking" };
-    }
     case "cursor":
       return { model, level: "", levelWord: "" };
     default: {
@@ -90,7 +81,7 @@ export interface PlannedAgent {
   thinking: string;
 }
 
-const HARNESSES: readonly string[] = ["claude", "codex", "pi", "cursor"] satisfies HarnessId[];
+const HARNESSES: readonly string[] = ["claude", "codex", "cursor"] satisfies HarnessId[];
 const isHarness = (id: string | undefined): id is HarnessId => !!id && HARNESSES.includes(id);
 
 /**
