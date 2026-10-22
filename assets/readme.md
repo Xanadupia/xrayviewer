@@ -15,7 +15,7 @@ You need:
 - **git**
 - One program that can run the agents: Cursor Agent, Claude Code, Codex, or Pi
 
-Install **X-RayView** from the Extensions view. The id is `aliqaryan.xrayview`. Cursor installs it from Open VSX. VS Code installs it from the Visual Studio Marketplace. Reload the window when the editor asks.
+Install **X-RayView** from the Extensions view. The id is `aliqaryan.xrayviewer`. Cursor installs it from Open VSX. VS Code installs it from the Visual Studio Marketplace. Reload the window when the editor asks.
 
 Then:
 
@@ -25,7 +25,7 @@ Then:
 
 If the sidebar stays empty, run `gh auth login`, then **Refresh**.
 
-Automatic runs are on. About two minutes after the first start, agents begin on pull requests that request your review by name. Turn off `xrayview.agents.autoRun` before that if you want to press Run yourself.
+Automatic runs are on. About two minutes after the first start, agents begin on pull requests that request your review by name. Turn off `xrayviewer.agents.autoRun` before that if you want to press Run yourself.
 
 ## The review page
 
@@ -69,7 +69,7 @@ Replies post as written, since the thread's first comment has the level. When X-
 
 - **Cursor** lists the models on your Cursor account. The first row keeps whatever `cursor-agent` used last. Pick a model by name if you care which one reviews.
 - **Codex** lists the models that CLI provides, then a reasoning level such as medium or high.
-- **Claude Code** lists its models with their versions, such as Opus 5.5 and Sonnet 5.5, then an effort level from low to max. Each row is Claude Code's short name, such as `opus`, so it moves to the newest version when Claude Code updates. To keep one version, set `xrayview.claude.model` to its full id, such as `claude-opus-5-5`.
+- **Claude Code** lists its models with their versions, such as Opus 5.5 and Sonnet 5.5, then an effort level from low to max. Each row is Claude Code's short name, such as `opus`, so it moves to the newest version when Claude Code updates. To keep one version, set `xrayviewer.claude.model` to its full id, such as `claude-opus-5-5`.
 - **Pi** lists the models it is signed in to, then a thinking level.
 
 For Codex and Claude Code, **Change installed version…** at the bottom of the model list picks another installed copy, or installs one.
@@ -89,11 +89,11 @@ With several windows open, one window starts the automatic runs. A pull request'
 ## If something looks wrong
 
 - **The sidebar is empty.** Run `gh auth status`, then `gh auth login`. Team requests and code owners also need `gh auth refresh -s read:org`.
-- **An agent program is not found.** **Choose Agent Harnesses…** says so, and can install Codex or Claude Code. Or set `xrayview.cursor.path`, `xrayview.claude.path`, `xrayview.codex.path`, or `xrayview.pi.path` to the full path. Sign in by running that program once. For Cursor: `cursor-agent login`.
+- **An agent program is not found.** **Choose Agent Harnesses…** says so, and can install Codex or Claude Code. Or set `xrayviewer.cursor.path`, `xrayviewer.claude.path`, `xrayviewer.codex.path`, or `xrayviewer.pi.path` to the full path. Sign in by running that program once. For Cursor: `cursor-agent login`.
 - **Cursor cannot use a model.** Open **Choose model…** beside **Run agents**, or **Choose Agent Harnesses…**, and pick a model from the list.
 - **Agents fail or find nothing.** **X-RayView: Show Agent Log** lists the agents, errors, tokens, and cost.
 - **Agents are running in another window.** Stop them there, or wait.
-- **A link does nothing.** Use `cursor://aliqaryan.xrayview/...` in Cursor and `vscode://aliqaryan.xrayview/...` in VS Code. Pasting the GitHub URL into **Open a Pull Request…** works in either editor.
+- **A link does nothing.** Use `cursor://aliqaryan.xrayviewer/...` in Cursor and `vscode://aliqaryan.xrayviewer/...` in VS Code. Pasting the GitHub URL into **Open a Pull Request…** works in either editor.
 
 ## What the sidebar shows
 
@@ -136,11 +136,11 @@ On Claude Code, the agents that look for problems hand over to Claude Code's own
 
 To watch the agents work, click **Agents are running**, or open the arrow beside **Run agents** and choose **Agent activity…**. The agents are listed the way GitHub lists a pull request's checks: a line that sums them up, such as "1 failing, 1 in progress, 2 successful agents", then each agent under its status with its harness, model, and time. Click an agent's name, or open its **⋯** menu and choose **View details**, to see its log. **All agents** goes back. In the log, what the agent says stands as text, and the commands, reads, and searches between those messages fold into one line, such as "Ran 2 commands, read cart.js". Open that line for each step, and open a command for its output. The activity stays after the run until the next one. Pi reports its work when it finishes, so its steps don't show.
 
-The first run writes `~/.xrayview` (`XRAYVIEW_HOME` moves it): `agents.yml` for the list, and one instruction file per agent. **Customize Agents…** opens those files. Changes apply on the next run.
+The first run writes `~/.xrayviewer` (`XRAYVIEWER_HOME` moves it): `agents.yml` for the list, and one instruction file per agent. **Customize Agents…** opens those files. Changes apply on the next run.
 
 ## What leaves this computer
 
-Stays here: drafts, agent results, run logs, and `~/.xrayview`. The review page does not load remote images, fonts, or scripts. There is no telemetry.
+Stays here: drafts, agent results, run logs, and `~/.xrayviewer`. The review page does not load remote images, fonts, or scripts. There is no telemetry.
 
 Leaves:
 
@@ -161,7 +161,7 @@ X-RayView adds no charge of its own. Usage counts against the account of the pro
 | Show Agent Log | Tokens, cost, errors. |
 | Customize Agents… | Open the agent files. |
 | Copy Agent Review as Markdown | Copy the findings for another agent. It includes code. Paste it only where that code may go. |
-| Copy Link to This Review | Copy an `aliqaryan.xrayview` link. |
+| Copy Link to This Review | Copy an `aliqaryan.xrayviewer` link. |
 | Show Review Metrics / Delete Review Metrics | A local log of reviews you posted. It is never uploaded. |
 
 **Open a Pull Request…** is **⌥⇧⌘P** on macOS and **Ctrl+Shift+Alt+P** on Windows and Linux.
@@ -170,32 +170,32 @@ X-RayView adds no charge of its own. Usage counts against the account of the pro
 
 | Setting | Default | What it does |
 |---|---|---|
-| `xrayview.harness` | `claude` | Default program: `claude`, `codex`, `pi`, or `cursor` |
-| `xrayview.cursor.path` / `.model` / `.extraArgs` | `cursor-agent` / empty / none | Cursor Agent CLI and model |
-| `xrayview.claude.path` / `.model` / `.extraArgs` | `claude` / `sonnet` / none | Claude Code |
-| `xrayview.codex.path` / `.model` / `.extraArgs` | `codex` / empty / none | Codex. Empty model uses the CLI's default |
-| `xrayview.pi.path` / `.model` / `.thinking` / `.extraArgs` | `pi` / empty / empty / none | Pi. Model looks like `provider/id` |
-| `xrayview.agents.autoRun` | on | Automatic runs when your review is requested by name |
-| `xrayview.agents.enabled` | empty | Only these agent ids. Empty runs every enabled agent |
-| `xrayview.agents.maxParallel` | 5 | Agent processes at once |
-| `xrayview.agents.quietPeriodSeconds` | 120 | Wait after a push before an automatic run |
-| `xrayview.agents.maxAutomaticRuns` | 5 | Automatic runs per pull request |
-| `xrayview.agents.skipDrafts` | on | No automatic runs on drafts |
-| `xrayview.agents.autoRunMaxFiles` / `autoRunMaxLines` | 100 / 5000 | Larger pull requests wait for Run |
-| `xrayview.agents.approvedPullRequests` | `ask` | `ask`, `skip`, or `run` |
-| `xrayview.agents.timeoutMinutes` | 20 | Stop an agent that runs longer |
-| `xrayview.watch.repositories` | none | Also list open pull requests in these `owner/name` repositories |
-| `xrayview.watch.pollSeconds` | 60 | How often to check GitHub. At least 15 |
-| `xrayview.watch.recentlyClosedDays` | 3 | How long merged or closed pull requests stay listed. 0 hides them |
-| `xrayview.sidebar.groupBy` | `relationship` | `relationship`, `repository`, or `author` |
-| `xrayview.sidebar.mine` | off | Only pull requests you opened |
-| `xrayview.sidebar.author` | empty | GitHub logins to show. Empty shows everyone |
-| `xrayview.sidebar.status` | empty | Statuses to show: `open`, `draft`, `merged`, `closed`. Empty shows all of them |
-| `xrayview.sidebar.sortBy` | `risk` | `risk`, `created`, or `updated` |
-| `xrayview.metrics.enabled` | on | Record the local metrics log |
-| `xrayview.clones` | none | `"owner/name": "/path/to/clone"` |
+| `xrayviewer.harness` | `claude` | Default program: `claude`, `codex`, `pi`, or `cursor` |
+| `xrayviewer.cursor.path` / `.model` / `.extraArgs` | `cursor-agent` / empty / none | Cursor Agent CLI and model |
+| `xrayviewer.claude.path` / `.model` / `.extraArgs` | `claude` / `sonnet` / none | Claude Code |
+| `xrayviewer.codex.path` / `.model` / `.extraArgs` | `codex` / empty / none | Codex. Empty model uses the CLI's default |
+| `xrayviewer.pi.path` / `.model` / `.thinking` / `.extraArgs` | `pi` / empty / empty / none | Pi. Model looks like `provider/id` |
+| `xrayviewer.agents.autoRun` | on | Automatic runs when your review is requested by name |
+| `xrayviewer.agents.enabled` | empty | Only these agent ids. Empty runs every enabled agent |
+| `xrayviewer.agents.maxParallel` | 5 | Agent processes at once |
+| `xrayviewer.agents.quietPeriodSeconds` | 120 | Wait after a push before an automatic run |
+| `xrayviewer.agents.maxAutomaticRuns` | 5 | Automatic runs per pull request |
+| `xrayviewer.agents.skipDrafts` | on | No automatic runs on drafts |
+| `xrayviewer.agents.autoRunMaxFiles` / `autoRunMaxLines` | 100 / 5000 | Larger pull requests wait for Run |
+| `xrayviewer.agents.approvedPullRequests` | `ask` | `ask`, `skip`, or `run` |
+| `xrayviewer.agents.timeoutMinutes` | 20 | Stop an agent that runs longer |
+| `xrayviewer.watch.repositories` | none | Also list open pull requests in these `owner/name` repositories |
+| `xrayviewer.watch.pollSeconds` | 60 | How often to check GitHub. At least 15 |
+| `xrayviewer.watch.recentlyClosedDays` | 3 | How long merged or closed pull requests stay listed. 0 hides them |
+| `xrayviewer.sidebar.groupBy` | `relationship` | `relationship`, `repository`, or `author` |
+| `xrayviewer.sidebar.mine` | off | Only pull requests you opened |
+| `xrayviewer.sidebar.author` | empty | GitHub logins to show. Empty shows everyone |
+| `xrayviewer.sidebar.status` | empty | Statuses to show: `open`, `draft`, `merged`, `closed`. Empty shows all of them |
+| `xrayviewer.sidebar.sortBy` | `risk` | `risk`, `created`, or `updated` |
+| `xrayviewer.metrics.enabled` | on | Record the local metrics log |
+| `xrayviewer.clones` | none | `"owner/name": "/path/to/clone"` |
 
-The other `xrayview.watch.*` switches turn each sidebar group on or off. They are on by default.
+The other `xrayviewer.watch.*` switches turn each sidebar group on or off. They are on by default.
 
 Comments that span several lines, file-level comments, and editing a comment after it is posted are not supported yet.
 

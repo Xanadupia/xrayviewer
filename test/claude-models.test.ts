@@ -86,7 +86,7 @@ describe("Claude's model catalog", () => {
   });
 
   test("finds the catalog in a program file when it falls across a read boundary", async () => {
-    const dir = await mkdtemp(path.join(tmpdir(), "xrayview-claude-"));
+    const dir = await mkdtemp(path.join(tmpdir(), "xrayviewer-claude-"));
     const file = path.join(dir, "claude");
     const chunk = 4096;
     const mark = catalogText.indexOf("latest_per_family:{");
@@ -100,7 +100,7 @@ describe("Claude's model catalog", () => {
   });
 
   test("has no catalog for a file without one, or a missing file", async () => {
-    const dir = await mkdtemp(path.join(tmpdir(), "xrayview-claude-"));
+    const dir = await mkdtemp(path.join(tmpdir(), "xrayviewer-claude-"));
     const file = path.join(dir, "claude");
     await writeFile(file, "#!/bin/sh\necho claude\n");
 

@@ -19,7 +19,7 @@ const config: CursorConfig = { id: "cursor", command: "cursor-agent", model: "",
 const schema = { type: "object", properties: { findings: { type: "array" } }, required: ["findings"] };
 
 async function setup() {
-  const root = await mkdtemp(path.join(tmpdir(), "xrayview-test-"));
+  const root = await mkdtemp(path.join(tmpdir(), "xrayviewer-test-"));
   const repo = path.join(root, "checkout");
   const runDir = path.join(root, "run");
   await mkdir(repo, { recursive: true });
@@ -246,7 +246,7 @@ describe("cursorEnv", () => {
 
 describe("resolveCommand", () => {
   test("finds a bare command in the fallback folder when PATH doesn't have it", async () => {
-    const dir = await mkdtemp(path.join(tmpdir(), "xrayview-bin-"));
+    const dir = await mkdtemp(path.join(tmpdir(), "xrayviewer-bin-"));
     await writeFile(path.join(dir, "cursor-agent"), "#!/bin/sh\n");
     await chmod(path.join(dir, "cursor-agent"), 0o755);
     await writeFile(path.join(dir, "not-executable"), "");

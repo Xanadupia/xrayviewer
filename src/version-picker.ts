@@ -52,7 +52,7 @@ function spec(id: CliId): CliSpec {
         command: "curl -fsSL https://claude.ai/install.sh | bash",
         modelSetting: "claude.model",
         argsSetting: "claude.extraArgs",
-        modelHint: "Each row follows the newest version. Set xrayview.claude.model to a full id to keep one.",
+        modelHint: "Each row follows the newest version. Set xrayviewer.claude.model to a full id to keep one.",
         levelWord: "effort",
         levelHint: "Higher effort thinks longer and costs more",
         readLevel: claudeEffort,
@@ -158,9 +158,9 @@ async function pickModel(
     effort = level.value;
   }
   if (agent?.id && deps.setAgentModel) await deps.setAgentModel(agent.id, picked.value);
-  else await workspace.getConfiguration("xrayview").update(chosen.modelSetting, picked.value, ConfigurationTarget.Global);
+  else await workspace.getConfiguration("xrayviewer").update(chosen.modelSetting, picked.value, ConfigurationTarget.Global);
   if (model) {
-    await workspace.getConfiguration("xrayview").update(chosen.argsSetting, chosen.writeLevel(extraArgs, effort), ConfigurationTarget.Global);
+    await workspace.getConfiguration("xrayviewer").update(chosen.argsSetting, chosen.writeLevel(extraArgs, effort), ConfigurationTarget.Global);
   }
   deps.log(`${who} now ${agent ? "uses" : "use"} ${picked.value || fallback}${effort ? `, ${chosen.levelWord} ${effort}` : ""}`);
   return true;
@@ -198,7 +198,7 @@ export async function pickCliVersion(deps: VersionPickerDeps, id: CliId, agent: 
     });
     if (!picked) return false;
     if (picked.value !== INSTALL) {
-      await workspace.getConfiguration("xrayview").update(chosen.setting, picked.value, ConfigurationTarget.Global);
+      await workspace.getConfiguration("xrayviewer").update(chosen.setting, picked.value, ConfigurationTarget.Global);
       deps.log(`${chosen.title} agents now use ${picked.label} at ${picked.value}`);
       const choice = await thenModel();
       if (choice !== "version") return choice;
@@ -225,7 +225,7 @@ export async function pickCliVersion(deps: VersionPickerDeps, id: CliId, agent: 
       continue;
     }
     const newest = installed[0];
-    await workspace.getConfiguration("xrayview").update(chosen.setting, newest.path, ConfigurationTarget.Global);
+    await workspace.getConfiguration("xrayviewer").update(chosen.setting, newest.path, ConfigurationTarget.Global);
     deps.log(`${chosen.title} agents now use ${newest.version} at ${newest.path}`);
     const choice = await thenModel();
     if (choice !== "version") return choice;

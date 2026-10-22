@@ -1,20 +1,20 @@
 export const VERSION = "0.4.1";
 
 const CURSOR_SETTINGS = {
-  "xrayview.cursor.path": {
+  "xrayviewer.cursor.path": {
     type: "string",
     default: "cursor-agent",
     markdownDescription:
       "The Cursor Agent CLI: `cursor-agent` (or `agent`) when it's on your `PATH`, or the full path to it. X-RayView also looks in `~/.local/bin`, where Cursor's installer puts it.",
     scope: "machine",
   },
-  "xrayview.cursor.model": {
+  "xrayviewer.cursor.model": {
     type: "string",
     default: "",
     markdownDescription:
-      "Model for the agents that run on Cursor: any model id on your Cursor account, such as `composer-2.5` or `claude-opus-5-thinking-high`. Empty uses the Cursor Agent CLI's default. **X-RayView: Choose Agent Harnesses…** lists your account's models. A model set for one agent in `~/.xrayview/agents.yml` wins over this.",
+      "Model for the agents that run on Cursor: any model id on your Cursor account, such as `composer-2.5` or `claude-opus-5-thinking-high`. Empty uses the Cursor Agent CLI's default. **X-RayView: Choose Agent Harnesses…** lists your account's models. A model set for one agent in `~/.xrayviewer/agents.yml` wins over this.",
   },
-  "xrayview.cursor.extraArgs": {
+  "xrayviewer.cursor.extraArgs": {
     type: "array",
     items: { type: "string" },
     default: [],
@@ -39,8 +39,8 @@ export function transformManifest(original) {
   const manifest = structuredClone(original);
   for (const field of DROPPED_FIELDS) delete manifest[field];
 
-  manifest.name = "xrayview";
-  manifest.displayName = "X-RayView";
+  manifest.name = "xrayviewer";
+  manifest.displayName = "X-RayViewer";
   manifest.publisher = "aliqaryan";
   manifest.author = "Ali Qaryan";
   manifest.version = VERSION;
@@ -69,53 +69,53 @@ export function transformManifest(original) {
     "In Restricted Mode, X-RayView ignores workspace values for the settings that choose which programs run (the Claude Code, Codex, Pi and Cursor Agent paths and arguments) and where clones are.";
   untrusted.restrictedConfigurations = [
     ...untrusted.restrictedConfigurations,
-    "xrayview.cursor.path",
-    "xrayview.cursor.extraArgs",
+    "xrayviewer.cursor.path",
+    "xrayviewer.cursor.extraArgs",
   ];
 
-  const welcome = manifest.contributes.viewsWelcome.find((item) => item.view === "xrayview.pullRequests");
+  const welcome = manifest.contributes.viewsWelcome.find((item) => item.view === "xrayviewer.pullRequests");
   if (!welcome) throw new Error("package.json has no pull request welcome.");
   welcome.contents =
-    "Pull requests that need your review, and the ones you opened, show up here.\n[Refresh](command:xrayview.refresh)\n[Open a pull request](command:xrayview.openPullRequest)\nIf the list is empty, run `gh auth login` in a terminal, then Refresh.";
+    "Pull requests that need your review, and the ones you opened, show up here.\n[Refresh](command:xrayviewer.refresh)\n[Open a pull request](command:xrayviewer.openPullRequest)\nIf the list is empty, run `gh auth login` in a terminal, then Refresh.";
 
   manifest.contributes.commands.push({
-    command: "xrayview.filter",
+    command: "xrayviewer.filter",
     title: "Filter…",
     category: "X-RayView",
     icon: "$(filter)",
   });
   manifest.contributes.menus["view/title"].push({
-    command: "xrayview.filter",
-    when: "view == xrayview.pullRequests",
+    command: "xrayviewer.filter",
+    when: "view == xrayviewer.pullRequests",
     group: "navigation@31",
   });
 
   const configuration = manifest.contributes.configuration;
-  const harness = configuration.properties["xrayview.harness"];
+  const harness = configuration.properties["xrayviewer.harness"];
   harness.enum = [...harness.enum, "cursor"];
   harness.enumDescriptions = [...harness.enumDescriptions, "Cursor Agent CLI (`cursor-agent`), with any model on your Cursor account"];
-  configuration.properties = insertAfter(configuration.properties, "xrayview.pi.extraArgs", CURSOR_SETTINGS);
-  const groupBy = configuration.properties["xrayview.sidebar.groupBy"];
+  configuration.properties = insertAfter(configuration.properties, "xrayviewer.pi.extraArgs", CURSOR_SETTINGS);
+  const groupBy = configuration.properties["xrayviewer.sidebar.groupBy"];
   groupBy.enum = ["relationship", "repository", "author"];
   groupBy.enumDescriptions = [
     "Requested from you, assigned, code owner, your teams, yours, watched, opened here",
     "One group per repository",
     "One group per author",
   ];
-  configuration.properties = insertAfter(configuration.properties, "xrayview.sidebar.groupBy", {
-    "xrayview.sidebar.mine": {
+  configuration.properties = insertAfter(configuration.properties, "xrayviewer.sidebar.groupBy", {
+    "xrayviewer.sidebar.mine": {
       type: "boolean",
       default: false,
       markdownDescription: "Show only pull requests you opened. **X-RayView: Filter…** sets it.",
     },
-    "xrayview.sidebar.author": {
+    "xrayviewer.sidebar.author": {
       type: "array",
       items: { type: "string" },
       default: [],
       markdownDescription:
         "GitHub logins to show. Empty shows every author. **X-RayView: Filter…** sets it.",
     },
-    "xrayview.sidebar.status": {
+    "xrayviewer.sidebar.status": {
       type: "array",
       items: { type: "string", enum: ["open", "draft", "merged", "closed"] },
       default: [],

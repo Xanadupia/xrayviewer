@@ -34,7 +34,7 @@ describe("pickCursorModel", () => {
 
     assert.equal(await pickCursorModel(deps, null), true);
 
-    assert.deepEqual(updates, [{ section: "xrayview", key: "cursor.model", value: "composer-2.5", target: 1 }]);
+    assert.deepEqual(updates, [{ section: "xrayviewer", key: "cursor.model", value: "composer-2.5", target: 1 }]);
     assert.deepEqual(logs, ["Cursor agents now use composer-2.5"]);
     assert.equal(picks[0].title, "Model for agents on Cursor");
     assert.deepEqual(
@@ -63,7 +63,7 @@ describe("pickCursorModel", () => {
     assert.deepEqual(pickGpt.picks[0].items[0], {
       label: "Same as the other Cursor agents",
       description: "composer-2.5",
-      detail: "Uses xrayview.cursor.model.",
+      detail: "Uses xrayviewer.cursor.model.",
       value: "",
     });
     assert.deepEqual(pickShared.logs, ["Security now runs on Cursor with the other Cursor agents' model"]);

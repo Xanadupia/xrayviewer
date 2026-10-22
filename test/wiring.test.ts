@@ -129,14 +129,14 @@ process.stdin.on("data", (chunk) => (input += chunk)).on("end", () => {
 const systemPath = process.env.PATH ?? "";
 
 before(async () => {
-  root = await mkdtemp(path.join(tmpdir(), "xrayview-wiring-"));
+  root = await mkdtemp(path.join(tmpdir(), "xrayviewer-wiring-"));
   await mkdir(path.join(root, "bin"));
   await mkdir(path.join(root, "storage"));
-  process.env.XRAYVIEW_HOME = path.join(root, "home");
+  process.env.XRAYVIEWER_HOME = path.join(root, "home");
   process.env.PATH = path.join(root, "bin");
   process.env.GH_TOKEN = "must-not-reach-cursor";
   extensionDir = await buildExtension(path.join(root, "extension"));
-  state.settings["xrayview.cursor.path"] = (await fakeCli("cursor-agent")).file;
+  state.settings["xrayviewer.cursor.path"] = (await fakeCli("cursor-agent")).file;
   ext = await loadExtension(path.join(extensionDir, "dist"), vscode);
   context = {
     subscriptions: [],
@@ -162,22 +162,22 @@ describe("the patched extension", () => {
   });
 
   test("knows Cursor as a harness and reads its settings", () => {
-    const { Xt, Nt, ji, Yt } = ext.__xrayview;
+    const { Xt, Nt, ji, Yt } = ext.__xrayviewer;
 
     assert.ok(ji.includes("cursor"));
     assert.equal(Xt("cursor"), true);
     assert.equal(Nt.cursor, "Cursor Agent CLI");
-    assert.deepEqual(Yt().harnesses.cursor, { id: "cursor", command: state.settings["xrayview.cursor.path"], model: "", extraArgs: [] });
+    assert.deepEqual(Yt().harnesses.cursor, { id: "cursor", command: state.settings["xrayviewer.cursor.path"], model: "", extraArgs: [] });
   });
 
   test("Choose model lists the CLIs that move every agent, then each agent, and says they all run together", async () => {
-    const { $t } = ext.__xrayview;
+    const { $t } = ext.__xrayviewer;
     const agents = (await $t()).settings.agents as Record<string, { name: string; focus: string }>;
     const ids = Object.keys(agents);
     state.picks = [];
     state.script = [() => undefined];
 
-    await state.commands.get("xrayview.selectHarness")!();
+    await state.commands.get("xrayviewer.selectHarness")!();
 
     const [pick] = state.picks;
     assert.equal(pick.title, "Choose model");
@@ -192,7 +192,7 @@ describe("the patched extension", () => {
   });
 
   test("Choose Agent Harnesses can put one agent on Cursor with its own model, then confirm", async () => {
-    const { $t } = ext.__xrayview;
+    const { $t } = ext.__xrayviewer;
     const before = (await $t()).settings.agents as Record<string, { instructions: string; focus: string; name: string; harness: string }>;
     state.picks = [];
     state.messages = [];
@@ -207,7 +207,7 @@ describe("the patched extension", () => {
       (items) => items.find((item) => item.value === "fake-model"),
     ];
 
-    await state.commands.get("xrayview.selectHarness")!();
+    await state.commands.get("xrayviewer.selectHarness")!();
 
     assert.match(state.picks[1].title!, /^Which CLI runs the .+ agent\?$/);
     assert.deepEqual(
@@ -216,7 +216,7 @@ describe("the patched extension", () => {
     );
     assert.match(state.picks[1].items[0].detail, /Then this agent runs on Cursor/);
     assert.match(state.picks[2].title!, /^Model for the .+ agent$/);
-    const agentsYml = await readFile(path.join(process.env.XRAYVIEW_HOME!, "agents.yml"), "utf8");
+    const agentsYml = await readFile(path.join(process.env.XRAYVIEWER_HOME!, "agents.yml"), "utf8");
     const block = agentsYml.slice(agentsYml.indexOf(`\n  ${agentId}:`));
     assert.match(block, /^\s+harness: "cursor"$/m);
     assert.match(block, /^\s+model: "fake-model"$/m);
@@ -232,12 +232,12 @@ describe("the patched extension", () => {
   });
 
   test("the Cursor row at the top lists the account's models, then moves every agent onto Cursor", async () => {
-    const { Eu, Cu, $t } = ext.__xrayview;
+    const { Eu, Cu, $t } = ext.__xrayviewer;
     const [onClaude, withCodexModel] = Object.keys((await $t()).settings.agents);
     await Eu(onClaude, "claude");
     await Cu(onClaude, "opus");
     await Cu(withCodexModel, "gpt-6-astra");
-    state.settings["xrayview.harness"] = "codex";
+    state.settings["xrayviewer.harness"] = "codex";
     state.picks = [];
     state.messages = [];
     state.logs = [];
@@ -246,7 +246,7 @@ describe("the patched extension", () => {
       (items) => items.find((item) => item.value === "fake-model"),
     ];
 
-    await state.commands.get("xrayview.selectHarness")!();
+    await state.commands.get("xrayviewer.selectHarness")!();
 
     const count = Object.keys((await $t()).settings.agents).length;
     assert.deepEqual(state.picks[0].items.find((item) => item.agent === "pick-cursor"), {
@@ -256,8 +256,8 @@ describe("the patched extension", () => {
       agent: "pick-cursor",
     });
     assert.equal(state.picks[1].title, "Model for agents on Cursor");
-    assert.equal(state.settings["xrayview.harness"], "cursor");
-    assert.equal(state.settings["xrayview.cursor.model"], "fake-model");
+    assert.equal(state.settings["xrayviewer.harness"], "cursor");
+    assert.equal(state.settings["xrayviewer.cursor.model"], "fake-model");
     const { agents } = (await $t()).settings;
     assert.deepEqual([agents[onClaude].harness, agents[onClaude].model, agents[withCodexModel].model], ["", "", ""]);
     assert.ok(Object.values(agents).every((agent: any) => !agent.harness || agent.harness === "cursor"));
@@ -280,7 +280,7 @@ describe("the patched extension", () => {
     });
     const workDir = path.join(runDir, "cursor-guide");
 
-    const result = await ext.__xrayview.Na(
+    const result = await ext.__xrayviewer.Na(
       { id: "cursor", command: cli.file, model: "", extraArgs: [] },
       { prompt: "Review.", schema: { type: "object" }, cwd: repo, readDirs: [runDir], workDir, timeoutMs: 30_000 },
     );
@@ -298,7 +298,7 @@ describe("the patched extension", () => {
   });
 
   test("a review runs Claude Code's /code-review once in place of the reviewer agents on Claude Code, with their instructions", async () => {
-    const { zu, Mo, $t, ui, Yt } = ext.__xrayview;
+    const { zu, Mo, $t, ui, Yt } = ext.__xrayviewer;
     const repo = path.join(root, "review-checkout");
     const git = (...args: string[]) => execFileSync("git", ["-C", repo, ...args], { encoding: "utf8", env: { ...process.env, PATH: systemPath } }).trim();
     await mkdir(path.join(repo, "src"), { recursive: true });
@@ -426,7 +426,7 @@ describe("the patched extension", () => {
   });
 
   test("the dispatcher reports a missing CLI and Cursor's own errors in X-RayView's words", async () => {
-    const { Na } = ext.__xrayview;
+    const { Na } = ext.__xrayviewer;
     const request = { prompt: "Review.", schema: {}, cwd: root, readDirs: [], timeoutMs: 30_000 };
     const failing = await fakeCli("cursor-bad-model", { exitCode: 1, stderr: "Cannot use this model: nope. Available models: auto" });
 

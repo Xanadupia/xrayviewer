@@ -12,10 +12,10 @@ import { buildExtension } from "../../scripts/build.mjs";
 import { loadExtension, stub, stubModule } from "../support/load-extension.ts";
 
 const [model = "", outputFile] = process.argv.slice(2);
-const root = await mkdtemp(path.join(tmpdir(), "xrayview-live-"));
+const root = await mkdtemp(path.join(tmpdir(), "xrayviewer-live-"));
 const repo = path.join(root, "checkout");
 const marker = path.join(root, "planted-hook-ran");
-process.env.XRAYVIEW_HOME = path.join(root, "home");
+process.env.XRAYVIEWER_HOME = path.join(root, "home");
 
 const git = (...args: string[]) => execFileSync("git", ["-C", repo, ...args], { encoding: "utf8" }).trim();
 const write = async (file: string, text: string) => {
@@ -46,7 +46,7 @@ const extensionDir = await buildExtension(path.join(root, "extension"));
 const ext = await loadExtension(path.join(extensionDir, "dist"), stubModule("vscode", {
   workspace: stub("vscode.workspace", { getConfiguration: () => ({ get: (_key: string, fallback: unknown) => fallback }) }),
 }));
-const { zu, Mo, $t, ui, Yt } = ext.__xrayview;
+const { zu, Mo, $t, ui, Yt } = ext.__xrayviewer;
 
 const data = await Mo(repo, base, head);
 const { settings } = await $t();

@@ -41,7 +41,7 @@ function cliRow(harness: HarnessId, installed: string, total: number, usedBy: nu
     case "cursor":
       return installed
         ? { label: `Cursor Agent ${installed}`, description: used, detail: `${move}, then pick a model on your Cursor account.`, agent: "pick-cursor" }
-        : { label: "Cursor Agent CLI", description: "Not found", detail: "Install it, or set xrayview.cursor.path to where it is.", agent: "pick-cursor" };
+        : { label: "Cursor Agent CLI", description: "Not found", detail: "Install it, or set xrayviewer.cursor.path to where it is.", agent: "pick-cursor" };
     case "codex":
       return installed
         ? { label: `Codex ${installed}`, description: used, detail: `${move}, then pick a model and reasoning level, or another installed version.`, agent: "install-codex" }

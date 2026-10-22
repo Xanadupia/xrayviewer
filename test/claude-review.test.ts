@@ -183,7 +183,7 @@ describe("plannedWithCodeReview", () => {
 });
 
 function worktree() {
-  const root = realpathSync(mkdtempSync(path.join(tmpdir(), "xrayview-review-")));
+  const root = realpathSync(mkdtempSync(path.join(tmpdir(), "xrayviewer-review-")));
   const clone = path.join(root, "clone");
   const git = (cwd: string, ...args: string[]) => execFileSync("git", ["-C", cwd, ...args], { encoding: "utf8" });
   execFileSync("git", ["init", "-q", clone]);
@@ -280,7 +280,7 @@ describe("readCodeReview", () => {
 });
 
 describe("runCodeReview", () => {
-  const repo = mkdtempSync(path.join(tmpdir(), "xrayview-review-repo-"));
+  const repo = mkdtempSync(path.join(tmpdir(), "xrayviewer-review-repo-"));
   const request: CodeReviewRequest = { prompt: "You are the Code review agent.", schema: { type: "object" }, cwd: repo, readDirs: [], timeoutMs: 60_000, codeReview: { args: "high a...b --max-findings 8" } };
   const reviewStream = streamOf({
     type: "result",

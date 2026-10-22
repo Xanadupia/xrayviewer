@@ -34,14 +34,14 @@ describe("the built extension", () => {
   let bundle: string;
 
   before(async () => {
-    dir = await buildExtension(path.join(await mkdtemp(path.join(tmpdir(), "xrayview-build-")), "extension"));
+    dir = await buildExtension(path.join(await mkdtemp(path.join(tmpdir(), "xrayviewer-build-")), "extension"));
     manifest = JSON.parse(await readFile(path.join(dir, "package.json"), "utf8"));
     bundle = await readFile(path.join(dir, "dist", "extension.cjs"), "utf8");
   });
 
   test("is X-RayView by Ali Qaryan, with its own id", async () => {
-    assert.equal(manifest.name, "xrayview");
-    assert.equal(manifest.displayName, "X-RayView");
+    assert.equal(manifest.name, "xrayviewer");
+    assert.equal(manifest.displayName, "X-RayViewer");
     assert.equal(manifest.publisher, "aliqaryan");
     assert.equal(manifest.author, "Ali Qaryan");
     assert.equal(manifest.version, "0.4.1");
@@ -90,14 +90,14 @@ describe("the built extension", () => {
     assert.equal(page.includes("LABEL_PREFIX") || page.includes("withLabel"), false);
     assert.ok(bundle.includes("o.modelPlan=await"), "the page data carries the model plan");
     assert.ok(bundle.includes('type:"host-model"'), "a model pick updates the open page");
-    assert.ok(bundle.includes('xrayview.filter'));
-    assert.equal(bundle.includes('xrayview.filterAuthor'), false);
-    assert.equal(bundle.includes('xrayview.filterStatus'), false);
-    assert.equal(manifest.contributes.configuration.properties["xrayview.sidebar.status"].items.enum.includes("merged"), true);
+    assert.ok(bundle.includes('xrayviewer.filter'));
+    assert.equal(bundle.includes('xrayviewer.filterAuthor'), false);
+    assert.equal(bundle.includes('xrayviewer.filterStatus'), false);
+    assert.equal(manifest.contributes.configuration.properties["xrayviewer.sidebar.status"].items.enum.includes("merged"), true);
     assert.ok(bundle.includes('groupBy==="author"'));
     assert.equal(bundle.includes("circle-small-filled"), false);
     await readFile(path.join(dir, "media", "risk", "open-low.svg"));
-    assert.equal(manifest.contributes.configuration.properties["xrayview.sidebar.groupBy"].enum.includes("author"), true);
+    assert.equal(manifest.contributes.configuration.properties["xrayviewer.sidebar.groupBy"].enum.includes("author"), true);
     assert.match(page, /M8\.5 8\.5l7 7/);
     assert.equal(page.includes("M1.5 8h27"), false);
     assert.match(page, /modelSummary\(AGENTS\)\.line/);
@@ -129,15 +129,15 @@ describe("the built extension", () => {
     const properties = manifest.contributes.configuration.properties;
     const keys = Object.keys(properties);
 
-    assert.deepEqual(properties["xrayview.harness"].enum, ["claude", "codex", "pi", "cursor"]);
-    assert.equal(properties["xrayview.harness"].enumDescriptions.length, 4);
-    assert.equal(properties["xrayview.cursor.path"].default, "cursor-agent");
-    assert.equal(properties["xrayview.cursor.path"].scope, "machine");
-    assert.equal(properties["xrayview.cursor.extraArgs"].scope, "machine");
-    assert.equal(properties["xrayview.cursor.model"].default, "");
-    assert.equal(keys.indexOf("xrayview.cursor.path"), keys.indexOf("xrayview.pi.extraArgs") + 1);
-    assert.ok(manifest.capabilities.untrustedWorkspaces.restrictedConfigurations.includes("xrayview.cursor.path"));
-    assert.ok(manifest.capabilities.untrustedWorkspaces.restrictedConfigurations.includes("xrayview.cursor.extraArgs"));
+    assert.deepEqual(properties["xrayviewer.harness"].enum, ["claude", "codex", "pi", "cursor"]);
+    assert.equal(properties["xrayviewer.harness"].enumDescriptions.length, 4);
+    assert.equal(properties["xrayviewer.cursor.path"].default, "cursor-agent");
+    assert.equal(properties["xrayviewer.cursor.path"].scope, "machine");
+    assert.equal(properties["xrayviewer.cursor.extraArgs"].scope, "machine");
+    assert.equal(properties["xrayviewer.cursor.model"].default, "");
+    assert.equal(keys.indexOf("xrayviewer.cursor.path"), keys.indexOf("xrayviewer.pi.extraArgs") + 1);
+    assert.ok(manifest.capabilities.untrustedWorkspaces.restrictedConfigurations.includes("xrayviewer.cursor.path"));
+    assert.ok(manifest.capabilities.untrustedWorkspaces.restrictedConfigurations.includes("xrayviewer.cursor.extraArgs"));
   });
 
   test("ships the MIT license", async () => {
@@ -150,7 +150,7 @@ describe("the built extension", () => {
   test("styles the review chrome with the Apple system face and glass navigation", async () => {
     const styles = await readFile(path.join(dir, "media", "ui", "styles.css"), "utf8");
 
-    assert.match(styles, /xrayview-apple-ui/);
+    assert.match(styles, /xrayviewer-apple-ui/);
     assert.match(styles, /-apple-system/);
     assert.match(styles, /backdrop-filter: saturate\(1\.8\) blur\(28px\)/);
   });

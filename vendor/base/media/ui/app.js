@@ -1,6 +1,6 @@
 /* X-RayView's review page. It runs in the VS Code extension's webview, which sets three globals before this script:
- * window.REVIEW_DATA (the diff), window.XRAYVIEW_LIVE (the pull request from GitHub, the agents' results and the saved
- * review state) and window.XRAYVIEW_HOST (the bridge back to the extension).
+ * window.REVIEW_DATA (the diff), window.XRAYVIEWER_LIVE (the pull request from GitHub, the agents' results and the saved
+ * review state) and window.XRAYVIEWER_HOST (the bridge back to the extension).
  *
  * The page can open before its diff is built: REVIEW_DATA is then a stand-in with `pending: true` and no files. The page
  * shows everything that doesn't need the diff (description, discussion, checks, workflow, the agent briefing) with
@@ -15,7 +15,7 @@ const clock = window.performance && typeof window.performance.now === "function"
 const SCRIPT_START = clock ? clock.now() : 0;
 // An error while the page draws reaches the extension's log, instead of a page that never says it drew.
 window.addEventListener("error", (e) => {
-  try { if (window.XRAYVIEW_HOST && typeof window.XRAYVIEW_HOST.rendered === "function") window.XRAYVIEW_HOST.rendered({ stage: "error", error: String((e && e.message) || "error") }); } catch { /* best effort */ }
+  try { if (window.XRAYVIEWER_HOST && typeof window.XRAYVIEWER_HOST.rendered === "function") window.XRAYVIEWER_HOST.rendered({ stage: "error", error: String((e && e.message) || "error") }); } catch { /* best effort */ }
 });
 
 // Each start of the page owns its listeners and timers through one signal; starting again ends the one before.
@@ -30,8 +30,8 @@ function boot(signal, stage, started) {
 const D = window.REVIEW_DATA;
 // The page opened before its diff: see the top of this file. D.error says why the diff didn't load, when it didn't.
 const PENDING = !!D && D.pending === true;
-const LIVE = window.XRAYVIEW_LIVE;
-const HOST = window.XRAYVIEW_HOST;
+const LIVE = window.XRAYVIEWER_LIVE;
+const HOST = window.XRAYVIEWER_HOST;
 const app = document.getElementById("app");
 if (!LIVE || !HOST || !D || !Array.isArray(D.files)) {
   app.innerHTML = `<div class="missing"><p class="eyebrow">X-RayView</p><h1>Open this review in VS Code</h1>
@@ -1756,7 +1756,7 @@ function topbarHTML() {
   const pr = S.view === "pr";
   return `<header class="bar" id="bar">
     <button type="button" class="icon-btn back" data-act="inbox" aria-label="Back to your reviews">${icon("left")}</button>
-    <a class="brand" href="#inbox" data-act="inbox" aria-label="X-RayView, your reviews">${LOGO}<span class="brand-word">xrayview</span></a>
+    <a class="brand" href="#inbox" data-act="inbox" aria-label="X-RayView, your reviews">${LOGO}<span class="brand-word">xrayviewer</span></a>
     ${pr ? `<nav class="crumbs" aria-label="Location"><button type="button" class="crumb-repo crumb-link" data-act="inbox" title="All pull requests in this session">${esc(PR.repo)}</button><span class="crumb-sep">/</span>
       <span class="crumb-pr">#${PR.number}</span><span class="crumb-title">${esc(PR.title)}</span></nav>` : `<span class="crumbs"></span>`}
     <div class="bar-end">
@@ -3672,7 +3672,7 @@ function inboxHTML() {
     : `${waiting.length ? `<section class="ib-sec"><h2 class="eyebrow">Waiting on you · riskiest first</h2><ul class="ib-list">${waiting.map(liveRowHTML).join("")}</ul></section>` : ""}
     ${yours.length ? `<section class="ib-sec"><h2 class="eyebrow">Your pull requests</h2><ul class="ib-list">${yours.map(liveRowHTML).join("")}</ul></section>` : ""}
     ${others.length ? `<section class="ib-sec"><h2 class="eyebrow">Also in this session</h2><ul class="ib-list">${others.map(liveRowHTML).join("")}</ul></section>` : ""}`;
-  const note = "To add a pull request, use <b>Open Pull Request…</b> in the X-RayView sidebar, or watch a repository in the <code>xrayview.watch.repositories</code> setting.";
+  const note = "To add a pull request, use <b>Open Pull Request…</b> in the X-RayView sidebar, or watch a repository in the <code>xrayviewer.watch.repositories</code> setting.";
   const hour = new Date().getHours();
   const greeting = hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening";
   const first = PEOPLE.you && PEOPLE.you.name && PEOPLE.you.name !== "You" ? PEOPLE.you.name.split(" ")[0] : "";
@@ -3699,7 +3699,7 @@ const ACTION_WORD = { added: "Added to your review", posted: "Posted", copied: "
 const FAILURE_WORD = { missing: "not installed", auth: "not signed in", timeout: "timed out", cancelled: "stopped", failed: "failed", badOutput: "unusable output" };
 const M = { days: 30, groupBy: "agent", data: null, error: "", loading: false, seq: 0, exFilter: "all" };
 try {
-  const saved = JSON.parse(localStorage.getItem("xrayview:metrics") || "{}");
+  const saved = JSON.parse(localStorage.getItem("xrayviewer:metrics") || "{}");
   if (METRIC_PERIODS.some(([d]) => d === saved.days)) M.days = saved.days;
   if (METRIC_GROUPS[saved.groupBy]) M.groupBy = saved.groupBy;
 } catch { /* optional */ }
@@ -3746,7 +3746,7 @@ function refreshMetrics() {
   if (st) st.textContent = M.loading ? "Reading the review metrics…" : M.error ? `Couldn't read the review metrics: ${M.error}` : M.data ? `Showing ${periodWord()}, grouped by ${METRIC_GROUPS[M.groupBy].toLowerCase()}.` : "";
 }
 
-function saveMetricPrefs() { try { localStorage.setItem("xrayview:metrics", JSON.stringify({ days: M.days, groupBy: M.groupBy })); } catch { /* optional */ } }
+function saveMetricPrefs() { try { localStorage.setItem("xrayviewer:metrics", JSON.stringify({ days: M.days, groupBy: M.groupBy })); } catch { /* optional */ } }
 
 const segHTML = (label, id, items, act, attr) => `<div class="mx-ctl"><span class="eyebrow" id="${id}">${label}</span>
   <div class="seg" role="group" aria-labelledby="${id}">${items.map(([value, text, on]) => `<button type="button" data-act="${act}" data-${attr}="${esc(value)}" aria-pressed="${on}">${esc(text)}</button>`).join("")}</div></div>`;
@@ -3776,7 +3776,7 @@ function metricsEmptyHTML(enabled) {
     <h2>${enabled ? "No review metrics yet" : "Review metrics are off"}</h2>
     <p>As you review, X-RayView records what you do with each agent finding (added to your review, dismissed and why, copied, posted, or left open when you post), the description checks you ask about or skip, each review you post with the time you spent on it, and each agent run's duration, tokens and cost.</p>
     <p>It keeps them in a file in the extension's storage on this computer. They hold finding titles, but no code, diffs or comment text.</p>
-    <p>${enabled ? "Open a pull request, decide on its agent findings and post a review, and the numbers show up here." : "Turn on the <code>xrayview.metrics.enabled</code> setting to start recording."} <b>X-RayView: Delete Review Metrics</b> deletes the file.</p>
+    <p>${enabled ? "Open a pull request, decide on its agent findings and post a review, and the numbers show up here." : "Turn on the <code>xrayviewer.metrics.enabled</code> setting to start recording."} <b>X-RayView: Delete Review Metrics</b> deletes the file.</p>
   </section>`;
 }
 
@@ -3786,7 +3786,7 @@ function metricsBodyHTML() {
   const { enabled, report: r } = M.data;
   if (!r.total) return metricsEmptyHTML(enabled);
   const notes = [];
-  if (!enabled) notes.push(`<p class="mx-note">${icon("info")}<span>Review metrics are off, so nothing new is recorded. These are from before they were turned off. The <code>xrayview.metrics.enabled</code> setting turns them back on.</span></p>`);
+  if (!enabled) notes.push(`<p class="mx-note">${icon("info")}<span>Review metrics are off, so nothing new is recorded. These are from before they were turned off. The <code>xrayviewer.metrics.enabled</code> setting turns them back on.</span></p>`);
   if (r.skipped) notes.push(`<p class="mx-note dim">${icon("info")}<span>${plural(r.skipped, "line")} of the log couldn't be read and ${r.skipped === 1 ? "isn't" : "aren't"} counted.</span></p>`);
   if (!r.inPeriod) {
     return `${notes.join("")}<section class="mx-empty"><h2>Nothing in ${periodWord()}</h2><p>The log has ${plural(r.total, "entry", "entries")}, all from before then.</p>
@@ -3926,7 +3926,7 @@ function examplesSheetHTML(key) {
 function runsSectionHTML(r) {
   const t = r.runs.total;
   const groupWord = METRIC_GROUPS[r.groupBy];
-  // Automatic runs that didn't start because the pull request was already approved (xrayview.agents.approvedPullRequests).
+  // Automatic runs that didn't start because the pull request was already approved (xrayviewer.agents.approvedPullRequests).
   const skipped = t.skippedApproved || 0;
   const skippedText = skipped ? ` Skipped (approved): ${plural(skipped, "automatic run")} didn't start because the pull request was already approved.` : "";
   if (!t.runs) return `<section class="mx-sec" aria-labelledby="mx-runs"><h2 class="mx-h" id="mx-runs">Agent runs</h2><p class="dim">No agent runs in ${periodWord()}.${esc(skippedText)}</p></section>`;
@@ -4765,7 +4765,7 @@ function cycleTheme() {
   themeFollowsHost = next === "system";
   if (next !== "system") document.documentElement.dataset.theme = next;
   else applyHostTheme();
-  try { localStorage.setItem("xrayview:theme", next); } catch { /* optional */ }
+  try { localStorage.setItem("xrayviewer:theme", next); } catch { /* optional */ }
   replaceHTML("#bar", topbarHTML());
   onScroll();
   toast(`Theme: ${cap(next)}`);
@@ -5179,7 +5179,7 @@ window.addEventListener("hashchange", () => { tickActive(); routeFromHash(); ren
 // The VS Code extension's Home: show the list, with a fresh one from the sidebar.
 // "host-view": the sidebar's Home, which shows the list. "host-list": the sidebar's grouping or order changed; an open
 // list redraws in place, and a review keeps the new list for when the reader goes back to it.
-window.addEventListener("xrayview-host", (e) => {
+window.addEventListener("xrayviewer-host", (e) => {
   const m = e.detail || {};
   if (m.type === "host-pr-changed") { showChange(m); return; }
   if (m.type === "host-data") { takeData(m); return; }
@@ -5227,7 +5227,7 @@ function takeData(m) {
 /* ---------- Start ---------- */
 
 try {
-  const theme = localStorage.getItem("xrayview:theme");
+  const theme = localStorage.getItem("xrayviewer:theme");
   if (theme === "light" || theme === "dark") document.documentElement.dataset.theme = theme;
   else themeFollowsHost = true;
 } catch { /* optional */ }
@@ -5254,7 +5254,7 @@ reportRendered(stage, started);
    diff arrives, when it got it) and how long building its model, drawing and laying it out took from there. It says
    so at once rather than after the next frame: a panel that's hidden, or a window that's covered, draws no frames. */
 function reportRendered(stage, started) {
-  const host = window.XRAYVIEW_HOST;
+  const host = window.XRAYVIEWER_HOST;
   if (!clock || !host || typeof host.rendered !== "function") return;
   void document.body.offsetHeight; // lay the page out now, as the first frame would
   try { host.rendered({ stage, ms: { start: Math.round(started), render: Math.round(clock.now() - started) } }); } catch { /* timing is best effort */ }

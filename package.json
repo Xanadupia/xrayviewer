@@ -1,5 +1,5 @@
 {
-  "name": "xrayview-workspace",
+  "name": "xrayviewer-workspace",
   "private": true,
   "type": "module",
   "description": "Builds the X-RayView extension.",

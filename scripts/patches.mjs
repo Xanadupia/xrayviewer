@@ -122,16 +122,16 @@ export const PATCHES = [
       'xrvCodex=m=>xrvCursor().pickCli({vscode:C,log:t,currentPath:()=>Yt().harnesses.codex.command,currentModel:()=>m&&m.model||Yt().harnesses.codex.model,currentExtraArgs:()=>Yt().harnesses.codex.extraArgs,setAgentModel:Cu},"codex",m),' +
       'xrvModel=(h,m)=>h==="pi"?P(m):h==="cursor"?xrvPick(m):h==="claude"?xrvClaude(m):h==="codex"?xrvCodex(m):Promise.resolve(!1),' +
       'xrvDone=async(h,a)=>{o.notifyModel();let E=Yt().harnesses,{settings:O}=await $t(),g=a?O.agents[a]:null;await xrvCursor().announceChoice({vscode:C,log:t},{harness:h,settings:E[h],agent:g?{name:Ue(g.name),model:g.model||""}:null,inUse:Object.values(O.agents).some(x=>x.enabled&&(x.harness||E.default)===h),agents:O.agents,harnesses:E})},' +
-      'xrvMove=async h=>{let E=Yt().harnesses,{settings:O}=await $t(),w=[];E.default!==h&&await C.workspace.getConfiguration("xrayview").update("harness",h,C.ConfigurationTarget.Global);' +
+      'xrvMove=async h=>{let E=Yt().harnesses,{settings:O}=await $t(),w=[];E.default!==h&&await C.workspace.getConfiguration("xrayviewer").update("harness",h,C.ConfigurationTarget.Global);' +
       'for(let[d,x]of Object.entries(O.agents)){if(x.harness&&x.harness!==h){await Eu(d,"");w.push(Ue(x.name))}else if(!x.harness&&x.model&&E.default!==h){await Cu(d,"");w.push(Ue(x.name))}}' +
       '(E.default!==h||w.length)&&t(`Every agent now runs on ${Nt[h]}${w.length?`. ${w.join(", ")} no longer ${w.length>1?"have":"has"} a harness or model of ${w.length>1?"their":"its"} own`:""}`)},' +
       "R=async()=>{let m=ji,",
   },
   {
     id: "model-picker-default",
-    find: 'j&&await C.workspace.getConfiguration("xrayview").update("harness",j.value,C.ConfigurationTarget.Global),j?.value==="pi"&&await P(null);continue}',
+    find: 'j&&await C.workspace.getConfiguration("xrayviewer").update("harness",j.value,C.ConfigurationTarget.Global),j?.value==="pi"&&await P(null);continue}',
     replace:
-      'if(j){await C.workspace.getConfiguration("xrayview").update("harness",j.value,C.ConfigurationTarget.Global);if(await xrvModel(j.value,null)){await xrvDone(j.value,null);return}}continue}',
+      'if(j){await C.workspace.getConfiguration("xrayviewer").update("harness",j.value,C.ConfigurationTarget.Global);if(await xrvModel(j.value,null)){await xrvDone(j.value,null);return}}continue}',
   },
   {
     id: "model-picker-agent",
@@ -139,7 +139,7 @@ export const PATCHES = [
     replace:
       'let _=J.agent,ag=O.agents[_],nm=Ue(ag.name),own=ag.harness||"",cur=own||E.default,cv=v.get("cursor"),co=xrvCursor().installedSummary("codex"),cl=xrvCursor().installedSummary("claude"),' +
       'L=await C.window.showQuickPick([' +
-      '{label:cv?"Cursor Agent "+cv:"Cursor Agent CLI",description:[cv?"":"Not found",cur==="cursor"?"in use":""].filter(Boolean).join(" \\u00b7 "),detail:cv?"Pick a model on your Cursor account. Then this agent runs on Cursor.":"Install it, or set xrayview.cursor.path to where it is.",value:"cursor"},' +
+      '{label:cv?"Cursor Agent "+cv:"Cursor Agent CLI",description:[cv?"":"Not found",cur==="cursor"?"in use":""].filter(Boolean).join(" \\u00b7 "),detail:cv?"Pick a model on your Cursor account. Then this agent runs on Cursor.":"Install it, or set xrayviewer.cursor.path to where it is.",value:"cursor"},' +
       '{label:co?"Codex "+co:"Install Codex\\u2026",description:[co?"":"Not installed",cur==="codex"?"in use":""].filter(Boolean).join(" \\u00b7 "),detail:co?"Pick a model and reasoning level, or another installed version. Then this agent runs on Codex.":"Download the Codex CLI, then pick a model. Then this agent runs on Codex.",value:"codex"},' +
       '{label:cl?"Claude Code "+cl:"Install Claude Code\\u2026",description:[cl?"":"Not installed",cur==="claude"?"in use":""].filter(Boolean).join(" \\u00b7 "),detail:cl?"Pick a model and effort level, or another installed version. Then this agent runs on Claude Code.":"Download Claude Code, then pick a model. Then this agent runs on Claude Code.",value:"claude"}' +
       '],{title:`Which CLI runs the ${nm.toLowerCase()} agent?`,placeHolder:`Only the ${nm.toLowerCase()} agent changes. The other agents keep theirs, and they all still run together.`});if(!L)continue;let B=null;L.value!==own&&({clearedModel:B}=await Eu(_,L.value),t(`${ag.name} now runs on ${Nt[L.value]}`));let se=await xrvModel(L.value,{id:_,name:nm,model:L.value===own?ag.model:""});if(se){await xrvDone(L.value,_);return}',
@@ -215,15 +215,15 @@ export const PATCHES = [
   },
   {
     id: "choose-model-command",
-    find: 'else if(e.type==="runAgents")ee.commands.executeCommand("xrayview.runAgents",N(t));',
+    find: 'else if(e.type==="runAgents")ee.commands.executeCommand("xrayviewer.runAgents",N(t));',
     replace:
-      'else if(e.type==="chooseHarness")ee.commands.executeCommand("xrayview.selectHarness");else if(e.type==="runAgents")ee.commands.executeCommand("xrayview.runAgents",N(t));',
+      'else if(e.type==="chooseHarness")ee.commands.executeCommand("xrayviewer.selectHarness");else if(e.type==="runAgents")ee.commands.executeCommand("xrayviewer.runAgents",N(t));',
   },
   {
     id: "sidebar-settings",
-    find: 'function Ei(){let n=C.workspace.getConfiguration("xrayview.sidebar"),e=n.get("groupBy")==="repository"?"repository":"relationship",t=["risk","created","updated"].find(s=>s===n.get("sortBy"))||"risk";return{groupBy:e,sortBy:t,othersLimit:n.get("othersLimit",10)}}',
+    find: 'function Ei(){let n=C.workspace.getConfiguration("xrayviewer.sidebar"),e=n.get("groupBy")==="repository"?"repository":"relationship",t=["risk","created","updated"].find(s=>s===n.get("sortBy"))||"risk";return{groupBy:e,sortBy:t,othersLimit:n.get("othersLimit",10)}}',
     replace:
-      'function Ei(){let n=C.workspace.getConfiguration("xrayview.sidebar"),e=n.get("groupBy")==="repository"?"repository":n.get("groupBy")==="author"?"author":"relationship",t=["risk","created","updated"].find(s=>s===n.get("sortBy"))||"risk",list=["open","draft","merged","closed"],raw=n.get("status"),st=Array.isArray(raw)?raw.filter(s=>list.includes(s)):list.includes(raw)?[raw]:list,who=n.get("author"),au=Array.isArray(who)?who.filter(s=>typeof s==="string"&&s):typeof who==="string"&&who?[who]:[];if(!st.length)st=list;return{groupBy:e,sortBy:t,othersLimit:n.get("othersLimit",10),author:au,status:st,mine:n.get("mine")===true}}',
+      'function Ei(){let n=C.workspace.getConfiguration("xrayviewer.sidebar"),e=n.get("groupBy")==="repository"?"repository":n.get("groupBy")==="author"?"author":"relationship",t=["risk","created","updated"].find(s=>s===n.get("sortBy"))||"risk",list=["open","draft","merged","closed"],raw=n.get("status"),st=Array.isArray(raw)?raw.filter(s=>list.includes(s)):list.includes(raw)?[raw]:list,who=n.get("author"),au=Array.isArray(who)?who.filter(s=>typeof s==="string"&&s):typeof who==="string"&&who?[who]:[];if(!st.length)st=list;return{groupBy:e,sortBy:t,othersLimit:n.get("othersLimit",10),author:au,status:st,mine:n.get("mine")===true}}',
   },
   {
     id: "sidebar-author-group",
@@ -261,7 +261,7 @@ export const PATCHES = [
     id: "sidebar-status-icon",
     find: 'let a=t.run.state==="running"||t.run.state==="queued"||t.run.state==="elsewhere",l=jn(t.agent,s),c=l.state==="current"?"pass-filled":l.state==="behind"?"pass":"circle-large-outline";r.iconPath=a?new oe.ThemeIcon("sync~spin"):t.run.state==="failed"?new oe.ThemeIcon("error",new oe.ThemeColor("list.errorForeground")):new oe.ThemeIcon(c,new oe.ThemeColor(e.risk?Bv[e.risk.level]:"disabledForeground"));',
     replace:
-      'let a=t.run.state==="running"||t.run.state==="queued"||t.run.state==="elsewhere",xrvSt=!s?"open":s.state==="MERGED"?"merged":s.state==="CLOSED"?"closed":s.isDraft?"draft":"open",xrvIcon=xrvSt==="merged"?"git-merge":xrvSt==="closed"?"git-pull-request-closed":xrvSt==="draft"?"git-pull-request-draft":"git-pull-request",xrvColor=xrvSt==="merged"?"charts.purple":xrvSt==="closed"?"charts.red":xrvSt==="draft"?"disabledForeground":"charts.green";let xrvExt=e.risk&&oe.extensions.getExtension("aliqaryan.xrayview");r.iconPath=a?new oe.ThemeIcon("sync~spin"):t.run.state==="failed"?new oe.ThemeIcon("error",new oe.ThemeColor("list.errorForeground")):xrvExt?oe.Uri.joinPath(xrvExt.extensionUri,"media","risk",xrvSt+"-"+e.risk.level+".svg"):new oe.ThemeIcon(xrvIcon,new oe.ThemeColor(xrvColor));',
+      'let a=t.run.state==="running"||t.run.state==="queued"||t.run.state==="elsewhere",xrvSt=!s?"open":s.state==="MERGED"?"merged":s.state==="CLOSED"?"closed":s.isDraft?"draft":"open",xrvIcon=xrvSt==="merged"?"git-merge":xrvSt==="closed"?"git-pull-request-closed":xrvSt==="draft"?"git-pull-request-draft":"git-pull-request",xrvColor=xrvSt==="merged"?"charts.purple":xrvSt==="closed"?"charts.red":xrvSt==="draft"?"disabledForeground":"charts.green";let xrvExt=e.risk&&oe.extensions.getExtension("aliqaryan.xrayviewer");r.iconPath=a?new oe.ThemeIcon("sync~spin"):t.run.state==="failed"?new oe.ThemeIcon("error",new oe.ThemeColor("list.errorForeground")):xrvExt?oe.Uri.joinPath(xrvExt.extensionUri,"media","risk",xrvSt+"-"+e.risk.level+".svg"):new oe.ThemeIcon(xrvIcon,new oe.ThemeColor(xrvColor));',
   },
   {
     id: "sidebar-group-author",
@@ -282,9 +282,9 @@ export const PATCHES = [
   },
   {
     id: "sidebar-filter-author",
-    find: 'k("xrayview.sortBy",async()=>{',
+    find: 'k("xrayviewer.sortBy",async()=>{',
     replace:
-      'k("xrayview.filter",()=>{let cur=Ei(),authors=[...new Set(r.all().map(E=>E.summary?.author?.login).filter(Boolean))].sort((E,O)=>E.localeCompare(O)),mine={label:"My pull requests",pick:"mine",value:"mine"},allSt={label:"All",pick:"all-status",value:"all"},statuses=[["Open","open"],["Draft","draft"],["Merged","merged"],["Closed","closed"]].map(([label,value])=>({label,pick:"status",value})),allAu={label:"All authors",pick:"all-author",value:"all"},people=authors.map(E=>({label:E,pick:"author",value:E})),qp=C.window.createQuickPick();qp.canSelectMany=!0;qp.title="Filter pull requests";qp.placeholder="Check any, then press Return. All shows every item in that group.";qp.items=[mine,{label:"Status",kind:C.QuickPickItemKind.Separator},allSt,...statuses,{label:"Author",kind:C.QuickPickItemKind.Separator},allAu,...people];let stAll=!cur.status.length||cur.status.length>=4,auAll=!cur.author.length,on=new Set(cur.status),who=new Set(cur.author.map(E=>String(E).toLowerCase()));qp.selectedItems=qp.items.filter(E=>E.pick==="mine"?cur.mine:E.pick==="all-status"?stAll:E.pick==="status"?!stAll&&on.has(E.value):E.pick==="all-author"?auAll:E.pick==="author"&&!auAll&&who.has(String(E.value).toLowerCase()));let lock=0;qp.onDidChangeSelection(items=>{if(lock)return;let sel=items.filter(E=>E.pick),prev=qp._prev||[],added=sel.filter(E=>!prev.includes(E)),keep=sel.filter(E=>E.pick==="mine"),st=sel.filter(E=>E.pick==="status"||E.pick==="all-status"),au=sel.filter(E=>E.pick==="author"||E.pick==="all-author");if(added.some(E=>E.pick==="all-status"))st=[allSt];else if(added.some(E=>E.pick==="status"))st=st.filter(E=>E.pick==="status");else if(!st.some(E=>E.pick==="status")&&!st.some(E=>E.pick==="all-status"))st=[allSt];if(added.some(E=>E.pick==="all-author"))au=[allAu];else if(added.some(E=>E.pick==="author"))au=au.filter(E=>E.pick==="author");else if(!au.some(E=>E.pick==="author")&&!au.some(E=>E.pick==="all-author"))au=[allAu];let next=[...keep,...st,...au];qp._prev=next;if(next.length!==sel.length||next.some(E=>!sel.includes(E))){lock=1;qp.selectedItems=next;lock=0}});qp._prev=[...qp.selectedItems];qp.onDidAccept(async()=>{let chosen=qp.selectedItems.filter(E=>E.pick),st=chosen.some(E=>E.pick==="all-status")?[]:chosen.filter(E=>E.pick==="status").map(E=>E.value),au=chosen.some(E=>E.pick==="all-author")?[]:chosen.filter(E=>E.pick==="author").map(E=>E.value),cfg=C.workspace.getConfiguration("xrayview.sidebar");await cfg.update("mine",chosen.some(E=>E.pick==="mine"),C.ConfigurationTarget.Global);await cfg.update("status",st,C.ConfigurationTarget.Global);await cfg.update("author",au,C.ConfigurationTarget.Global);qp.hide()});qp.onDidHide(()=>qp.dispose());qp.show()}),k("xrayview.sortBy",async()=>{',
+      'k("xrayviewer.filter",()=>{let cur=Ei(),authors=[...new Set(r.all().map(E=>E.summary?.author?.login).filter(Boolean))].sort((E,O)=>E.localeCompare(O)),mine={label:"My pull requests",pick:"mine",value:"mine"},allSt={label:"All",pick:"all-status",value:"all"},statuses=[["Open","open"],["Draft","draft"],["Merged","merged"],["Closed","closed"]].map(([label,value])=>({label,pick:"status",value})),allAu={label:"All authors",pick:"all-author",value:"all"},people=authors.map(E=>({label:E,pick:"author",value:E})),qp=C.window.createQuickPick();qp.canSelectMany=!0;qp.title="Filter pull requests";qp.placeholder="Check any, then press Return. All shows every item in that group.";qp.items=[mine,{label:"Status",kind:C.QuickPickItemKind.Separator},allSt,...statuses,{label:"Author",kind:C.QuickPickItemKind.Separator},allAu,...people];let stAll=!cur.status.length||cur.status.length>=4,auAll=!cur.author.length,on=new Set(cur.status),who=new Set(cur.author.map(E=>String(E).toLowerCase()));qp.selectedItems=qp.items.filter(E=>E.pick==="mine"?cur.mine:E.pick==="all-status"?stAll:E.pick==="status"?!stAll&&on.has(E.value):E.pick==="all-author"?auAll:E.pick==="author"&&!auAll&&who.has(String(E.value).toLowerCase()));let lock=0;qp.onDidChangeSelection(items=>{if(lock)return;let sel=items.filter(E=>E.pick),prev=qp._prev||[],added=sel.filter(E=>!prev.includes(E)),keep=sel.filter(E=>E.pick==="mine"),st=sel.filter(E=>E.pick==="status"||E.pick==="all-status"),au=sel.filter(E=>E.pick==="author"||E.pick==="all-author");if(added.some(E=>E.pick==="all-status"))st=[allSt];else if(added.some(E=>E.pick==="status"))st=st.filter(E=>E.pick==="status");else if(!st.some(E=>E.pick==="status")&&!st.some(E=>E.pick==="all-status"))st=[allSt];if(added.some(E=>E.pick==="all-author"))au=[allAu];else if(added.some(E=>E.pick==="author"))au=au.filter(E=>E.pick==="author");else if(!au.some(E=>E.pick==="author")&&!au.some(E=>E.pick==="all-author"))au=[allAu];let next=[...keep,...st,...au];qp._prev=next;if(next.length!==sel.length||next.some(E=>!sel.includes(E))){lock=1;qp.selectedItems=next;lock=0}});qp._prev=[...qp.selectedItems];qp.onDidAccept(async()=>{let chosen=qp.selectedItems.filter(E=>E.pick),st=chosen.some(E=>E.pick==="all-status")?[]:chosen.filter(E=>E.pick==="status").map(E=>E.value),au=chosen.some(E=>E.pick==="all-author")?[]:chosen.filter(E=>E.pick==="author").map(E=>E.value),cfg=C.workspace.getConfiguration("xrayviewer.sidebar");await cfg.update("mine",chosen.some(E=>E.pick==="mine"),C.ConfigurationTarget.Global);await cfg.update("status",st,C.ConfigurationTarget.Global);await cfg.update("author",au,C.ConfigurationTarget.Global);qp.hide()});qp.onDidHide(()=>qp.dispose());qp.show()}),k("xrayviewer.sortBy",async()=>{',
   },
 ];
 
@@ -812,7 +812,7 @@ function prHeadHTML() {`,
   },
   {
     id: "brand-word",
-    find: '<span class="brand-word">xrayview</span>',
+    find: '<span class="brand-word">xrayviewer</span>',
     replace: '<span class="brand-word">X-RayView</span>',
   },
   {

@@ -31,7 +31,7 @@ export function parseModelList(text: string): CursorModel[] {
 
 /** Lists the models on the signed-in Cursor account, or null when the CLI is missing, signed out or fails. */
 export async function listCursorModels(internals: BundleInternals, config: CursorConfig): Promise<CursorModel[] | null> {
-  const dir = await mkdtemp(path.join(tmpdir(), "xrayview-cursor-"));
+  const dir = await mkdtemp(path.join(tmpdir(), "xrayviewer-cursor-"));
   try {
     const result = await internals.run(config.command, ["--list-models"], {
       cwd: dir,

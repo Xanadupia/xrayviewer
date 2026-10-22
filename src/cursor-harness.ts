@@ -201,7 +201,7 @@ export function cursorFailure(internals: BundleInternals, text: string, code: nu
   if (badModel) {
     return new internals.HarnessError(
       "failed",
-      `Cursor can't use the model "${badModel[1]}". Check xrayview.cursor.model, or the agent's model in agents.yml; Choose Agent Harnesses… then Cursor lists the models on your account.`,
+      `Cursor can't use the model "${badModel[1]}". Check xrayviewer.cursor.model, or the agent's model in agents.yml; Choose Agent Harnesses… then Cursor lists the models on your account.`,
       detail,
     );
   }
@@ -221,7 +221,7 @@ export async function runCursorAgent(
   request: AgentRequest,
 ): Promise<AgentResult> {
   const { HarnessError } = internals;
-  const workspace = request.workDir ?? (await mkdtemp(path.join(tmpdir(), "xrayview-cursor-")));
+  const workspace = request.workDir ?? (await mkdtemp(path.join(tmpdir(), "xrayviewer-cursor-")));
   await rm(workspace, { recursive: true, force: true });
   await mkdir(path.join(workspace, ".cursor"), { recursive: true });
   await writeFile(path.join(workspace, ".cursor", "cli.json"), JSON.stringify(WORKSPACE_PERMISSIONS, null, 2), "utf8");

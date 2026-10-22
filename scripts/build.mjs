@@ -11,7 +11,7 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const vendor = path.join(root, "vendor", "base");
 const assets = path.join(root, "assets");
 export const outDir = path.join(root, "build", "extension");
-export const vsixPath = path.join(root, "build", `xrayview-${VERSION}.vsix`);
+export const vsixPath = path.join(root, "build", `xrayviewer-${VERSION}.vsix`);
 
 
 async function verifyVendor() {

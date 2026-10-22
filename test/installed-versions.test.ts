@@ -7,7 +7,7 @@ import { describe, test } from "node:test";
 import { listClaudeVersions, listCodexVersions } from "../src/installed-versions.ts";
 
 async function home(): Promise<string> {
-  return mkdtemp(path.join(tmpdir(), "xrayview-clis-"));
+  return mkdtemp(path.join(tmpdir(), "xrayviewer-clis-"));
 }
 
 describe("installed CLI versions", () => {

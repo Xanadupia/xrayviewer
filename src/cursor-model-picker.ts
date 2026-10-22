@@ -66,7 +66,7 @@ export function modelItems(models: CursorModel[], current: string, fallback: Fal
 
 /**
  * Lets the user pick one of their Cursor account's models, for every Cursor agent (`agent` null, saved in
- * `xrayview.cursor.model`) or for one agent (saved in agents.yml). Resolves true when a model was saved.
+ * `xrayviewer.cursor.model`) or for one agent (saved in agents.yml). Resolves true when a model was saved.
  */
 export async function pickCursorModel(deps: PickerDeps, agent: AgentRef | null): Promise<boolean> {
   const { window, workspace, ProgressLocation, ConfigurationTarget } = deps.vscode;
@@ -85,7 +85,7 @@ export async function pickCursorModel(deps: PickerDeps, agent: AgentRef | null):
     ? modelItems(models, agent.model, {
         label: "Same as the other Cursor agents",
         description: shared || "Cursor's default",
-        detail: "Uses xrayview.cursor.model.",
+        detail: "Uses xrayviewer.cursor.model.",
       })
     : modelItems(models, shared, { label: "Cursor's default", detail: "The model the Cursor Agent CLI picks for you." });
   const picked = await window.showQuickPick(items, {
@@ -98,7 +98,7 @@ export async function pickCursorModel(deps: PickerDeps, agent: AgentRef | null):
     await deps.setAgentModel(agent.id, picked.value);
     deps.log(`${agent.name} now runs on Cursor with ${picked.value || "the other Cursor agents' model"}`);
   } else {
-    await workspace.getConfiguration("xrayview").update("cursor.model", picked.value, ConfigurationTarget.Global);
+    await workspace.getConfiguration("xrayviewer").update("cursor.model", picked.value, ConfigurationTarget.Global);
     deps.log(`Cursor agents now use ${picked.value || "Cursor's default model"}`);
   }
   return true;
