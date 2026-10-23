@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.5.1
+
+- **The guide walks through a real review.** It follows one pull request from the sidebar to the posted review, with a screenshot of each step, and a new diagram shows what runs during a review.
+- **Each release is on GitHub.** It has the `.vsix` for Cursor, its checksum, and a record of the workflow that built it.
+- **The package is over a third smaller.** It no longer carries the guide's pictures; the Marketplace page loads them from GitHub.
+
 ## 0.5.0
 
 - **The review page is redesigned.** One compact bar holds the repository and pull request, the save state, Refresh, Open on GitHub, the theme button, and Post review. A thin line along its bottom fills as you review and turns green when every hunk is decided. The workflow steps moved to Workflow.
