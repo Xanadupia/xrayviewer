@@ -1,18 +1,20 @@
 # X-RayViewer
 
-Review GitHub pull requests in VS Code or Cursor. Agents on your computer read the change. You decide what to keep, then you post the review.
+Review GitHub pull requests in VS Code or Cursor. Agents on your computer read the change before you do: they check the description, set a reading order, draw the flow, and flag problems on the lines. You keep what you agree with and post one review.
 
-![Four steps: open a pull request, agents read the change, you decide what to keep, then post the review to GitHub](docs/review-path.png)
+![X-RayViewer in VS Code: your pull requests in the sidebar, and a review page with the agents' briefing, the description check, the flow, and 12 findings grouped by severity](docs/hero.png)
 
-The user guide, with the review page, the model picker, and every setting, is at **[xanadupia.github.io/xrayviewer](https://xanadupia.github.io/xrayviewer)**. That page is generated from [assets/readme.md](assets/readme.md), which is also the page on the Marketplace and inside the extension.
+![How a review works: X-RayViewer reads the pull request from GitHub with gh and git, checks it out locally, runs the guide and four review agents in parallel through your model provider's CLI, and shows the briefing, chapters, map, and findings on the review page, where you decide what to keep before posting one review back to GitHub](docs/how-it-works.png)
+
+The user guide walks through a first review with screenshots, then covers automatic runs, models, custom agents, and every setting: **[xanadupia.github.io/xrayviewer](https://xanadupia.github.io/xrayviewer)**. It's generated from [assets/readme.md](assets/readme.md), which is also the page on the Marketplace and inside the extension.
 
 ## Install
 
-You need VS Code 1.95 or later, or Cursor, plus `gh auth login`, `git`, and one of Cursor Agent, Claude Code, or Codex.
+You need VS Code 1.95 or later, or Cursor, plus `gh auth login`, `git`, and one of Claude Code, Codex, or Cursor Agent.
 
-Once the listing is live, search for **X-RayViewer** by Ali Qaryan. The id is `aliqaryan.xrayviewer`. VS Code installs it from the Visual Studio Marketplace. Cursor installs it from Open VSX.
+In VS Code, search for **X-RayViewer** by Ali Qaryan in the Extensions view. The id is `aliqaryan.xrayviewer`. Cursor installs extensions from Open VSX, where it isn't listed yet, so build the `.vsix` below and run **Extensions: Install from VSIX…**.
 
-From a checkout, before or after that listing. Building needs Node 26 or later: Volta picks it up from `package.json`, nvm from `.nvmrc`, and npm refuses older versions.
+Building needs Node 26 or later: Volta picks it up from `package.json`, nvm from `.nvmrc`, and npm refuses older versions.
 
 ```sh
 npm install
@@ -34,7 +36,7 @@ cursor --install-extension build/xrayviewer-0.5.0.vsix --force
 | `scripts/guide-site.mjs` | Renders the user guide website from `assets/readme.md`. |
 | `scripts/build.mjs` | Checks the vendor sums, applies the edits, bundles `src/`, and packages. |
 | `assets/` | The user guide, changelog, license, and icons. |
-| `docs/` | The pictures, and the user guide website GitHub Pages serves. |
+| `docs/` | The screenshots, the diagram (`how-it-works.svg` and its PNG), and the user guide website GitHub Pages serves. |
 | `test/` | Unit tests, build checks, and a wiring test against a fake Cursor CLI. |
 
 ```sh

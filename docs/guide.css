@@ -163,6 +163,22 @@ code {
   font-size: 0.88em;
 }
 
+pre {
+  overflow-x: auto;
+  margin: 16px 0;
+  padding: 14px 16px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--code);
+  line-height: 1.5;
+}
+
+pre code { padding: 0; background: none; font-size: 13.5px; }
+
+main h3 { margin: 32px 0 8px; font-size: 18px; scroll-margin-top: 80px; }
+
+.shot { display: block; cursor: zoom-in; }
+
 img {
   display: block;
   width: 100%;

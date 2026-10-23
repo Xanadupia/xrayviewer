@@ -1,6 +1,7 @@
 /**
  * The user guide website: assets/readme.md rendered as one page for GitHub Pages (docs/index.html).
  * Image paths drop the `docs/` prefix because the page lives in that folder beside the pictures.
+ * Each picture links to its full-size file, since screenshots shrink to the text column.
  */
 import { readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
@@ -25,7 +26,10 @@ function inline(raw) {
     return `\u0000${codes.length - 1}\u0000`;
   });
   let html = esc(held);
-  html = html.replace(/!\[([^\]]*)\]\(([^)\s]+)\)/g, (_, alt, src) => `<img src="${esc(src.replace(/^docs\//, ""))}" alt="${alt}">`);
+  html = html.replace(/!\[([^\]]*)\]\(([^)\s]+)\)/g, (_, alt, src) => {
+    const file = esc(src.replace(/^docs\//, ""));
+    return `<a class="shot" href="${file}"><img src="${file}" alt="${alt}"></a>`;
+  });
   html = html.replace(/\[([^\]]+)\]\(([^)\s]+)\)/g, (_, text, href) => `<a href="${href}">${text}</a>`);
   html = html.replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>");
   return html.replace(/\u0000(\d+)\u0000/g, (_, i) => `<code>${esc(codes[Number(i)])}</code>`);
@@ -60,6 +64,19 @@ export function guideHTML(markdown) {
     const line = lines[i];
     if (!line.trim()) {
       i += 1;
+      continue;
+    }
+    const fence = /^```(\w*)\s*$/.exec(line);
+    if (fence) {
+      const code = [];
+      i += 1;
+      while (i < lines.length && !/^```\s*$/.test(lines[i])) {
+        code.push(lines[i]);
+        i += 1;
+      }
+      i += 1;
+      const lang = fence[1] ? ` class="language-${fence[1]}"` : "";
+      blocks.push(`<pre><code${lang}>${esc(code.join("\n"))}</code></pre>`);
       continue;
     }
     const heading = /^(#{1,3}) (.+)$/.exec(line);
@@ -103,7 +120,7 @@ export function guideHTML(markdown) {
       continue;
     }
     const para = [];
-    while (i < lines.length && lines[i].trim() && !/^(#{1,3} |[-*] |\d+\. )/.test(lines[i]) && !isTable(lines[i])) {
+    while (i < lines.length && lines[i].trim() && !/^(#{1,3} |[-*] |\d+\. |```)/.test(lines[i]) && !isTable(lines[i])) {
       para.push(lines[i].trim());
       i += 1;
     }

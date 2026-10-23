@@ -137,13 +137,13 @@ describe("the built extension", () => {
     assert.ok(manifest.engines.vscode);
     assert.ok(manifest.files.includes("LICENSE.txt"));
     assert.ok(manifest.files.includes("readme.md"));
-    assert.ok(manifest.files.includes("docs"));
     const guide = await readFile(path.join(dir, "readme.md"), "utf8");
-    assert.match(guide, /docs\/review-path\.png/);
-    assert.match(guide, /docs\/review-page\.png/);
-    await readFile(path.join(dir, "docs", "review-path.png"));
-    await readFile(path.join(dir, "docs", "review-page.png"));
-    await assert.rejects(readFile(path.join(dir, "docs", "index.html")), "the website stays out of the package");
+    const pictures = [...guide.matchAll(/!\[[^\]]*\]\((docs\/[^)\s]+)\)/g)].map((match) => match[1]);
+    assert.ok(pictures.includes("docs/hero.png"));
+    assert.ok(pictures.includes("docs/how-it-works.png"));
+    for (const picture of pictures) await readFile(new URL(`../${picture}`, import.meta.url));
+    assert.equal(manifest.files.includes("docs"), false);
+    await assert.rejects(readFile(path.join(dir, "docs", "hero.png")), "the pictures load from GitHub, so they stay out of the package");
   });
 
   test("offers Cursor as a harness with its settings, and restricts the ones that choose a program", () => {

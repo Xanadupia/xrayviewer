@@ -47,7 +47,7 @@ export function transformManifest(original) {
   manifest.description =
     "Review GitHub pull requests in VS Code or Cursor. Agents run on your computer, and you post the review.";
   manifest.keywords = [...new Set([...manifest.keywords.filter((word) => word !== "pi"), "cursor", "cursor agent", "vscode"])];
-  manifest.files = ["dist", "media", "docs", "LICENSE.txt", "readme.md", "changelog.md"];
+  manifest.files = ["dist", "media", "LICENSE.txt", "readme.md", "changelog.md"];
   manifest.galleryBanner = { color: "#0F7668", theme: "dark" };
   manifest.pricing = "Free";
   manifest.qna = `${REPOSITORY}/issues`;

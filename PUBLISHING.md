@@ -50,4 +50,4 @@ npx ovsx publish build/xrayviewer-0.5.0.vsix -p "$OVSX_PAT"
 
 ## What the package already contains
 
-`scripts/manifest.mjs` sets the publisher, the version, the MIT license, the 256×256 icon, the repository, the issues page, the user-guide homepage, a license badge, and the Preview flag. The extension root ships `readme.md`, `changelog.md`, and `LICENSE.txt`. The user guide's pictures ship in `docs/`. The website HTML stays in this repository and is not inside the package.
+`scripts/manifest.mjs` sets the publisher, the version, the MIT license, the 256×256 icon, the repository, the issues page, the user-guide homepage, a license badge, and the Preview flag. The extension root ships `readme.md`, `changelog.md`, and `LICENSE.txt`. The user guide's pictures and website stay in `docs/` in this repository and are not inside the package. `vsce` points the readme's pictures at their GitHub copies on `main`, so a picture the Marketplace page shows must stay there until a release that no longer uses it.

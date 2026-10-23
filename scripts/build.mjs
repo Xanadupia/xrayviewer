@@ -34,10 +34,6 @@ export async function buildExtension(target = outDir) {
   await mkdir(path.dirname(target), { recursive: true });
   await cp(vendor, target, { recursive: true });
   await cp(assets, target, { recursive: true });
-  await cp(path.join(root, "docs"), path.join(target, "docs"), {
-    recursive: true,
-    filter: (src) => !["index.html", "guide.css", ".nojekyll"].includes(path.basename(src)),
-  });
 
   await rewrite(path.join(target, "dist", "extension.cjs"), (text) => applyPatches(text));
   await rewrite(path.join(target, "media", "ui", "app.js"), (text) => applyPatches(text, UI_PATCHES, UI_ADDED_NAMES));
