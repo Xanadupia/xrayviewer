@@ -21,6 +21,8 @@ export interface RunChoice {
   modelName?: string;
   /** Every agent a run starts, with what each runs on. */
   plan?: PlannedAgent[];
+  /** The pull request the choice is for, such as `#12`; empty when it's the default. */
+  scope?: string;
 }
 
 export interface NoticeDeps {
@@ -128,7 +130,7 @@ export function announceChoice(deps: NoticeDeps, choice: RunChoice): string {
       : plan.length
         ? `Run agents starts all ${plan.length} agents together.`
         : "Run agents starts them.";
-  const message = `Saved. ${choiceSentence(choice)} ${next}`;
+  const message = `${choice.scope ? `Saved for ${choice.scope}.` : "Saved."} ${choiceSentence(choice)} ${next}`;
   deps.log(message);
   void deps.vscode.window.showInformationMessage(message);
   return message;

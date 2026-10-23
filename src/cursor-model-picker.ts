@@ -35,6 +35,8 @@ export interface PickerDeps {
   vscode: VscodeLike;
   readConfig(): CursorConfig;
   setAgentModel(agentId: string, model: string): Promise<void>;
+  /** Saves a setting under `xrayviewer`. Without it, the user's settings.json is written. */
+  saveSetting?: (key: string, value: unknown) => PromiseLike<void>;
   log(line: string): void;
   listModels(): Promise<CursorModel[] | null>;
 }
@@ -98,7 +100,8 @@ export async function pickCursorModel(deps: PickerDeps, agent: AgentRef | null):
     await deps.setAgentModel(agent.id, picked.value);
     deps.log(`${agent.name} now runs on Cursor with ${picked.value || "the other Cursor agents' model"}`);
   } else {
-    await workspace.getConfiguration("xrayviewer").update("cursor.model", picked.value, ConfigurationTarget.Global);
+    if (deps.saveSetting) await deps.saveSetting("cursor.model", picked.value);
+    else await workspace.getConfiguration("xrayviewer").update("cursor.model", picked.value, ConfigurationTarget.Global);
     deps.log(`Cursor agents now use ${picked.value || "Cursor's default model"}`);
   }
   return true;

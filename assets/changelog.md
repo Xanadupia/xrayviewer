@@ -9,6 +9,7 @@
 - **Next and previous keep their place.** After you add or dismiss a finding, **a** goes on to the next one instead of back to the first. **j**, **k**, **n**, **r**, and **c** start from the hunk on screen, not the last one you moved to with the keyboard.
 - **Buttons that only show an icon say their name on hover.**
 - **Motion follows the editor's Reduce Motion setting.** Buttons respond to a press, and menus ease in.
+- **Each pull request can run on its own models.** Choose model on a review page saves the CLI, model, and level for that pull request only, so two open pull requests can use different ones. **Use the default** drops its choice, and **Change the default…** changes what every other pull request runs on.
 - **Choose model is easier to scan.** Every row has an icon. The sections are **All agents** and **One agent**. A CLI row leads with its name, and its version and how many agents use it are in gray. Each row has one line of detail.
 - **The sidebar is easier to read.** Each row leads with the title, and the number moves to the gray text. One icon shows the state by its shape and the risk by its color. The review mark is a dot while reviewing and a check when done, and titles keep the theme's text color. The list is named **Pull Requests**.
 - **The activity bar icon counts review requests.** It shows how many open pull requests request your review by name.

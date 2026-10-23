@@ -73,6 +73,13 @@ Replies post as written, since the thread's first comment has the level. When X-
 | **All agents** | **Cursor Agent**, **Codex**, and **Claude Code**. Each shows how many agents use it and its version, with a filled check on the one every agent uses. Pick one, then a model, and every agent moves to it. |
 | **One agent** | **Guide**, **Architecture**, **Correctness**, **Test**, and **Security**, each with its icon, CLI, model, and what it looks at. Pick one to move only that agent. |
 
+On a review page, the picker is for that pull request only. Its title names it, such as **What the agents run on for #12**, so two open pull requests can run on different CLIs and models. The choice is kept until you change it, and the model line on each page shows what that pull request runs on. Two rows at the end lead back:
+
+| Row | What it does |
+|---|---|
+| **Use the default** | Drops the pull request's own choice. It's there once the pull request has one. |
+| **Change the default…** | Opens the picker for every pull request without a choice of its own. The command palette's **Choose Agent Harnesses…** opens it too. |
+
 A CLI that is missing says **Not installed**, and one with a newer version says **Update available**. The download button on its right installs it or the update, then the list shows the version that is on the machine. Picking the CLI name still chooses its model.
 
 - **Cursor** lists the models on your Cursor account. The first row keeps whatever `cursor-agent` used last. Pick a model by name if you care which one reviews.

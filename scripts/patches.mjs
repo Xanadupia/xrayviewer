@@ -141,21 +141,22 @@ export const PATCHES = [
     id: "model-picker",
     find: "let P=async m=>{let v=Yt().harnesses.pi,A=m?`the ${Ue(m.name).toLowerCase()} agent`:\"agents on Pi\",E=`the other Pi agents' model (${v.model||\"Pi's default\"})`,M=(B=>_e(B)?B.replace(/:[a-z]+$/,\"\"):B)(m?m.model:v.model),J=await C.window.withProgress({location:C.ProgressLocation.Window,title:\"Listing Pi's models\"},()=>Ca(v)),_,$=!0;if(J===null){let B=await C.window.showInputBox({title:`Pi model for ${A}`,prompt:`Pi couldn't list its models. Type one as provider/id or a name Pi knows, with an optional :<thinking> suffix. Empty uses ${m?E:\"Pi's default\"}.`,placeHolder:\"anthropic/claude-sonnet-5-5\",value:m?m.model:v.model});if(B===void 0)return!1;_=B.trim()}else if(J.length){let B=[{label:m?\"Same as the other Pi agents\":\"Pi's default\",description:[m?v.model||\"Pi's default\":\"\",M?\"\":\"in use\"].filter(Boolean).join(\" \\xB7 \"),detail:m?\"Uses xrayviewer.pi.model.\":\"The model you set in Pi, else its first signed-in provider's.\",value:\"\",thinking:!0},...J.map(j=>{let ce=`${j.provider}/${j.id}`;return{label:j.id,description:[j.provider,j.thinking?\"\":\"no thinking\",ce===M?\"in use\":\"\"].filter(Boolean).join(\" \\xB7 \"),value:ce,thinking:j.thinking}})],se=await C.window.showQuickPick(B,{title:`Pi model for ${A}`,placeHolder:\"Models Pi is signed in to\",matchOnDescription:!0});if(!se)return!1;_=se.value,$=se.thinking}else return C.window.showWarningMessage(\"Pi has no models to use yet. Run pi in a terminal and use /login, or set a provider's API key, then choose again.\"),!1;let L=\"\";if($&&!_e(_)&&(_||!m)){let B=m?_e(m.model)||\"\":v.thinking||\"\",se=await C.window.showQuickPick([{label:m?\"Same as the other Pi agents\":\"Pi's default\",description:[m?v.thinking||\"Pi's default\":\"\",B?\"\":\"in use\"].filter(Boolean).join(\" \\xB7 \"),detail:m?\"Uses xrayviewer.pi.thinking.\":\"The level you set in Pi, else medium.\",value:\"\"},...Zn.map(j=>({label:j,description:j===B?\"in use\":\"\",value:j}))],{title:`Thinking for ${A}`,placeHolder:\"Pi lowers a level the model doesn't support\"});if(!se)return!1;L=se.value}if(m){let B=_&&L?`${_}:${L}`:_;await Cu(m.id,B),t(`${m.name} now runs on Pi with ${B||\"the other Pi agents' model\"}`)}else{let B=C.workspace.getConfiguration(\"xrayviewer\");await B.update(\"pi.model\",_,C.ConfigurationTarget.Global),await B.update(\"pi.thinking\",L,C.ConfigurationTarget.Global),t(`Pi agents now use ${_||\"Pi's default model\"}${L?`, thinking ${L}`:\"\"}`)}return!0},R=async()=>{let m=ji,",
     replace:
-      "let xrvPick=m=>xrvCursor().pickModel({vscode:C,readConfig:()=>Yt().harnesses.cursor,setAgentModel:Cu,log:t},m)," +
-      'xrvClaude=m=>xrvCursor().pickCli({vscode:C,log:t,currentPath:()=>Yt().harnesses.claude.command,currentModel:()=>m&&m.model||Yt().harnesses.claude.model,currentExtraArgs:()=>Yt().harnesses.claude.extraArgs,setAgentModel:Cu},"claude",m),' +
-      'xrvCodex=m=>xrvCursor().pickCli({vscode:C,log:t,currentPath:()=>Yt().harnesses.codex.command,currentModel:()=>m&&m.model||Yt().harnesses.codex.model,currentExtraArgs:()=>Yt().harnesses.codex.extraArgs,setAgentModel:Cu},"codex",m),' +
-      'xrvModel=(h,m)=>h==="cursor"?xrvPick(m):h==="claude"?xrvClaude(m):h==="codex"?xrvCodex(m):Promise.resolve(!1),' +
-      'xrvDone=async(h,a)=>{o.notifyModel();let E=Yt().harnesses,{settings:O}=await $t(),g=a?O.agents[a]:null;await xrvCursor().announceChoice({vscode:C,log:t},{harness:h,settings:E[h],agent:g?{name:Ue(g.name),model:g.model||""}:null,inUse:Object.values(O.agents).some(x=>x.enabled&&(x.harness||E.default)===h),agents:O.agents,harnesses:E})},' +
-      'xrvMove=async h=>{let E=Yt().harnesses,{settings:O}=await $t(),w=[];E.default!==h&&await C.workspace.getConfiguration("xrayviewer").update("harness",h,C.ConfigurationTarget.Global);' +
-      'for(let[d,x]of Object.entries(O.agents)){if(x.harness&&x.harness!==h){await Eu(d,"");w.push(Ue(x.name))}else if(!x.harness&&x.model&&E.default!==h){await Cu(d,"");w.push(Ue(x.name))}}' +
-      '(E.default!==h||w.length)&&t(`Every agent now runs on ${Nt[h]}${w.length?`. ${w.join(", ")} no longer ${w.length>1?"have":"has"} a harness or model of ${w.length>1?"their":"its"} own`:""}`)},' +
-      "R=async()=>{let m=ji,",
+      'let xrvScope=key=>xrvCursor().modelScope({key,harnesses:()=>Yt().harnesses,settings:$t,setAgentHarness:Eu,setAgentModel:Cu,saveSetting:(k,x)=>C.workspace.getConfiguration("xrayviewer").update(k,x,C.ConfigurationTarget.Global)}),' +
+      "xrvPick=(sc,m)=>xrvCursor().pickModel({vscode:C,readConfig:()=>sc.harnesses().cursor,setAgentModel:sc.setAgentModel,saveSetting:sc.saveSetting,log:t},m)," +
+      'xrvClaude=(sc,m)=>xrvCursor().pickCli({vscode:C,log:t,currentPath:()=>Yt().harnesses.claude.command,currentModel:()=>m&&m.model||sc.harnesses().claude.model,currentExtraArgs:()=>sc.harnesses().claude.extraArgs,setAgentModel:sc.setAgentModel,saveSetting:sc.saveSetting},"claude",m),' +
+      'xrvCodex=(sc,m)=>xrvCursor().pickCli({vscode:C,log:t,currentPath:()=>Yt().harnesses.codex.command,currentModel:()=>m&&m.model||sc.harnesses().codex.model,currentExtraArgs:()=>sc.harnesses().codex.extraArgs,setAgentModel:sc.setAgentModel,saveSetting:sc.saveSetting},"codex",m),' +
+      'xrvModel=(sc,h,m)=>h==="cursor"?xrvPick(sc,m):h==="claude"?xrvClaude(sc,m):h==="codex"?xrvCodex(sc,m):Promise.resolve(!1),' +
+      'xrvDone=async(sc,h,a)=>{o.notifyModel();let E=sc.harnesses(),{settings:O}=await sc.settings(),g=a?O.agents[a]:null;await xrvCursor().announceChoice({vscode:C,log:t},{harness:h,settings:E[h],agent:g?{name:Ue(g.name),model:g.model||""}:null,inUse:Object.values(O.agents).some(x=>x.enabled&&(x.harness||E.default)===h),agents:O.agents,harnesses:E,scope:sc.label})},' +
+      'xrvMove=async(sc,h)=>{let E=sc.harnesses(),{settings:O}=await sc.settings(),w=[];E.default!==h&&await sc.saveSetting("harness",h);' +
+      'for(let[d,x]of Object.entries(O.agents)){if(x.harness&&x.harness!==h){await sc.setAgentHarness(d,"");w.push(Ue(x.name))}else if(!x.harness&&x.model&&E.default!==h){await sc.setAgentModel(d,"");w.push(Ue(x.name))}}' +
+      '(E.default!==h||w.length)&&t(`Every agent now runs on ${Nt[h]}${sc.label?" for "+sc.label:""}${w.length?`. ${w.join(", ")} no longer ${w.length>1?"have":"has"} a harness or model of ${w.length>1?"their":"its"} own`:""}`)},' +
+      "R=async xrvKey=>{let xrvSc=xrvScope(xrvKey),m=ji,",
   },
   {
     id: "model-picker-default",
     find: 'j&&await C.workspace.getConfiguration("xrayviewer").update("harness",j.value,C.ConfigurationTarget.Global),j?.value==="pi"&&await P(null);continue}',
     replace:
-      'if(j){await C.workspace.getConfiguration("xrayviewer").update("harness",j.value,C.ConfigurationTarget.Global);if(await xrvModel(j.value,null)){await xrvDone(j.value,null);return}}continue}',
+      'if(j){await xrvSc.saveSetting("harness",j.value);if(await xrvModel(xrvSc,j.value,null)){await xrvDone(xrvSc,j.value,null);return}}continue}',
   },
   {
     id: "model-picker-agent",
@@ -166,14 +167,14 @@ export const PATCHES = [
       '{label:cv?"Cursor Agent "+cv:"Cursor Agent CLI",description:[cv?"":"Not found",cur==="cursor"?"in use":""].filter(Boolean).join(" \\u00b7 "),detail:cv?"Pick a model on your Cursor account. Then this agent runs on Cursor.":"Install it, or set xrayviewer.cursor.path to where it is.",value:"cursor"},' +
       '{label:co?"Codex "+co:"Install Codex\\u2026",description:[co?"":"Not installed",cur==="codex"?"in use":""].filter(Boolean).join(" \\u00b7 "),detail:co?"Pick a model and reasoning level. The run uses the newest Codex on this machine.":"Download the Codex CLI, then pick a model. Then this agent runs on Codex.",value:"codex"},' +
       '{label:cl?"Claude Code "+cl:"Install Claude Code\\u2026",description:[cl?"":"Not installed",cur==="claude"?"in use":""].filter(Boolean).join(" \\u00b7 "),detail:cl?"Pick a model and effort level. The run uses the newest Claude Code on this machine.":"Download Claude Code, then pick a model. Then this agent runs on Claude Code.",value:"claude"}' +
-      '],{title:`Which CLI runs the ${nm.toLowerCase()} agent?`,placeHolder:`Only the ${nm.toLowerCase()} agent changes. The other agents keep theirs, and they all still run together.`});if(!L)continue;let B=null;L.value!==own&&({clearedModel:B}=await Eu(_,L.value),t(`${ag.name} now runs on ${Nt[L.value]}`));let se=await xrvModel(L.value,{id:_,name:nm,model:L.value===own?ag.model:""});if(se){await xrvDone(L.value,_);return}',
+      '],{title:`Which CLI runs the ${nm.toLowerCase()} agent?`,placeHolder:`Only the ${nm.toLowerCase()} agent changes. The other agents keep theirs, and they all still run together.`});if(!L)continue;let B=null;L.value!==own&&({clearedModel:B}=await xrvSc.setAgentHarness(_,L.value),t(`${ag.name} now runs on ${Nt[L.value]}${xrvSc.label?" for "+xrvSc.label:""}`));let se=await xrvModel(xrvSc,L.value,{id:_,name:nm,model:L.value===own?ag.model:""});if(se){await xrvDone(xrvSc,L.value,_);return}',
   },
   {
     id: "harness-picker-rows",
     find:
       'M=[{label:"Default for all agents",description:Nt[E.default],detail:"Agents without a harness of their own use this one.",agent:"default"},{label:"Agents",kind:C.QuickPickItemKind.Separator},...Object.entries(O.agents).map(([j,ce])=>{let Me=ce.harness,q=Me||E.default,Le=ce.model||E[q].model||(q==="pi"?"Pi\'s default model":"the CLI\'s default model"),gt=q==="pi"&&E.pi.thinking&&!_e(ce.model)?`, thinking ${E.pi.thinking}`:"";return{label:Ue(ce.name),description:`${Nt[q]}${Me?"":" (default)"} \\xB7 ${Le}${gt}${ce.enabled?"":" \\xB7 off"}`,detail:j===z?"Also writes the briefing\'s opening line.":void 0,agent:j}})],J=await C.window.showQuickPick(M,{title:"Which CLI runs each agent?",placeHolder:"Pick the default or an agent to change it"});',
     replace:
-      'xrvRows=await xrvCursor().harnessPicker(E,O.agents,{cursor:v.get("cursor")||"",codex:xrvCursor().installedSummary("codex"),claude:xrvCursor().installedSummary("claude")},z),' +
+      'xrvRows=await xrvCursor().harnessPicker(E,O.agents,{cursor:v.get("cursor")||"",codex:xrvCursor().installedSummary("codex"),claude:xrvCursor().installedSummary("claude")},z,xrvSc.picker),' +
       'M=xrvRows.rows.map(x=>x.separator?{label:x.label,kind:C.QuickPickItemKind.Separator}:{...x,...x.icon?{iconPath:new C.ThemeIcon(x.icon)}:{},...x.action?{buttons:[{iconPath:new C.ThemeIcon("cloud-download"),tooltip:x.action==="install"?"Install":"Install update"}]}:{}}),' +
       'J=await new Promise(res=>{let qp=C.window.createQuickPick(),done=!1,finish=v=>{if(done)return;done=!0;qp.hide();qp.dispose();res(v)};qp.title=xrvRows.title;qp.placeholder=xrvRows.placeHolder;qp.matchOnDescription=!0;qp.items=M;qp.onDidTriggerItemButton(e=>finish({agent:(e.item.action==="install"?"install-":"update-")+e.item.harness,button:!0}));qp.onDidAccept(()=>finish(qp.selectedItems[0]));qp.onDidHide(()=>finish());qp.show()});',
   },
@@ -206,15 +207,15 @@ export const PATCHES = [
     find: 'let l=this.record(e).run;return l.state==="held"&&l.note&&(o.runNote=l.note),',
     replace:
       'let l=this.record(e).run;return l.state==="held"&&l.note&&(o.runNote=l.note),o.agentsRunning=["running","queued","waiting","elsewhere"].includes(l.state),o.agentProgress=l.progress??null,o.runState=l.state,' +
-      "o.modelPlan=await $t().then(c=>xrvCursor().modelPlan(Yt().harnesses,c.settings.agents)).catch(()=>null),",
+      "o.modelPlan=await $t().then(c=>xrvCursor().modelPlan(Yt().harnesses,c.settings.agents,N(e))).catch(()=>null),",
   },
   {
     id: "run-button-notify",
     find: "noticeChange(e){",
     replace:
-      'notifyRun(){for(let tab of this.xrvTabs.values()){if(!tab.panel||!tab.current)continue;let run=this.service.get(tab.current)?.run,s=run?.state||"idle",id=N(tab.current).toLowerCase(),auto=xrvCursor().wantsAutoPost(id);if(auto&&(s==="done"||s==="failed"||s==="cancelled"))xrvCursor().clearAutoPost(id);tab.panel.webview.postMessage({type:"host-run",running:s==="running"||s==="queued"||s==="waiting"||s==="elsewhere",state:s,automatic:!!run?.automatic,progress:run?.progress??null,autoPost:auto})}let slot=this.xrvSlot,cur=slot&&slot.current,active=cur?this.service.get(cur)?.run:null;xrvCursor().publishActivity(active?.progress??null,()=>$t().then(c=>xrvCursor().modelPlan(Yt().harnesses,c.settings.agents)).catch(()=>null))}' +
+      'notifyRun(){for(let tab of this.xrvTabs.values()){if(!tab.panel||!tab.current)continue;let run=this.service.get(tab.current)?.run,s=run?.state||"idle",id=N(tab.current).toLowerCase(),auto=xrvCursor().wantsAutoPost(id);if(auto&&(s==="done"||s==="failed"||s==="cancelled"))xrvCursor().clearAutoPost(id);tab.panel.webview.postMessage({type:"host-run",running:s==="running"||s==="queued"||s==="waiting"||s==="elsewhere",state:s,automatic:!!run?.automatic,progress:run?.progress??null,autoPost:auto})}let slot=this.xrvSlot,cur=slot&&slot.current,active=cur?this.service.get(cur)?.run:null;xrvCursor().publishActivity(active?.progress??null,()=>$t().then(c=>xrvCursor().modelPlan(Yt().harnesses,c.settings.agents,cur?N(cur):"")).catch(()=>null))}' +
       'notifyTheme(){let m={type:"host-theme",theme:xrvCursor().themeChoice(ee)};for(let p of this.xrvPanels||[])p.webview.postMessage(m)}' +
-      'notifyModel(){if(!this.panel)return;$t().then(c=>xrvCursor().modelPlan(Yt().harnesses,c.settings.agents)).then(p=>this.panel?.webview.postMessage({type:"host-model",plan:p}),()=>{})}noticeChange(e){',
+      'notifyModel(){for(let tab of this.xrvTabs.values()){if(!tab.panel||!tab.current)continue;let panel=tab.panel,key=N(tab.current);$t().then(c=>xrvCursor().modelPlan(Yt().harnesses,c.settings.agents,key)).then(p=>panel.webview.postMessage({type:"host-model",plan:p}),()=>{})}}noticeChange(e){',
   },
   {
     id: "run-button-change",
@@ -231,7 +232,8 @@ export const PATCHES = [
     id: "harness-install-actions",
     find: 'if(!J?.agent)return;if(J.agent==="default"){',
     replace:
-      'if(!J?.agent)return;if(J.button){let id=J.agent.slice(J.agent.startsWith("update-")?7:8),ok=J.agent.startsWith("update-")?await xrvCursor().updateCli({vscode:C,log:t},id):await xrvCursor().installCli({vscode:C,log:t},id);if(ok)o.notifyModel();continue}if(J.agent==="pick-cursor"||J.agent==="install-codex"||J.agent==="install-claude"){let h=J.agent.replace(/^(pick|install)-/,"");if(await xrvModel(h,null)){await xrvMove(h);await xrvDone(h,null);return}continue}if(J.agent==="default"){',
+      'if(!J?.agent)return;if(J.button){let id=J.agent.slice(J.agent.startsWith("update-")?7:8),ok=J.agent.startsWith("update-")?await xrvCursor().updateCli({vscode:C,log:t},id):await xrvCursor().installCli({vscode:C,log:t},id);if(ok)o.notifyModel();continue}if(J.agent==="scope-reset"){let note=await xrvSc.reset();o.notifyModel();t(note);C.window.showInformationMessage(note);return}if(J.agent==="scope-global"){xrvSc=xrvScope();continue}' +
+      'if(J.agent==="pick-cursor"||J.agent==="install-codex"||J.agent==="install-claude"){let h=J.agent.replace(/^(pick|install)-/,"");if(await xrvModel(xrvSc,h,null)){await xrvMove(xrvSc,h);await xrvDone(xrvSc,h,null);return}continue}if(J.agent==="default"){',
   },
   {
     id: "choose-model-host",
@@ -243,7 +245,7 @@ export const PATCHES = [
     id: "choose-model-command",
     find: 'else if(e.type==="runAgents")ee.commands.executeCommand("xrayviewer.runAgents",N(t));',
     replace:
-      'else if(e.type==="chooseHarness")ee.commands.executeCommand("xrayviewer.selectHarness");else if(e.type==="showActivity")ee.commands.executeCommand("xrayviewer.agentActivity.focus");else if(e.type==="setTheme")xrvCursor().saveTheme(ee,e.theme).catch(()=>{});else if(e.type==="runAgents")ee.commands.executeCommand("xrayviewer.runAgents",N(t));',
+      'else if(e.type==="chooseHarness")ee.commands.executeCommand("xrayviewer.selectHarness",N(t));else if(e.type==="showActivity")ee.commands.executeCommand("xrayviewer.agentActivity.focus");else if(e.type==="setTheme")xrvCursor().saveTheme(ee,e.theme).catch(()=>{});else if(e.type==="runAgents")ee.commands.executeCommand("xrayviewer.runAgents",N(t));',
   },
   {
     id: "theme-page-tag",
@@ -437,7 +439,7 @@ export const PATCHES = [
     id: "page-notices",
     find: 'async function Uv(n){let e=C.window.createOutputChannel("X-RayViewer",{log:!0})',
     replace:
-      'function xrvInstallNotices(){if(C.window.__xrvNotices)return;C.window.__xrvNotices=1;let w=C.window,info=w.showInformationMessage.bind(w),warn=w.showWarningMessage.bind(w),err=w.showErrorMessage.bind(w),prog=w.withProgress.bind(w),buttons=a=>a.filter(x=>typeof x==="string"),ask=(fallback,tone,message,...rest)=>{let choice=xrvCursor().offerNotice(String(message??""),buttons(rest),tone);return choice||fallback(message,...rest)};w.showInformationMessage=(m,...r)=>ask(info,"info",m,...r);w.showWarningMessage=(m,...r)=>ask(warn,"warning",m,...r);w.showErrorMessage=(m,...r)=>ask(err,"error",m,...r);w.withProgress=(o,task)=>{if(o&&o.location===C.ProgressLocation.Notification){let g=xrvCursor().holdNotice(String(o.title||"Working…"));if(g)return Promise.resolve(task({report(){}})).finally(()=>xrvCursor().clearNotice(g))}return prog(o,task)}}async function Uv(n){xrvInstallNotices();let xrvGo=async run=>{let note=run?"Check up to 5 pull requests, then Review all selected and post.":"Check up to 5 pull requests, then Open selected PRs.";let sent=xrvCursor().offerNotice(note,[],"warning");sent||C.window.showInformationMessage(note)};n.subscriptions.push(C.commands.registerCommand("xrayviewer.openSelected",()=>xrvGo(!1)),C.commands.registerCommand("xrayviewer.runSelected",()=>xrvGo(!0)),C.commands.registerCommand("xrayviewer.chooseTheme",()=>xrvCursor().chooseTheme(C)),C.window.registerWebviewViewProvider("xrayviewer.selectionButtons",{resolveWebviewView(view){view.webview.options={enableCommandUris:["xrayviewer.openSelected","xrayviewer.runSelected"]};xrvCursor().bindSelectionBar(view)}}),C.window.registerWebviewViewProvider("xrayviewer.agentActivity",{resolveWebviewView(view){let nonce=Math.random().toString(36).slice(2);view.webview.options={enableScripts:!0,localResourceRoots:[n.extensionUri]};let css=view.webview.asWebviewUri(C.Uri.joinPath(n.extensionUri,"media","ui","styles.css"));view.webview.html=xrvCursor().activityPanelHTML(view.webview.cspSource,nonce,String(css));xrvCursor().bindActivity(view.webview);view.webview.onDidReceiveMessage(m=>xrvCursor().onActivityMessage(m))}}));let e=C.window.createOutputChannel("X-RayViewer",{log:!0})',
+      'function xrvInstallNotices(){if(C.window.__xrvNotices)return;C.window.__xrvNotices=1;let w=C.window,info=w.showInformationMessage.bind(w),warn=w.showWarningMessage.bind(w),err=w.showErrorMessage.bind(w),prog=w.withProgress.bind(w),buttons=a=>a.filter(x=>typeof x==="string"),ask=(fallback,tone,message,...rest)=>{let choice=xrvCursor().offerNotice(String(message??""),buttons(rest),tone);return choice||fallback(message,...rest)};w.showInformationMessage=(m,...r)=>ask(info,"info",m,...r);w.showWarningMessage=(m,...r)=>ask(warn,"warning",m,...r);w.showErrorMessage=(m,...r)=>ask(err,"error",m,...r);w.withProgress=(o,task)=>{if(o&&o.location===C.ProgressLocation.Notification){let g=xrvCursor().holdNotice(String(o.title||"Working…"));if(g)return Promise.resolve(task({report(){}})).finally(()=>xrvCursor().clearNotice(g))}return prog(o,task)}}async function Uv(n){xrvInstallNotices();xrvCursor().bindModelStore(n.globalState);let xrvGo=async run=>{let note=run?"Check up to 5 pull requests, then Review all selected and post.":"Check up to 5 pull requests, then Open selected PRs.";let sent=xrvCursor().offerNotice(note,[],"warning");sent||C.window.showInformationMessage(note)};n.subscriptions.push(C.commands.registerCommand("xrayviewer.openSelected",()=>xrvGo(!1)),C.commands.registerCommand("xrayviewer.runSelected",()=>xrvGo(!0)),C.commands.registerCommand("xrayviewer.chooseTheme",()=>xrvCursor().chooseTheme(C)),C.window.registerWebviewViewProvider("xrayviewer.selectionButtons",{resolveWebviewView(view){view.webview.options={enableCommandUris:["xrayviewer.openSelected","xrayviewer.runSelected"]};xrvCursor().bindSelectionBar(view)}}),C.window.registerWebviewViewProvider("xrayviewer.agentActivity",{resolveWebviewView(view){let nonce=Math.random().toString(36).slice(2);view.webview.options={enableScripts:!0,localResourceRoots:[n.extensionUri]};let css=view.webview.asWebviewUri(C.Uri.joinPath(n.extensionUri,"media","ui","styles.css"));view.webview.html=xrvCursor().activityPanelHTML(view.webview.cspSource,nonce,String(css));xrvCursor().bindActivity(view.webview);view.webview.onDidReceiveMessage(m=>xrvCursor().onActivityMessage(m))}}));let e=C.window.createOutputChannel("X-RayViewer",{log:!0})',
   },
   {
     id: "page-notice-answer",
@@ -498,10 +500,25 @@ export const PATCHES = [
     find: "l.badge=m?{value:m,tooltip:`${m} agent run${m===1?\"\":\"s\"} in progress`}:void 0",
     replace: "l.badge=xrvCursor().sidebarBadge(r.all(),m)",
   },
+  {
+    id: "model-scope-loop",
+    find: "for(;;){await ut();let E=Yt().harnesses,{settings:O}=await $t(),",
+    replace: "for(;;){await ut();let E=xrvSc.harnesses(),{settings:O}=await xrvSc.settings(),",
+  },
+  {
+    id: "model-scope-command",
+    find: "()=>R());let D=async()=>{",
+    replace: "m=>R(m));let D=async()=>{",
+  },
+  {
+    id: "run-pr-models",
+    find: "harnesses:o.harnesses,settings:b,enabled:o.agents.enabled",
+    replace: "...xrvCursor().withModelChoice(N(e),o.harnesses,b),enabled:o.agents.enabled",
+  },
 ];
 
 /** Names the patches add; the original bundle must not use them already. */
-export const ADDED_NAMES = ["xrvCursorHarness", "xrvCursor", "xrvReview", "xrvA", "xrvPick", "xrvClaude", "xrvCodex", "xrvModel", "xrvDone", "xrvRows", "xrvMove", "xrvSt", "xrvIcon", "xrvStatus", "xrvAgentState", "xrvTabs", "xrvSlot", "xrvHold", "xrvInstallNotices"];
+export const ADDED_NAMES = ["xrvCursorHarness", "xrvCursor", "xrvReview", "xrvA", "xrvPick", "xrvClaude", "xrvCodex", "xrvModel", "xrvDone", "xrvRows", "xrvMove", "xrvSt", "xrvIcon", "xrvStatus", "xrvAgentState", "xrvTabs", "xrvSlot", "xrvHold", "xrvInstallNotices", "xrvScope", "xrvSc", "xrvKey"];
 
 const modelBit = '${modelSummary(AGENTS).line ? ` · ${esc(modelSummary(AGENTS).line)} <button type="button" class="link" data-act="choose-model">Change</button>` : ""}';
 

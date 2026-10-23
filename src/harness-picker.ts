@@ -30,6 +30,8 @@ export interface PickerInput {
   /** A newer published version, when one is available for that installed CLI. */
   updates?: Partial<Record<HarnessId, string>>;
   guideId: string;
+  /** Set when the picker changes one pull request: its label, and whether it has a choice of its own yet. */
+  scope?: { label: string; custom: boolean };
 }
 
 export interface Picker {
@@ -82,13 +84,24 @@ function cliRow(harness: HarnessId, installed: string, latest: string, usedBy: n
   }
 }
 
+function scopeRows(scope: NonNullable<PickerInput["scope"]>): PickerRow[] {
+  return [
+    section("Every pull request"),
+    ...(scope.custom
+      ? [{ label: "Use the default", detail: `Drop ${scope.label}'s own choice.`, icon: "discard", agent: "scope-reset" }]
+      : []),
+    { label: "Change the default…", detail: "For pull requests without a choice of their own.", icon: "globe", agent: "scope-global" },
+  ];
+}
+
 /**
  * The agent picker: move every agent to one CLI, or change one agent. It only saves the choice. Every agent that's
  * on runs together when Run agents is pressed, whichever row was changed, so the placeholder says so.
  * Install and Install update sit on the CLI row. Picking the row still chooses that CLI.
+ * With a scope, the choice is for that pull request only, and the last rows lead back to the default.
  */
 export function harnessPicker(input: PickerInput): Picker {
-  const { agents, plan, installed, guideId } = input;
+  const { agents, plan, installed, guideId, scope } = input;
   const updates = input.updates ?? {};
   const running = plan.filter((p) => agents[p.id]?.enabled !== false);
   const usedBy = (harness: HarnessId) => running.filter((p) => p.harness === harness).length;
@@ -110,12 +123,10 @@ export function harnessPicker(input: PickerInput): Picker {
     };
   });
 
+  const together = running.length > 1 ? `All ${running.length} agents run together. ` : "";
   return {
-    title: "What the agents run on",
-    placeHolder:
-      running.length > 1
-        ? `All ${running.length} agents run together. Changes apply to the next run.`
-        : "Changes apply to the next run.",
-    rows: [section("All agents"), ...clis, section("One agent"), ...agentRows],
+    title: scope ? `What the agents run on for ${scope.label}` : "What the agents run on",
+    placeHolder: scope ? `${together}Changes apply to ${scope.label} only.` : `${together}Changes apply to the next run.`,
+    rows: [section("All agents"), ...clis, section("One agent"), ...agentRows, ...(scope ? scopeRows(scope) : [])],
   };
 }

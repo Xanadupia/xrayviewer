@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
 import { chmod, mkdir, mkdtemp, readFile, realpath, stat, writeFile } from "node:fs/promises";
+import { createRequire } from "node:module";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { after, before, describe, test } from "node:test";
@@ -321,6 +322,46 @@ describe("the patched extension", () => {
     assert.ok(state.logs.includes(`Every agent now runs on Cursor Agent CLI. ${agents[onClaude].name.replace(/ agent$/i, "")}, ${agents[withCodexModel].name.replace(/ agent$/i, "")} no longer have a harness or model of their own`));
     assert.equal(state.picks.length, 2, "the harness menu does not open again after the model");
     assert.deepEqual(state.messages, [`Saved. Cursor agents will use fake-model. Run agents starts all ${count} agents together.`]);
+  });
+
+  test("Choose model on a review page saves for that pull request only, until Use the default", async () => {
+    const { $t, Yt } = ext.__xrayviewer;
+    const harness = createRequire(import.meta.url)(path.join(extensionDir, "dist", "cursor-harness.cjs")).createCursorHarness(stub("internals"));
+    const agentsYml = path.join(process.env.XRAYVIEWER_HOME!, "agents.yml");
+    const yml = await readFile(agentsYml, "utf8");
+    const runsOn = async (key: string) => harness.withModelChoice(key, Yt().harnesses, (await $t()).settings).harnesses.cursor.model;
+    const count = Object.keys((await $t()).settings.agents).length;
+    state.picks = [];
+    state.messages = [];
+    state.updates = [];
+    state.script = [(items) => items.find((item) => item.agent === "pick-cursor"), (items) => items.find((item) => item.value === "auto")];
+
+    await state.commands.get("xrayviewer.selectHarness")!("acme/app#7");
+
+    assert.equal(state.picks[0].title, "What the agents run on for #7");
+    assert.equal(state.picks[0].items.at(-1)!.agent, "scope-global");
+    assert.deepEqual(state.messages, [`Saved for #7. Cursor agents will use auto. Run agents starts all ${count} agents together.`]);
+    assert.deepEqual(state.updates, [], "settings.json is left alone");
+    assert.equal(await readFile(agentsYml, "utf8"), yml, "agents.yml is left alone");
+    assert.deepEqual([await runsOn("acme/app#7"), await runsOn("acme/app#8"), Yt().harnesses.cursor.model], ["auto", "fake-model", "fake-model"]);
+    const agents = (await $t()).settings.agents as Record<string, { model?: string }>;
+    const plan = await harness.modelPlan(Yt().harnesses, agents, "acme/app#7");
+    assert.ok(plan.length);
+    for (const agent of plan) assert.equal(agent.model, agents[agent.id]?.model || "auto", `the review page shows ${agent.id}'s model on #7`);
+
+    state.picks = [];
+    state.messages = [];
+    state.script = [(items) => items.find((item) => item.agent === "scope-reset")];
+    await state.commands.get("xrayviewer.selectHarness")!("acme/app#7");
+    assert.deepEqual(state.messages, ["#7 is back on the default models."]);
+    assert.equal(await runsOn("acme/app#7"), "fake-model");
+
+    state.picks = [];
+    state.script = [(items) => items.find((item) => item.agent === "scope-global"), () => undefined];
+    await state.commands.get("xrayviewer.selectHarness")!("acme/app#7");
+    assert.deepEqual(state.picks.map((pick) => pick.title), ["What the agents run on for #7", "What the agents run on"]);
+    assert.ok(!state.picks[0].items.some((item) => item.agent === "scope-reset"), "nothing to reset once #7 follows the default");
+    assert.deepEqual(state.updates, []);
   });
 
   test("the dispatcher runs Cursor agents isolated and returns their findings with repository paths", async () => {

@@ -67,6 +67,14 @@ describe("announceChoice", () => {
     assert.match(announceChoice(deps, claude), / Run agents starts them\.$/);
   });
 
+  test("names the pull request a choice was saved for", () => {
+    const { deps } = setup();
+    assert.equal(
+      announceChoice(deps, { ...claude, plan: plan(5), scope: "#12" }),
+      "Saved for #12. Claude Code agents will use opus at high effort. Run agents starts all 5 agents together.",
+    );
+  });
+
   test("says when no agent runs on that CLI yet", () => {
     const { deps } = setup();
     assert.equal(

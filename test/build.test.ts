@@ -95,6 +95,9 @@ describe("the built extension", () => {
     assert.equal(page.includes("LABEL_PREFIX") || page.includes("withLabel"), false);
     assert.ok(bundle.includes("o.modelPlan=await"), "the page data carries the model plan");
     assert.ok(bundle.includes('type:"host-model"'), "a model pick updates the open page");
+    assert.ok(bundle.includes("...xrvCursor().withModelChoice(N(e),o.harnesses,b),enabled:"), "a run uses its pull request's own models");
+    assert.ok(bundle.includes("modelPlan(Yt().harnesses,c.settings.agents,N(e))"), "each review page shows its own pull request's models");
+    assert.ok(bundle.includes('executeCommand("xrayviewer.selectHarness",N(t))'), "Choose model on a review page is for that pull request");
     assert.ok(bundle.includes('xrayviewer.filter'));
     assert.equal(bundle.includes('xrayviewer.filterAuthor'), false);
     assert.equal(bundle.includes('xrayviewer.filterStatus'), false);

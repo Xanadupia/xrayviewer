@@ -85,6 +85,23 @@ describe("harnessPicker", () => {
     assert.deepEqual(picker.rows.at(-1), { label: "Docs", description: "Codex · Auto", icon: "hubot", agent: "docs" });
   });
 
+  test("for one pull request, names it and ends with the way back to the default", () => {
+    const fresh = harnessPicker({ ...input, scope: { label: "#12", custom: false } });
+    assert.equal(fresh.title, "What the agents run on for #12");
+    assert.equal(fresh.placeHolder, "All 3 agents run together. Changes apply to #12 only.");
+    assert.deepEqual(rows(fresh).slice(-2), ["-- Every pull request", "scope-global"]);
+    assert.deepEqual(fresh.rows.at(-1), {
+      label: "Change the default…",
+      detail: "For pull requests without a choice of their own.",
+      icon: "globe",
+      agent: "scope-global",
+    });
+
+    const custom = harnessPicker({ ...input, scope: { label: "#12", custom: true } });
+    assert.deepEqual(rows(custom).slice(-3), ["-- Every pull request", "scope-reset", "scope-global"]);
+    assert.deepEqual(custom.rows.at(-2), { label: "Use the default", detail: "Drop #12's own choice.", icon: "discard", agent: "scope-reset" });
+  });
+
   test("says a change applies to the next run when one agent or none runs", () => {
     const off = { name: "Off agent", enabled: false };
     const picker = harnessPicker({ ...input, agents: { ...input.agents, architecture: off, correctness: off } });
