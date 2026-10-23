@@ -15,6 +15,30 @@ import { NAV_NAMES, NAV_PATCHES } from "./nav-ui.mjs";
 import { noticeFind, noticeReplace, noticeSource, toastFind } from "./notice-ui.mjs";
 import { THEME_NAMES, THEME_PATCHES } from "./theme-ui.mjs";
 
+/** The architecture agent's default instructions. They sit in a template literal in the bundle, so no backticks or `${`. */
+const ARCHITECTURE_INSTRUCTIONS = `## Look for
+
+Check that each change sits in the module that owns it and follows the patterns around it. Flag business logic in request handlers, modules that reach into another module's storage, helpers that duplicate existing ones, and new abstractions without a clear owner.
+
+Check that each change follows the programming paradigm of the file it's in. For each file the pull request touches, first decide from the code that was already there whether it's object-oriented (classes that hold state and expose behavior through methods) or functional (pure functions that take data and return new data, with no shared mutable state). For a new file, go by the files next to it. Then flag new or changed code that brings the other paradigm into that file, such as:
+
+- a class with its own state added to a file of pure functions
+- functions that change module-level state or their inputs, in a functional file
+- a function outside the class, in an object-oriented file. If it works on the class's data or only the class uses it, it should be a method of the class, private if nothing else needs it. If it isn't about the class, it belongs in a module of functions, such as an existing helper file. Name that file when there is one.
+
+Say which paradigm the file uses, with a line that shows it, and how the new code would look in that paradigm. Rate a paradigm mismatch medium at most, unless it causes a real defect.
+
+## Leave alone
+
+Naming, formatting and style. Linters handle those.
+
+Code the pull request didn't add or change. If a file already mixed both paradigms before this pull request, don't flag that. Only flag new code that goes against the part of the file it extends.
+
+Which paradigm is better in general. Follow the one the file already uses.
+
+Things that are normal in either paradigm: error classes, classes or decorators a framework requires, plain data types, and constants.
+`;
+
 export const PATCHES = [
   {
     id: "harness-list",
@@ -515,6 +539,11 @@ export const PATCHES = [
     id: "run-pr-models",
     find: "harnesses:o.harnesses,settings:b,enabled:o.agents.enabled",
     replace: "...xrvCursor().withModelChoice(N(e),o.harnesses,b),enabled:o.agents.enabled",
+  },
+  {
+    id: "architecture-instructions",
+    find: "architecture:`## Look for\n\nCheck that each change sits in the module that owns it and follows the patterns around it. Flag business logic in request handlers, modules that reach into another module's storage, helpers that duplicate existing ones, and new abstractions without a clear owner.\n\n## Leave alone\n\nNaming, formatting and style. Linters handle those.\n`,correctness:`",
+    replace: "architecture:`" + ARCHITECTURE_INSTRUCTIONS + "`,correctness:`",
   },
 ];
 

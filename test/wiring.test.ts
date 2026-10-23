@@ -235,6 +235,20 @@ describe("the patched extension", () => {
     assert.deepEqual(Yt().harnesses.cursor, { id: "cursor", command: state.settings["xrayviewer.cursor.path"], model: "", extraArgs: [] });
   });
 
+  test("a fresh install has the architecture agent check each file's paradigm, only in what the pull request changes", async () => {
+    const { $t } = ext.__xrayviewer;
+    const { instructions } = (await $t()).settings.agents.architecture;
+    const onDisk = await readFile(path.join(process.env.XRAYVIEWER_HOME!, "agents", "architecture.md"), "utf8");
+
+    assert.ok(onDisk.includes(instructions.trim()), "the agent reads the file it wrote");
+    assert.match(instructions, /^Check that each change sits in the module that owns it/m, "it keeps its module check");
+    assert.match(instructions, /whether it's object-oriented .+ or functional/);
+    assert.match(instructions, /it should be a method of the class, private if nothing else needs it/);
+    assert.match(instructions, /it belongs in a module of functions/);
+    assert.match(instructions, /^Code the pull request didn't add or change\. If a file already mixed both paradigms before this pull request, don't flag that\./m);
+    assert.ok(instructions.indexOf("## Leave alone") < instructions.indexOf("Code the pull request didn't add or change"));
+  });
+
   test("Choose model lists the CLIs that move every agent, then each agent, and says they all run together", async () => {
     const { $t } = ext.__xrayviewer;
     const agents = (await $t()).settings.agents as Record<string, { name: string; focus: string }>;

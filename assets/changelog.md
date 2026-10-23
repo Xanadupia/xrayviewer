@@ -10,6 +10,7 @@
 - **Buttons that only show an icon say their name on hover.**
 - **Motion follows the editor's Reduce Motion setting.** Buttons respond to a press, and menus ease in.
 - **Each pull request can run on its own models.** Choose model on a review page saves the CLI, model, and level for that pull request only, so two open pull requests can use different ones. **Use the default** drops its choice, and **Change the default…** changes what every other pull request runs on.
+- **The architecture agent checks each file's paradigm.** New code should follow the file's object-oriented or functional style, and a helper beside a class should be a method or move to a module of functions. It only comments on code the pull request adds or changes. Existing installs keep their `agents/architecture.md`; **Reset Agent Settings** brings in the new text.
 - **Choose model is easier to scan.** Every row has an icon. The sections are **All agents** and **One agent**. A CLI row leads with its name, and its version and how many agents use it are in gray. Each row has one line of detail.
 - **The sidebar is easier to read.** Each row leads with the title, and the number moves to the gray text. One icon shows the state by its shape and the risk by its color. The review mark is a dot while reviewing and a check when done, and titles keep the theme's text color. The list is named **Pull Requests**.
 - **Running Reviews lists the pull requests under review.** The new sidebar section shows each one's progress and how long it has run. Click one to open it.
