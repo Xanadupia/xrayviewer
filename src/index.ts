@@ -24,6 +24,7 @@ import { activityBody, activityPanelHTML, bindActivity, onActivityMessage, publi
 import { answerNotice, bindNotice, cancelNotices, clearNotice, holdNotice, offerNotice } from "./page-notice.ts";
 import { armAutoPost, checkedKeys, chosenPullRequests, clearAutoPost, clearChecked, isChecked, selectionBarHTML, setChecked, wantsAutoPost } from "./sidebar-batch.ts";
 import { announceChoice, plannedAgents, type AgentSetting, type HarnessId, type HarnessTable, type NoticeDeps, type RunChoice } from "./run-confirm.ts";
+import { chooseTheme, saveTheme, themeChoice, themeTag } from "./theme.ts";
 import { officialInstallCommand, pickCliVersion, runOfficialInstall, type CliId, type VersionPickerDeps } from "./version-picker.ts";
 
 /** What each agent runs on, with Claude Code models named with their versions. `all` includes agents turned off. */
@@ -98,6 +99,10 @@ export function createCursorHarness(internals: BundleInternals) {
     clearAutoPost,
     wantsAutoPost,
     selectionBarHTML,
+    themeChoice,
+    themeTag,
+    saveTheme,
+    chooseTheme,
     modelPlan: async (harnesses: HarnessTable, agents: Record<string, AgentSetting>) =>
       plannedWithCodeReview(await namedPlan(harnesses, agents), "guide"),
   };

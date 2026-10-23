@@ -122,6 +122,12 @@ export function transformManifest(original) {
       category: "X-RayViewer",
       icon: "$(check)",
     },
+    {
+      command: "xrayviewer.chooseTheme",
+      title: "Choose Theme…",
+      category: "X-RayViewer",
+      icon: "$(color-mode)",
+    },
   );
   manifest.contributes.menus["view/title"].push(
     {
@@ -193,5 +199,19 @@ export function transformManifest(original) {
         "Statuses to show. Empty shows open, draft, merged, and closed. **X-RayViewer: Filter…** sets it.",
     },
   });
+  configuration.properties = {
+    "xrayviewer.theme": {
+      type: "string",
+      enum: ["system", "light", "dark"],
+      enumDescriptions: [
+        "Match the editor's theme, including high contrast",
+        "Light review pages, whatever the editor uses",
+        "Dark review pages, whatever the editor uses",
+      ],
+      default: "system",
+      markdownDescription: "How review pages look. Every open review follows it. **X-RayViewer: Choose Theme…** and the theme button on a review page set it.",
+    },
+    ...configuration.properties,
+  };
   return manifest;
 }

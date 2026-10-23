@@ -61,7 +61,7 @@ describe("the built extension", () => {
     assert.match(page, /if \(runMenuOpen\(\) && !e\.target\.closest\("#host-run-wrap"\)\) runMenu\(false\);/);
     assert.equal(page.includes("${chooseModelHTML()}</header>"), false, "no separate Choose model button");
     assert.match(page, /m\.type === "host-model"/);
-    assert.match(page, /<ol class="brief-list">\$\{items\}<\/ol>\$\{adoptAllHTML\(\)\}/, "the briefing offers to add every open finding");
+    assert.match(page, /<div class="brief-list">\$\{items\}<\/div>\$\{adoptAllHTML\(\)\}/, "the briefing offers to add every open finding");
     assert.match(page, /\$\{icon\("plus"\)\}Add to my review<\/button>\$\{adoptAllCardHTML\(\)\}/, "each finding card also offers to add them all");
     assert.match(page, /function refreshChrome\(\) \{\n {2}if \(S\.view !== "pr"\) return;\n {2}syncAdoptAll\(\);/, "the cards' counts follow every decision");
     assert.match(page, /function findingDrafts\(findings, page\)/);
@@ -175,7 +175,32 @@ describe("the built extension", () => {
     assert.match(styles, /xrayviewer-apple-ui/);
     for (const tone of ["success", "info", "ask", "warning", "error", "progress"]) assert.match(styles, new RegExp(`\\.notice-tone\\.t-${tone}`), tone);
     assert.match(styles, /-apple-system/);
-    assert.match(styles, /backdrop-filter: saturate\(1\.8\) blur\(28px\)/);
+    assert.match(styles, /backdrop-filter: saturate\(1\.8\) blur\(24px\)/);
+  });
+
+  test("draws the review page in the reader's theme, before its script runs and in every open tab", async () => {
+    const page = await readFile(path.join(dir, "media", "ui", "app.js"), "utf8");
+    const styles = await readFile(path.join(dir, "media", "ui", "styles.css"), "utf8");
+    const theme = manifest.contributes.configuration.properties["xrayviewer.theme"];
+
+    assert.deepEqual(theme.enum, ["system", "light", "dark"]);
+    assert.equal(theme.default, "system");
+    assert.equal(Object.keys(manifest.contributes.configuration.properties)[0], "xrayviewer.theme", "the theme leads the settings");
+    assert.ok(manifest.contributes.commands.some((c: { command: string; title: string }) => c.command === "xrayviewer.chooseTheme" && c.title === "Choose Theme…"));
+    assert.ok(bundle.includes('registerCommand("xrayviewer.chooseTheme",()=>xrvCursor().chooseTheme(C))'));
+    assert.ok(bundle.includes(`return pf(this.template.replace('<html lang="en">',()=>xrvCursor().themeTag(ee)),`), "the page opens with its theme on <html>");
+    assert.ok(bundle.includes('m.affectsConfiguration("xrayviewer.theme")&&o.notifyTheme()'), "changing the setting repaints every open review");
+    assert.ok(bundle.includes('for(let p of this.xrvPanels||[])p.webview.postMessage(m)'), "including the Home tab, which has no pull request");
+    assert.ok(bundle.includes('else if(e.type==="setTheme")xrvCursor().saveTheme(ee,e.theme)'), "the page's menu saves the setting");
+    assert.match(page, /if \(m\.type === "host-theme"\) \{ setTheme\(m\.theme, true\); return; \}/);
+    assert.ok(bundle.includes('setTheme(theme) { vscode.postMessage({ type: "setTheme", key, theme }); },'), "the page can reach the setting");
+    assert.match(page, /"theme-pick": \(el\) => pickTheme\(el\.dataset\.theme\)/);
+    assert.ok(page.includes('signal.addEventListener("abort", () => themeWatch.disconnect(), { once: true });'), "a restart stops the old observer");
+    assert.equal(page.includes("hostTheme.disconnect"), false);
+    assert.equal(page.includes("cycleTheme"), false);
+    assert.equal(/prefers-color-scheme/.test(styles.slice(styles.indexOf("xrayviewer-apple-ui"))), false, "the chrome reads data-theme, never the system's scheme");
+    assert.match(styles, /:root\[data-contrast="more"\]\[data-theme="dark"\]/);
+    assert.match(styles, /body\.vscode-reduce-motion \*/);
   });
 
   test("says where X-RayViewer's review stands on each sidebar row and its hover card", () => {
@@ -253,7 +278,7 @@ describe("the built extension", () => {
     assert.equal(stateOf({ ...ran, agentsBehind: () => true }).kind, "behind");
     assert.deepEqual(stateOf({ ...ran, agentsRunning: true, agentProgress: { agents: { a: { state: "done" }, b: { state: "running" } } } }).sub, "1/2");
     assert.equal(stateOf({ ...env, agentProgress: { agents: { a: { state: "failed" } } } }).kind, "failed");
-    assert.match(page, /riskPillHTML\(currentRisk\(\)\)\}\$\{xrayPillHTML\(\)\}<span class="mono dim">/);
+    assert.match(page, /riskPillHTML\(currentRisk\(\)\)\}\$\{xrayPillHTML\(\)\}<\/div>/, "the repository shows once, in the bar");
     assert.match(page, /btn\.outerHTML = runMainHTML\(runButtonLabel\); applyXrayPill\(\); \};/, "the pill follows the run as it starts, progresses and ends");
   });
 

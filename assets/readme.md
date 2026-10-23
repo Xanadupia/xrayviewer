@@ -41,9 +41,15 @@ Automatic runs are on. About two minutes after the first start, agents begin on 
 | **Post all findings when finished** | The checkbox beside **Run**. Check it, then run the agents with **Run**. When that run finishes, every open finding is added as its suggested comment and the review is posted to the pull request. It posts as comments. It does not approve or request changes. Uncheck it before the run finishes to keep the findings here. A run that starts on its own is left for you to post. |
 | The arrow beside it | Opens **Choose model…**, with what the agents will run on under it, such as **Codex · gpt-6-astra · medium**. It is there before and after a run, and while the agents run. |
 | A finding | Keep it, reword it, or dismiss it. Only what you post is visible to the author. |
+| **High**, **Medium**, **Low** | The briefing groups findings by severity and says how many are still open. A green check means the finding is in your review, and a crossed circle means you dismissed it. With many low findings, the first four show, and **Show N more low findings** opens the rest. |
 | **Add all N to my review** | Under the briefing's findings list, and as **Add all N** on each finding. Adds every open finding at once, each as its suggested comment on its line, at its level. **Undo** in the message takes them all back out. Edit or delete any of them before you post. |
+| **Saved locally** | In the bar. Your comments and review marks are saved on this computer. If saving fails, it says **Couldn't save**, and pointing at it says why. |
+| The line along the bottom of the bar | How much of the diff you marked reviewed. It turns green when every hunk is reviewed. |
+| The arrow and box buttons in the bar | Refresh from GitHub, and open the pull request on GitHub. |
 
 Comments stay on this computer until you post them.
+
+Review pages follow the editor's theme, including its high-contrast themes. To keep them light or dark whatever the editor uses, click the theme button in the bar, or run **X-RayViewer: Choose Theme…**, and pick **System**, **Light**, or **Dark**. Every open review changes at once, and the choice is saved in `xrayviewer.theme`. High contrast and the editor's reduce-motion setting apply whichever you pick. The **Agent Activity** panel always matches the editor.
 
 Every comment has a level, **High**, **Medium**, or **Low**. On GitHub it opens the comment as a colored priority tag, as Greptile's comments do: **P1** for High, **P2** for Medium, **P3** for Low. Pick it under the kind of comment when you write one.
 
@@ -164,6 +170,7 @@ X-RayViewer adds no charge of its own. Usage counts against the account of the p
 | Customize Agents… | Open the agent files. |
 | Copy Agent Review as Markdown | Copy the findings for another agent. It includes code. Paste it only where that code may go. |
 | Copy Link to This Review | Copy an `aliqaryan.xrayviewer` link. |
+| Choose Theme… | **System**, **Light**, or **Dark** for review pages. |
 | Show Review Metrics / Delete Review Metrics | A local log of reviews you posted. It is never uploaded. |
 
 **Open a Pull Request…** is **⌥⇧⌘P** on macOS and **Ctrl+Shift+Alt+P** on Windows and Linux.
@@ -174,6 +181,7 @@ Claude Code, Codex, and Cursor Agent run the newest version installed on this ma
 
 | Setting | Default | What it does |
 |---|---|---|
+| `xrayviewer.theme` | `system` | Review pages: `system` follows the editor, `light` or `dark` keeps that theme |
 | `xrayviewer.harness` | `claude` | Default program: `claude`, `codex`, or `cursor` |
 | `xrayviewer.cursor.path` / `.model` / `.extraArgs` | `cursor-agent` / empty / none | Cursor Agent CLI and model |
 | `xrayviewer.claude.path` / `.model` / `.extraArgs` | `claude` / `sonnet` / none | Claude Code |

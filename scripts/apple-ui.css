@@ -1,65 +1,154 @@
 /* xrayviewer-apple-ui
    The review chrome follows the installed Apple skills: Liquid Glass stays on
    navigation and controls, content stays on a standard material, interface
-   text uses the system face, and accents use system colors. */
+   text uses the system face, and accents use system colors.
+   The page always sets data-theme (System resolves to the editor's theme), so
+   dark values hang off [data-theme="dark"] alone. */
 
 :root,
 :root.in-vscode {
   --ui: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", system-ui, sans-serif;
-  --blue: #007aff;
-  --blue-2: #0040dd;
+  /* Text and links on the sheet: 5.3:1. --blue-fill carries white text: 5.3:1. */
+  --blue: #0068d6;
+  --blue-2: #0055b3;
+  --blue-fill: #0068d6;
+  --blue-fill-2: #0055b3;
   --on-blue: #ffffff;
-  --blue-soft: rgb(0 122 255 / 0.12);
-  --blue-line: rgb(0 122 255 / 0.36);
-  --glass: rgb(255 255 255 / 0.72);
-  --glass-2: rgb(255 255 255 / 0.82);
+  --blue-soft: rgb(0 104 214 / 0.1);
+  --blue-line: rgb(0 104 214 / 0.34);
+  --glass: rgb(242 244 247 / 0.8);
+  --glass-2: rgb(255 255 255 / 0.86);
   --glass-edge: rgb(0 0 0 / 0.1);
+  --bar-h: 48px;
   --r-btn: 8px;
   --r-card: 14px;
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+  --press: 0.97;
+  --code-size: 12.5px;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
-    --blue: #0a84ff;
-    --blue-2: #64d2ff;
-    --on-blue: #ffffff;
-    --blue-soft: rgb(10 132 255 / 0.18);
-    --blue-line: rgb(10 132 255 / 0.45);
-    --glass: rgb(28 28 30 / 0.72);
-    --glass-2: rgb(44 44 46 / 0.8);
-    --glass-edge: rgb(255 255 255 / 0.16);
-  }
+:root.in-vscode {
+  --code-size: var(--vscode-editor-font-size, 12.5px);
 }
 
 :root[data-theme="dark"] {
-  --blue: #0a84ff;
-  --blue-2: #64d2ff;
+  /* Text and links on the dark sheet: 6.3:1. White on --blue-fill: 4.7:1. */
+  --blue: #409cff;
+  --blue-2: #79b8ff;
+  --blue-fill: #0071e3;
+  --blue-fill-2: #0062c4;
   --on-blue: #ffffff;
-  --blue-soft: rgb(10 132 255 / 0.18);
-  --blue-line: rgb(10 132 255 / 0.45);
-  --glass: rgb(28 28 30 / 0.72);
-  --glass-2: rgb(44 44 46 / 0.8);
-  --glass-edge: rgb(255 255 255 / 0.16);
+  --blue-soft: rgb(64 156 255 / 0.16);
+  --blue-line: rgb(64 156 255 / 0.45);
+  --glass: rgb(13 15 19 / 0.78);
+  --glass-2: rgb(36 38 44 / 0.86);
+  --glass-edge: rgb(255 255 255 / 0.12);
+}
+
+/* The editor's high-contrast themes: solid surfaces, full-strength text, and the editor's own border colors. */
+:root[data-contrast="more"] {
+  --ground: #ffffff;
+  --sheet: #ffffff;
+  --sheet-2: #ffffff;
+  --sheet-3: #ececec;
+  --ink: #000000;
+  --ink-2: #000000;
+  --ink-3: #1f1f1f;
+  --line: var(--vscode-contrastBorder, #0f4a85);
+  --line-2: var(--vscode-contrastBorder, #0f4a85);
+  --blue: #0042a8;
+  --blue-2: #00337f;
+  --blue-fill: #0042a8;
+  --blue-fill-2: #00337f;
+  --blue-soft: rgb(0 66 168 / 0.12);
+  --blue-line: #0042a8;
+  --glass: #ffffff;
+  --glass-2: #ffffff;
+  --glass-edge: var(--line);
+  --shadow-1: none;
+  --shadow-2: none;
+  --focus: var(--vscode-contrastActiveBorder, #006bbd);
+}
+
+:root[data-contrast="more"][data-theme="dark"] {
+  --ground: #000000;
+  --sheet: #000000;
+  --sheet-2: #000000;
+  --sheet-3: #1a1a1a;
+  --ink: #ffffff;
+  --ink-2: #ffffff;
+  --ink-3: #e6e6e6;
+  --line: var(--vscode-contrastBorder, #6fc3df);
+  --line-2: var(--vscode-contrastBorder, #6fc3df);
+  --blue: #6cb6ff;
+  --blue-2: #a5d2ff;
+  --blue-fill: #0b5cad;
+  --blue-fill-2: #094c8f;
+  --blue-soft: rgb(108 182 255 / 0.18);
+  --blue-line: #6cb6ff;
+  --glass: #000000;
+  --glass-2: #000000;
+  --focus: var(--vscode-contrastActiveBorder, #f38518);
+}
+
+:root[data-contrast="more"] :focus-visible {
+  outline-color: var(--focus);
+}
+
+:root[data-contrast="more"] .bar,
+:root[data-contrast="more"] .menu,
+:root[data-contrast="more"] .brief,
+:root[data-contrast="more"] .brief-item,
+:root[data-contrast="more"] .file,
+:root[data-contrast="more"] .btn,
+:root[data-contrast="more"] .mini-track,
+:root[data-contrast="more"] .notice {
+  border: 1px solid var(--line);
+}
+
+:root[data-contrast="more"] .bar,
+:root[data-contrast="more"] .menu {
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+
+:root[data-contrast="more"] .btn.primary {
+  border-color: var(--focus);
+}
+
+/* A theme change repaints every color at once. Transitions would stagger it. */
+:root.theme-switching,
+:root.theme-switching *,
+:root.theme-switching *::before,
+:root.theme-switching *::after {
+  transition: none !important;
 }
 
 body {
   letter-spacing: -0.011em;
 }
 
-/* Regular Liquid Glass on the navigation layer. It floats above the page
-   so the review can scroll underneath it. */
+/* ---------- Top bar ---------- */
+
+/* Regular Liquid Glass on the navigation layer, edge to edge like the
+   editor's own toolbars, so nothing scrolls through a gap around it. */
 .bar {
-  top: 10px;
-  height: 48px;
-  margin: 10px 12px 0;
-  border: 0.5px solid var(--glass-edge);
-  border-radius: 16px;
+  top: var(--top);
+  height: var(--bar-h);
+  margin: 0;
+  gap: 10px;
+  border: 0;
+  border-bottom: 0.5px solid var(--glass-edge);
+  border-radius: 0;
   background: var(--glass);
-  box-shadow:
-    inset 0 0.5px 0 rgb(255 255 255 / 0.28),
-    0 10px 28px rgb(0 0 0 / 0.16);
-  -webkit-backdrop-filter: saturate(1.8) blur(28px);
-  backdrop-filter: saturate(1.8) blur(28px);
+  box-shadow: none;
+  -webkit-backdrop-filter: saturate(1.8) blur(24px);
+  backdrop-filter: saturate(1.8) blur(24px);
+}
+
+.is-pr .brand-word {
+  display: none;
 }
 
 .logo {
@@ -67,40 +156,301 @@ body {
   height: 18px;
 }
 
+.crumbs {
+  font-size: var(--fs-body);
+}
+
+.crumb-repo,
+.crumb-pr {
+  flex: none;
+}
+
+.bar-end {
+  gap: 4px;
+}
+
 .bar .icon-btn {
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
+  width: 30px;
+  height: 30px;
+  border-radius: 7px;
+}
+
+.bar .icon-btn .i {
+  width: 15px;
+  height: 15px;
 }
 
 .bar .btn,
 .bar .mini-track {
-  height: 32px;
-  border-radius: 8px;
+  height: 30px;
+  border-radius: 7px;
 }
 
-.toolbar {
-  top: calc(var(--top) + 70px);
+.bar .mini-track {
+  margin-right: 2px;
+  font-size: var(--fs-callout);
 }
 
-.rail {
-  top: calc(var(--top) + 78px);
+.bar .sync {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin-right: 6px;
+  color: var(--ink-3);
+  font-size: var(--fs-caption);
+  white-space: nowrap;
 }
 
-/* macOS push buttons: a rounded rectangle, one filled primary, press scales
-   instead of jumping down the page. */
+.bar .sync .i {
+  width: 12px;
+  height: 12px;
+  color: var(--ok);
+}
+
+.bar .sync .spin {
+  width: 10px;
+  height: 10px;
+  border-width: 1.5px;
+}
+
+.bar .sync-error {
+  color: var(--bad);
+  font-weight: 620;
+}
+
+.bar .sync-error .i {
+  color: var(--bad);
+}
+
+/* How much of the diff is reviewed, as a hairline along the bar's edge. */
+.bar-progress {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -1px;
+  height: 2px;
+  background: var(--blue);
+  transform: scaleX(var(--done, 0));
+  transform-origin: left center;
+  transition: transform 0.6s var(--ease-out), background-color 0.3s ease;
+  pointer-events: none;
+}
+
+.bar-progress.is-done {
+  background: var(--ok);
+}
+
+.bar.just-done .bar-progress {
+  animation: bar-done 1.1s var(--ease-out) 0.35s 1 both;
+}
+
+@keyframes bar-done {
+  0% {
+    box-shadow: 0 0 0 0 transparent;
+  }
+  35% {
+    box-shadow: 0 0 10px 1px color-mix(in srgb, var(--ok) 70%, transparent);
+  }
+  100% {
+    box-shadow: 0 0 0 0 transparent;
+  }
+}
+
+@media (max-width: 999px) {
+  .bar .sync > span:last-child {
+    display: none;
+  }
+}
+
+/* GitHub isn't connected: the one case that still needs a strip above the bar. */
+.ribbon-warn {
+  gap: 8px;
+  background: var(--warn-bg);
+  border-bottom-color: color-mix(in srgb, var(--warn) 30%, transparent);
+  color: var(--ink);
+  font-size: var(--fs-callout);
+}
+
+.ribbon-warn > .i {
+  width: 14px;
+  height: 14px;
+  color: var(--warn);
+}
+
+.ribbon-warn .ribbon-text {
+  display: inline;
+}
+
+/* ---------- Pull request header ---------- */
+
+.pr-head {
+  padding-top: 20px;
+}
+
+.pr-title {
+  margin: 10px 0 8px;
+  font-weight: 700;
+  letter-spacing: -0.022em;
+}
+
+.pr-status {
+  font-size: var(--fs-body);
+  line-height: 1.35;
+}
+
+.pr-meta {
+  font-size: var(--fs-body);
+}
+
+.tabs {
+  margin-top: 16px;
+}
+
+.tab {
+  font-size: var(--fs-body);
+}
+
+/* The diff in the editor's code size, with room for the line-comment button. */
+.rows {
+  font-size: var(--code-size);
+  line-height: max(20px, calc(var(--code-size) * 1.5));
+}
+
+/* ---------- Buttons and press feedback ---------- */
+
+/* macOS push buttons: a rounded rectangle, one filled primary, and a press
+   that scales instead of jumping down the page. */
 .btn {
   border-radius: 8px;
   font-weight: 590;
+  transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease, transform 0.16s var(--ease-out);
 }
 
 .btn.primary {
-  box-shadow: inset 0 0.5px 0 rgb(255 255 255 / 0.35);
+  background: var(--blue-fill);
+  border-color: var(--blue-fill);
+  color: var(--on-blue);
+  box-shadow: inset 0 0.5px 0 rgb(255 255 255 / 0.3);
 }
 
-.btn:active:not([disabled]) {
-  transform: scale(0.97);
+.btn.primary:hover {
+  background: var(--blue-fill-2);
+  border-color: var(--blue-fill-2);
 }
+
+.btn.primary .badge {
+  color: var(--blue-fill);
+}
+
+.icon-btn,
+.mini-track,
+.xray-pill,
+.brief-item {
+  transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease, transform 0.16s var(--ease-out);
+}
+
+.btn:active:not([disabled]),
+.icon-btn:active,
+.mini-track:active,
+.xray-pill:active,
+.brief-item:active {
+  transform: scale(var(--press));
+}
+
+/* Filled marks that carry white text or a white check. */
+.welcome-mark,
+.pill-new,
+.add-c,
+.sel-chip,
+.hunk.swipe-armed,
+.g-ch.is-done .g-n,
+.dg-ch.is-done .g-n,
+.dock-btn .badge {
+  background: var(--blue-fill);
+}
+
+.tick[aria-pressed="true"] .box {
+  border-color: var(--blue-fill);
+  background: var(--blue-fill);
+}
+
+/* ---------- Menus ---------- */
+
+.menu {
+  border: 0.5px solid var(--glass-edge);
+  border-radius: 12px;
+  background: var(--glass-2);
+  transform-origin: top right;
+  transition: opacity 0.15s var(--ease-out), transform 0.15s var(--ease-out);
+  -webkit-backdrop-filter: saturate(1.8) blur(24px);
+  backdrop-filter: saturate(1.8) blur(24px);
+}
+
+@starting-style {
+  .menu {
+    opacity: 0;
+    transform: scale(0.96) translateY(-4px);
+  }
+}
+
+/* Inside the bar, a menu's blur would only see the bar, so it stays solid. */
+.bar .menu {
+  background: var(--sheet);
+  box-shadow: var(--shadow-2);
+}
+
+.theme-pick {
+  position: relative;
+  display: inline-flex;
+}
+
+.theme-menu {
+  top: calc(100% + 6px);
+  min-width: 220px;
+}
+
+.theme-item {
+  grid-template-columns: 16px minmax(0, 1fr) 16px;
+  align-items: center;
+  gap: 10px;
+}
+
+.theme-item > .i {
+  color: var(--ink-2);
+}
+
+.menu-item.theme-item .ti-text {
+  display: grid;
+  gap: 1px;
+  color: var(--ink);
+  font-size: var(--fs-body);
+}
+
+.menu-item.theme-item .ti-text span {
+  font-size: var(--fs-caption);
+}
+
+.menu-item.theme-item .ti-check {
+  display: inline-grid;
+  visibility: hidden;
+  color: var(--blue);
+}
+
+.theme-item[aria-checked="true"] .ti-check {
+  visibility: visible;
+}
+
+.theme-item .ti-check .i {
+  width: 14px;
+  height: 14px;
+}
+
+#theme-btn[aria-expanded="true"] {
+  background: var(--sheet-3);
+  color: var(--ink);
+}
+
+/* ---------- Comment levels ---------- */
 
 /* The level a comment posts at, in the colors the page gives agent findings. */
 .levels {
@@ -109,7 +459,7 @@ body {
 
 .levels-name {
   margin-right: 2px;
-  font-size: 12px;
+  font-size: var(--fs-callout);
   color: var(--ink-3);
 }
 
@@ -124,6 +474,8 @@ body {
   color: var(--warn);
   background: var(--warn-bg);
 }
+
+/* ---------- Agent findings ---------- */
 
 /* Content stays on a standard material. Glass on the briefing would put the
    material in the content layer, which the guidelines say not to do. */
@@ -140,22 +492,129 @@ body {
   box-shadow: var(--shadow-1);
 }
 
-.pr-title {
-  font-weight: 700;
-  letter-spacing: -0.022em;
+.brief-list {
+  display: grid;
+  gap: 16px;
 }
 
-.pr-status {
-  font-size: 13px;
-  line-height: 1.35;
+.bi-group {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
 }
 
-.menu {
-  border: 0.5px solid var(--glass-edge);
-  border-radius: 12px;
-  background: var(--glass-2);
-  -webkit-backdrop-filter: saturate(1.8) blur(24px);
-  backdrop-filter: saturate(1.8) blur(24px);
+.bi-head {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin: 0;
+  color: var(--ink);
+  font-size: var(--fs-callout);
+  font-weight: 650;
+}
+
+.bi-dot {
+  width: 8px;
+  height: 8px;
+  flex: none;
+  border-radius: 50%;
+  background: var(--ink-3);
+}
+
+.bi-high .bi-dot {
+  background: var(--bad);
+}
+
+.bi-medium .bi-dot {
+  background: var(--warn);
+}
+
+.bi-count {
+  color: var(--ink-3);
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+
+.bi-count::before {
+  content: "·";
+  margin-right: 7px;
+}
+
+.bi-list {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.brief-item {
+  gap: 12px;
+  min-height: 40px;
+  padding: 8px 12px 8px 14px;
+  font-size: var(--fs-body);
+}
+
+.brief-item:hover {
+  border-color: var(--line-2);
+  background: var(--sheet-2);
+}
+
+.bi-where {
+  flex: 0 1 auto;
+  min-width: 0;
+  max-width: 38%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: var(--fs-caption);
+}
+
+.bi-mark {
+  display: inline-grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  flex: none;
+}
+
+.bi-mark .i {
+  width: 16px;
+  height: 16px;
+}
+
+.bi-mark.is-open {
+  color: var(--ink-3);
+  transition: color 0.15s ease, transform 0.2s var(--ease-out);
+}
+
+.brief-item:hover .bi-mark.is-open {
+  color: var(--blue);
+  transform: translateX(2px);
+}
+
+.bi-mark.is-in {
+  color: var(--ok);
+}
+
+.bi-mark.is-out {
+  color: var(--ink-3);
+}
+
+.bi-more {
+  justify-self: start;
+  padding: 4px 0;
+  border: 0;
+  background: none;
+  color: var(--blue);
+  font-size: var(--fs-callout);
+  font-weight: 620;
+  cursor: pointer;
+}
+
+.bi-more:hover {
+  text-decoration: underline;
+  text-underline-offset: 3px;
 }
 
 /* Same state colors as the pull request list: green open, gray draft, purple merged, red closed. */
@@ -176,22 +635,6 @@ body {
 
 .ps-merged > .i {
   color: #7a3e9d;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) .state.s-open {
-    background: rgb(63 185 80 / 0.18);
-    color: #3fb950;
-  }
-
-  :root:not([data-theme="light"]) .state.s-merged,
-  :root:not([data-theme="light"]) .ps-merged > .i {
-    color: #b180d7;
-  }
-
-  :root:not([data-theme="light"]) .state.s-draft {
-    color: #c8cdd2;
-  }
 }
 
 :root[data-theme="dark"] .state.s-open {
@@ -220,7 +663,7 @@ body {
 .brief-bulk > span {
   flex: 1 1 240px;
   color: var(--ink-2);
-  font-size: 12.5px;
+  font-size: var(--fs-callout);
 }
 
 /* X-RayViewer's review state beside the risk pill. */
@@ -866,33 +1309,6 @@ details.act-step[open] .act-title {
   margin-top: 1px;
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .checks-chev,
-  .act-chev {
-    transition: none;
-  }
-
-  .act-msg.is-typing::after,
-  .checks-ring.is-live {
-    animation: none;
-  }
-}
-
-@media (prefers-reduced-transparency: reduce) {
-  .bar,
-  .menu {
-    -webkit-backdrop-filter: none;
-    backdrop-filter: none;
-    background: var(--sheet);
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .btn:active:not([disabled]) {
-    transform: none;
-  }
-}
-
 /* One banner for every notice: under the bar, with the X-RayViewer mark. */
 .notice {
   width: max-content;
@@ -961,7 +1377,7 @@ details.act-step[open] .act-title {
   transition: opacity .25s, transform .25s;
 }
 .toasts {
-  top: calc(var(--top) + 68px);
+  top: calc(var(--top) + var(--bar-h) + 10px);
   bottom: auto;
   z-index: 80;
 }
@@ -971,11 +1387,56 @@ details.act-step[open] .act-title {
   bottom: auto;
 }
 
-@media (prefers-contrast: more) {
+@media (prefers-reduced-transparency: reduce) {
   .bar,
-  .menu,
-  .brief,
-  .track {
-    border: 1px solid var(--ink-2);
+  .menu {
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+    background: var(--sheet);
   }
+}
+
+/* Reduce motion, from the system or the editor (VS Code marks the body):
+   nothing moves or scales, spinners slow down instead of stopping. */
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --press: 1;
+  }
+
+  .spin,
+  .checks-ring.is-live,
+  .notice-tone.t-progress::before {
+    animation-duration: 2.4s !important;
+    animation-iteration-count: infinite !important;
+  }
+
+  .act-msg.is-typing::after,
+  .bar.just-done .bar-progress {
+    animation: none !important;
+  }
+}
+
+:root:has(> body.vscode-reduce-motion) {
+  --press: 1;
+}
+
+body.vscode-reduce-motion *,
+body.vscode-reduce-motion *::before,
+body.vscode-reduce-motion *::after {
+  animation-duration: 0.01ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.01ms !important;
+  scroll-behavior: auto !important;
+}
+
+body.vscode-reduce-motion .spin,
+body.vscode-reduce-motion .checks-ring.is-live,
+body.vscode-reduce-motion .notice-tone.t-progress::before {
+  animation-duration: 2.4s !important;
+  animation-iteration-count: infinite !important;
+}
+
+body.vscode-reduce-motion .act-msg.is-typing::after,
+body.vscode-reduce-motion .bar.just-done .bar-progress {
+  animation: none !important;
 }

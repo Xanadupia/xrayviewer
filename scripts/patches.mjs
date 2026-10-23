@@ -8,9 +8,11 @@
  * reviewer schema, Hu turns a reviewer's output into findings, x is the diff index and xn matches skip patterns.
  */
 import { activityGroups, activityHTML, activitySummary, activityTime } from "./activity-ui.mjs";
+import { CHROME_NAMES, CHROME_PATCHES } from "./chrome-ui.mjs";
 import { commentLevel, findingDrafts, readTag, tagBadge, withTag } from "./comment-tags.mjs";
 import { modelSummary } from "./model-line.mjs";
 import { noticeFind, noticeReplace, noticeSource, toastFind } from "./notice-ui.mjs";
+import { THEME_NAMES, THEME_PATCHES } from "./theme-ui.mjs";
 
 export const PATCHES = [
   {
@@ -210,6 +212,7 @@ export const PATCHES = [
     find: "noticeChange(e){",
     replace:
       'notifyRun(){for(let tab of this.xrvTabs.values()){if(!tab.panel||!tab.current)continue;let run=this.service.get(tab.current)?.run,s=run?.state||"idle",id=N(tab.current).toLowerCase(),auto=xrvCursor().wantsAutoPost(id);if(auto&&(s==="done"||s==="failed"||s==="cancelled"))xrvCursor().clearAutoPost(id);tab.panel.webview.postMessage({type:"host-run",running:s==="running"||s==="queued"||s==="waiting"||s==="elsewhere",state:s,automatic:!!run?.automatic,progress:run?.progress??null,autoPost:auto})}let slot=this.xrvSlot,cur=slot&&slot.current,active=cur?this.service.get(cur)?.run:null;xrvCursor().publishActivity(active?.progress??null,()=>$t().then(c=>xrvCursor().modelPlan(Yt().harnesses,c.settings.agents)).catch(()=>null))}' +
+      'notifyTheme(){let m={type:"host-theme",theme:xrvCursor().themeChoice(ee)};for(let p of this.xrvPanels||[])p.webview.postMessage(m)}' +
       'notifyModel(){if(!this.panel)return;$t().then(c=>xrvCursor().modelPlan(Yt().harnesses,c.settings.agents)).then(p=>this.panel?.webview.postMessage({type:"host-model",plan:p}),()=>{})}noticeChange(e){',
   },
   {
@@ -221,7 +224,7 @@ export const PATCHES = [
     id: "run-button-shim",
     find: 'm.type === "host-view" || m.type === "host-list" || m.type === "host-pr-changed" || m.type === "host-data"',
     replace:
-      'm.type === "host-view" || m.type === "host-list" || m.type === "host-pr-changed" || m.type === "host-data" || m.type === "host-run" || m.type === "host-model" || m.type === "host-notice"',
+      'm.type === "host-view" || m.type === "host-list" || m.type === "host-pr-changed" || m.type === "host-data" || m.type === "host-run" || m.type === "host-model" || m.type === "host-notice" || m.type === "host-theme"',
   },
   {
     id: "harness-install-actions",
@@ -233,13 +236,23 @@ export const PATCHES = [
     id: "choose-model-host",
     find: 'runAgents() { vscode.postMessage({ type: "runAgents", key }); },',
     replace:
-      'runAgents() { vscode.postMessage({ type: "runAgents", key }); },\n    chooseHarness() { vscode.postMessage({ type: "chooseHarness", key }); },\n    showActivity() { vscode.postMessage({ type: "showActivity", key }); },',
+      'runAgents() { vscode.postMessage({ type: "runAgents", key }); },\n    chooseHarness() { vscode.postMessage({ type: "chooseHarness", key }); },\n    showActivity() { vscode.postMessage({ type: "showActivity", key }); },\n    setTheme(theme) { vscode.postMessage({ type: "setTheme", key, theme }); },',
   },
   {
     id: "choose-model-command",
     find: 'else if(e.type==="runAgents")ee.commands.executeCommand("xrayviewer.runAgents",N(t));',
     replace:
-      'else if(e.type==="chooseHarness")ee.commands.executeCommand("xrayviewer.selectHarness");else if(e.type==="showActivity")ee.commands.executeCommand("xrayviewer.agentActivity.focus");else if(e.type==="runAgents")ee.commands.executeCommand("xrayviewer.runAgents",N(t));',
+      'else if(e.type==="chooseHarness")ee.commands.executeCommand("xrayviewer.selectHarness");else if(e.type==="showActivity")ee.commands.executeCommand("xrayviewer.agentActivity.focus");else if(e.type==="setTheme")xrvCursor().saveTheme(ee,e.theme).catch(()=>{});else if(e.type==="runAgents")ee.commands.executeCommand("xrayviewer.runAgents",N(t));',
+  },
+  {
+    id: "theme-page-tag",
+    find: "return pf(this.template,{csp:a,",
+    replace: 'return pf(this.template.replace(\'<html lang="en">\',()=>xrvCursor().themeTag(ee)),{csp:a,',
+  },
+  {
+    id: "theme-setting-change",
+    find: 'onDidChangeConfiguration(m=>{m.affectsConfiguration("xrayviewer.sidebar")&&',
+    replace: 'onDidChangeConfiguration(m=>{m.affectsConfiguration("xrayviewer.theme")&&o.notifyTheme(),m.affectsConfiguration("xrayviewer.sidebar")&&',
   },
   {
     id: "sidebar-settings",
@@ -357,7 +370,7 @@ export const PATCHES = [
     id: "review-tabs-panel",
     find: 'ensurePanel(){if(this.panel)return this.panel;let e=ee.window.createWebviewPanel("xrayviewer.review","X-RayViewer",ee.ViewColumn.Active,{enableScripts:!0,retainContextWhenHidden:!0,localResourceRoots:[this.ui()]});return e.iconPath=ee.Uri.joinPath(this.extensionUri,"media","xrayviewer.svg"),e.onDidDispose(()=>{this.panel=null,this.current=null,this.shownSeq=-1,this.shownPr=null}),e.webview.onDidReceiveMessage(t=>{this.onMessage(t)}),this.panel=e,e}',
     replace:
-      'ensurePanel(pr){let id=pr?N(pr).toLowerCase():"";if(id){let tab=this.xrvTabs.get(id);if(tab?.panel)return this.xrvSlot=tab,tab.panel}else if(this.panel)return this.panel;let e=ee.window.createWebviewPanel("xrayviewer.review",pr?`#${pr.number}`:"X-RayViewer",ee.ViewColumn.Active,{enableScripts:!0,retainContextWhenHidden:!0,localResourceRoots:[this.ui()]});let tab={panel:e,current:pr||null,home:!1,view:void 0,loadSeq:0,shownSeq:-1,shownPr:null,noticed:null,drawing:new Map};id&&this.xrvTabs.set(id,tab);this.xrvSlot=tab;e.iconPath=ee.Uri.joinPath(this.extensionUri,"media","xrayviewer.svg");e.onDidDispose(()=>{id&&this.xrvTabs.delete(id);this.xrvSlot===tab&&(xrvCursor().cancelNotices(),this.xrvSlot=null)});e.onDidChangeViewState(v=>{if(v.webviewPanel.active)this.xrvSlot=tab,this.notifyRun()});e.webview.onDidReceiveMessage(t=>{this.xrvSlot=tab;if(t&&t.type==="notice-answer")xrvCursor().answerNotice(t);this.onMessage(t)});xrvCursor().bindNotice(m=>{let p=this.panel;if(!p||!String(p.webview.html||"").includes("host-notice"))return!1;p.webview.postMessage(m);return!0});return e}',
+      'ensurePanel(pr){let id=pr?N(pr).toLowerCase():"";if(id){let tab=this.xrvTabs.get(id);if(tab?.panel)return this.xrvSlot=tab,tab.panel}else if(this.panel)return this.panel;let e=ee.window.createWebviewPanel("xrayviewer.review",pr?`#${pr.number}`:"X-RayViewer",ee.ViewColumn.Active,{enableScripts:!0,retainContextWhenHidden:!0,localResourceRoots:[this.ui()]});let tab={panel:e,current:pr||null,home:!1,view:void 0,loadSeq:0,shownSeq:-1,shownPr:null,noticed:null,drawing:new Map};id&&this.xrvTabs.set(id,tab);this.xrvSlot=tab;(this.xrvPanels??=new Set).add(e);e.iconPath=ee.Uri.joinPath(this.extensionUri,"media","xrayviewer.svg");e.onDidDispose(()=>{id&&this.xrvTabs.delete(id);this.xrvPanels.delete(e);this.xrvSlot===tab&&(xrvCursor().cancelNotices(),this.xrvSlot=null)});e.onDidChangeViewState(v=>{if(v.webviewPanel.active)this.xrvSlot=tab,this.notifyRun()});e.webview.onDidReceiveMessage(t=>{this.xrvSlot=tab;if(t&&t.type==="notice-answer")xrvCursor().answerNotice(t);this.onMessage(t)});xrvCursor().bindNotice(m=>{let p=this.panel;if(!p||!String(p.webview.html||"").includes("host-notice"))return!1;p.webview.postMessage(m);return!0});return e}',
   },
   {
     id: "review-tabs-show",
@@ -423,7 +436,7 @@ export const PATCHES = [
     id: "page-notices",
     find: 'async function Uv(n){let e=C.window.createOutputChannel("X-RayViewer",{log:!0})',
     replace:
-      'function xrvInstallNotices(){if(C.window.__xrvNotices)return;C.window.__xrvNotices=1;let w=C.window,info=w.showInformationMessage.bind(w),warn=w.showWarningMessage.bind(w),err=w.showErrorMessage.bind(w),prog=w.withProgress.bind(w),buttons=a=>a.filter(x=>typeof x==="string"),ask=(fallback,tone,message,...rest)=>{let choice=xrvCursor().offerNotice(String(message??""),buttons(rest),tone);return choice||fallback(message,...rest)};w.showInformationMessage=(m,...r)=>ask(info,"info",m,...r);w.showWarningMessage=(m,...r)=>ask(warn,"warning",m,...r);w.showErrorMessage=(m,...r)=>ask(err,"error",m,...r);w.withProgress=(o,task)=>{if(o&&o.location===C.ProgressLocation.Notification){let g=xrvCursor().holdNotice(String(o.title||"Working…"));if(g)return Promise.resolve(task({report(){}})).finally(()=>xrvCursor().clearNotice(g))}return prog(o,task)}}async function Uv(n){xrvInstallNotices();let xrvGo=async run=>{let note=run?"Check up to 5 pull requests, then Review all selected and post.":"Check up to 5 pull requests, then Open selected PRs.";let sent=xrvCursor().offerNotice(note,[],"warning");sent||C.window.showInformationMessage(note)};n.subscriptions.push(C.commands.registerCommand("xrayviewer.openSelected",()=>xrvGo(!1)),C.commands.registerCommand("xrayviewer.runSelected",()=>xrvGo(!0)),C.window.registerWebviewViewProvider("xrayviewer.selectionButtons",{resolveWebviewView(view){let nonce=Math.random().toString(36).slice(2);view.title="";view.webview.options={enableCommandUris:["xrayviewer.openSelected","xrayviewer.runSelected"]};view.webview.html=xrvCursor().selectionBarHTML(nonce)}}),C.window.registerWebviewViewProvider("xrayviewer.agentActivity",{resolveWebviewView(view){let nonce=Math.random().toString(36).slice(2);view.webview.options={enableScripts:!0,localResourceRoots:[n.extensionUri]};let css=view.webview.asWebviewUri(C.Uri.joinPath(n.extensionUri,"media","ui","styles.css"));view.webview.html=xrvCursor().activityPanelHTML(view.webview.cspSource,nonce,String(css));xrvCursor().bindActivity(view.webview);view.webview.onDidReceiveMessage(m=>xrvCursor().onActivityMessage(m))}}));let e=C.window.createOutputChannel("X-RayViewer",{log:!0})',
+      'function xrvInstallNotices(){if(C.window.__xrvNotices)return;C.window.__xrvNotices=1;let w=C.window,info=w.showInformationMessage.bind(w),warn=w.showWarningMessage.bind(w),err=w.showErrorMessage.bind(w),prog=w.withProgress.bind(w),buttons=a=>a.filter(x=>typeof x==="string"),ask=(fallback,tone,message,...rest)=>{let choice=xrvCursor().offerNotice(String(message??""),buttons(rest),tone);return choice||fallback(message,...rest)};w.showInformationMessage=(m,...r)=>ask(info,"info",m,...r);w.showWarningMessage=(m,...r)=>ask(warn,"warning",m,...r);w.showErrorMessage=(m,...r)=>ask(err,"error",m,...r);w.withProgress=(o,task)=>{if(o&&o.location===C.ProgressLocation.Notification){let g=xrvCursor().holdNotice(String(o.title||"Working…"));if(g)return Promise.resolve(task({report(){}})).finally(()=>xrvCursor().clearNotice(g))}return prog(o,task)}}async function Uv(n){xrvInstallNotices();let xrvGo=async run=>{let note=run?"Check up to 5 pull requests, then Review all selected and post.":"Check up to 5 pull requests, then Open selected PRs.";let sent=xrvCursor().offerNotice(note,[],"warning");sent||C.window.showInformationMessage(note)};n.subscriptions.push(C.commands.registerCommand("xrayviewer.openSelected",()=>xrvGo(!1)),C.commands.registerCommand("xrayviewer.runSelected",()=>xrvGo(!0)),C.commands.registerCommand("xrayviewer.chooseTheme",()=>xrvCursor().chooseTheme(C)),C.window.registerWebviewViewProvider("xrayviewer.selectionButtons",{resolveWebviewView(view){let nonce=Math.random().toString(36).slice(2);view.title="";view.webview.options={enableCommandUris:["xrayviewer.openSelected","xrayviewer.runSelected"]};view.webview.html=xrvCursor().selectionBarHTML(nonce)}}),C.window.registerWebviewViewProvider("xrayviewer.agentActivity",{resolveWebviewView(view){let nonce=Math.random().toString(36).slice(2);view.webview.options={enableScripts:!0,localResourceRoots:[n.extensionUri]};let css=view.webview.asWebviewUri(C.Uri.joinPath(n.extensionUri,"media","ui","styles.css"));view.webview.html=xrvCursor().activityPanelHTML(view.webview.cspSource,nonce,String(css));xrvCursor().bindActivity(view.webview);view.webview.onDidReceiveMessage(m=>xrvCursor().onActivityMessage(m))}}));let e=C.window.createOutputChannel("X-RayViewer",{log:!0})',
   },
   {
     id: "page-notice-answer",
@@ -997,16 +1010,6 @@ function prHeadHTML() {`,
     replace: '<span class="brand-word">X-RayViewer</span>',
   },
   {
-    id: "ribbon-plain",
-    find: '<span class="ribbon-tag">Local</span>',
-    replace: '<span class="ribbon-tag">This computer</span>',
-  },
-  {
-    id: "ribbon-drafts",
-    find: "Drafts stay on this machine until you post them.",
-    replace: "Comments stay here until you post them.",
-  },
-  {
     id: "post-still-reloads",
     find: 'showPushPanel(`<p class="push-ok">${icon("check-circle")}<span>Posted to GitHub.${review && review.url ? ` <a class="link" href="${esc(review.url)}" target="_blank" rel="noopener">Open the review</a>.` : ""} Reloading with the latest from GitHub…</span></p>`);\n    await api("POST", "/refresh");\n    reloadPage();',
     replace:
@@ -1122,6 +1125,8 @@ function statusLineHTML() {
     find: 'if (fn) { if (el.tagName === "A") e.preventDefault(); fn(el, e); return; }',
     replace: 'if (fn) { if (el.tagName === "A") e.preventDefault(); if (el.closest(".notice")) releaseBanner(el); fn(el, e); return; }',
   },
+  ...THEME_PATCHES,
+  ...CHROME_PATCHES,
 ];
 
 export const UI_ADDED_NAMES = [
@@ -1132,6 +1137,8 @@ export const UI_ADDED_NAMES = [
   "findingDrafts", "lastAdopted", "adoptAllHTML", "adoptAll", "undoAdoptAll", "adoptAllCardHTML", "syncAdoptAll", "xrayState", "xrayPillHTML", "applyXrayPill",
   "postAllKey", "postAllOn", "postAllArmed", "armPostAll", "disarmPostAll", "setPostAll", "postAllHTML", "postingAll", "onHostRun", "postFinishedReview", "maybePostAll", "runState",
   "TONE_ICONS", "toneOf", "toneHTML", "notePosted", "showPostedNotice", "bannerTimer", "bannerPin", "bannerNow", "bannerStay", "bannerHost", "bannerHTML", "paintBanner", "dropBanner", "releaseBanner", "showPinnedNotice", "showHostNotice",
+  ...THEME_NAMES,
+  ...CHROME_NAMES,
 ];
 
 export function countOccurrences(text, needle) {

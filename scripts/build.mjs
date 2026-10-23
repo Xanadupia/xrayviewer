@@ -6,6 +6,7 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 import { build } from "esbuild";
 import { transformManifest, VERSION } from "./manifest.mjs";
 import { applyPatches, UI_ADDED_NAMES, UI_PATCHES } from "./patches.mjs";
+import { scaleType, typeTokens } from "./type-scale.mjs";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const vendor = path.join(root, "vendor", "base");
@@ -41,7 +42,7 @@ export async function buildExtension(target = outDir) {
   await rewrite(path.join(target, "dist", "extension.cjs"), (text) => applyPatches(text));
   await rewrite(path.join(target, "media", "ui", "app.js"), (text) => applyPatches(text, UI_PATCHES, UI_ADDED_NAMES));
   const appleUi = await readFile(path.join(root, "scripts", "apple-ui.css"), "utf8");
-  await rewrite(path.join(target, "media", "ui", "styles.css"), (text) => `${text}\n${appleUi}`);
+  await rewrite(path.join(target, "media", "ui", "styles.css"), (text) => scaleType(`${typeTokens()}${text}\n${appleUi}`));
   await rewrite(path.join(target, "package.json"), (text) => `${JSON.stringify(transformManifest(JSON.parse(text)), null, 2)}\n`);
 
   await build({
