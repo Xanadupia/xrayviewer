@@ -41,9 +41,15 @@ Automatic runs are on. About two minutes after the first start, agents begin on 
 | **Post all findings when finished** | The checkbox beside **Run**. Check it, then run the agents with **Run**. When that run finishes, every open finding is added as its suggested comment and the review is posted to the pull request. It posts as comments. It does not approve or request changes. Uncheck it before the run finishes to keep the findings here. A run that starts on its own is left for you to post. |
 | The arrow beside it | Opens **Choose model…**, with what the agents will run on under it, such as **Codex · gpt-6-astra · medium**. It is there before and after a run, and while the agents run. |
 | A finding | Keep it, reword it, or dismiss it. Only what you post is visible to the author. |
+| **High**, **Medium**, **Low** | The briefing groups findings by severity and says how many are still open. A green check means the finding is in your review, and a crossed circle means you dismissed it. With many low findings, the first four show, and **Show N more low findings** opens the rest. |
 | **Add all N to my review** | Under the briefing's findings list, and as **Add all N** on each finding. Adds every open finding at once, each as its suggested comment on its line, at its level. **Undo** in the message takes them all back out. Edit or delete any of them before you post. |
+| **Saved locally** | In the bar. Your comments and review marks are saved on this computer. If saving fails, it says **Couldn't save**, and pointing at it says why. |
+| The line along the bottom of the bar | How much of the diff you marked reviewed. It turns green when every hunk is reviewed. |
+| The arrow and box buttons in the bar | Refresh from GitHub, and open the pull request on GitHub. |
 
 Comments stay on this computer until you post them.
+
+Review pages follow the editor's theme, including its high-contrast themes. To keep them light or dark whatever the editor uses, click the theme button in the bar, or run **X-RayViewer: Choose Theme…**, and pick **System**, **Light**, or **Dark**. Every open review changes at once, and the choice is saved in `xrayviewer.theme`. High contrast and the editor's reduce-motion setting apply whichever you pick. The **Agent Activity** panel always matches the editor.
 
 Every comment has a level, **High**, **Medium**, or **Low**. On GitHub it opens the comment as a colored priority tag, as Greptile's comments do: **P1** for High, **P2** for Medium, **P3** for Low. Pick it under the kind of comment when you write one.
 
@@ -64,10 +70,17 @@ Replies post as written, since the thread's first comment has the level. When X-
 
 | Part | What it does |
 |---|---|
-| **Change all agents** | **Cursor Agent**, **Codex**, and **Claude Code**. Each says how many agents use it. Pick one, then a model, and every agent moves to it. |
-| **Change one agent** | **Guide**, **Architecture**, **Correctness**, **Test**, and **Security**, each with its CLI, model, and what it looks at. Pick one to move only that agent. |
+| **All agents** | **Cursor Agent**, **Codex**, and **Claude Code**. Each shows how many agents use it and its version, with a filled check on the one every agent uses. Pick one, then a model, and every agent moves to it. |
+| **One agent** | **Guide**, **Architecture**, **Correctness**, **Test**, and **Security**, each with its icon, CLI, model, and what it looks at. Pick one to move only that agent. |
 
-Each CLI has a control on the right. It says **Install** when that program is missing, and **Install update** when a newer version is published. It downloads that program, then the list shows the version that is on the machine. Picking the CLI name still chooses its model.
+On a review page, the picker is for that pull request only. Its title names it, such as **What the agents run on for #12**, so two open pull requests can run on different CLIs and models. The choice is kept until you change it, and the model line on each page shows what that pull request runs on. Two rows at the end lead back:
+
+| Row | What it does |
+|---|---|
+| **Use the default** | Drops the pull request's own choice. It's there once the pull request has one. |
+| **Change the default…** | Opens the picker for every pull request without a choice of its own. The command palette's **Choose Agent Harnesses…** opens it too. |
+
+A CLI that is missing says **Not installed**, and one with a newer version says **Update available**. The download button on its right installs it or the update, then the list shows the version that is on the machine. Picking the CLI name still chooses its model.
 
 - **Cursor** lists the models on your Cursor account. The first row keeps whatever `cursor-agent` used last. Pick a model by name if you care which one reviews.
 - **Codex** lists the models that CLI provides, then a reasoning level such as medium or high.
@@ -113,16 +126,24 @@ A pull request appears in the first group it fits.
 | Other PRs | Up to 10 more open pull requests in those repositories. |
 | Merged or Closed PRs | Ones you reviewed or wrote, for the last 3 days. |
 
-A colored bar at the left of each row is the risk: green is low, orange is medium, and red is high. The icon beside it is the pull request: green is open, a draft icon is a draft, purple is merged, and red is closed. The full score is in the row's tooltip. A mark at the end of the row is the X-RayViewer review: a green check when the review is posted to GitHub, a yellow check when it is reviewed but not posted yet, a blue dot while a review is running, and a dash when it has never been reviewed. The row's title takes the same color, and a row that has never been reviewed keeps the theme's normal text color.
+Each row starts with the pull request's title. The gray text after it starts with its number, then adds what is worth knowing: **draft**, **merged**, or **closed**, conflicts, and the X-RayViewer review. An open pull request that hasn't been reviewed says neither.
 
-Each row also says that review in words, right after the pull request's state. **Group Pull Requests…** can group the list into Reviewing PRs, Not Reviewed PRs, Reviewed PRs, and Reviewed & Posted PRs. A review counts as posted once you post it to GitHub from X-RayViewer, and a new review of the pull request starts over as not posted. The sidebar's **Agent Activity** panel shows what each agent read, ran and said for the pull request you are reviewing.
+The icon's shape is the pull request's state: open, draft, merged, or closed. Its color is the risk: red is high, orange is medium, and the theme's icon color is low. The full score is in the row's tooltip. A mark at the end of the row is the X-RayViewer review: a dot while a review is running, and a check once it is reviewed. The gray text says whether that review is posted to GitHub.
+
+The number on the X-RayViewer icon in the activity bar counts the open pull requests that request your review by name, even when the list's filter hides them.
+
+Check up to five rows, then use the buttons right under the list. They say how many pull requests they act on, such as **Open 2 pull requests** and **Review 2 and post**, and they are dimmed until something is checked.
+
+**Running Reviews**, below the buttons, shows only the pull requests the agents are reviewing now or about to. Each row has the title, then the number, repository, progress, and how long it has run, such as "#10137 · mondrian · 2 of 6 agents done · 4 min". It also says **Queued**, **Starting soon**, **Waiting for a free agent**, or **In another window**. Click a row to open its review, and **Agent Activity** follows it.
+
+Each row also says that review in words. **Group Pull Requests…** can group the list into Reviewing PRs, Not Reviewed PRs, Reviewed PRs, and Reviewed & Posted PRs. A review counts as posted once you post it to GitHub from X-RayViewer, and a new review of the pull request starts over as not posted. The sidebar's **Agent Activity** panel shows what each agent read, ran and said for the pull request you are reviewing.
 
 | Row says | What it means |
 |---|---|
 | Reviewed & posted, 13 findings | X-RayViewer reviewed the latest commit, and you posted the review to GitHub. |
 | Reviewed, not posted, 13 findings | X-RayViewer reviewed the latest commit, and the review is not on GitHub yet. |
 | Reviewed, new commits | X-RayViewer reviewed an older commit. Rerun reviews the latest. It says **Reviewed & posted, new commits** when that review was posted. |
-| Not reviewed | X-RayViewer has not reviewed it yet. |
+| Nothing | X-RayViewer has not reviewed it yet. |
 | Reviewing 2/5, Reviewing, queued | A review is running or waiting to start. |
 | Review failed | The last review failed. The tooltip has the error. |
 
@@ -133,6 +154,8 @@ The view menu groups by relationship, repository, author, or X-RayViewer review.
 ## The agents
 
 Five agents ship. The **guide** checks the description, sets a reading order, and draws the flow. **Architecture**, **correctness**, **tests**, and **security** look for problems. You can add more with **X-RayViewer: New Agent…**.
+
+**Architecture** also checks that new code follows the paradigm of the file it's in, object-oriented or functional, judged from the code already there. In a class's file, a helper outside the class should be a method of it, or move to a module of functions if it isn't about the class. It only looks at code the pull request adds or changes, so a file that already mixed both is left alone.
 
 On Claude Code, the agents that look for problems hand over to Claude Code's own **/code-review**. It runs once, at the effort level you picked, and its findings show under one **Code review** agent. Then Claude Code checks the pull request against the instructions of each agent it replaced, such as **Architecture**. A problem in those instructions that /code-review missed shows under that agent, within its own max findings, minimum confidence, and skipped files. In **Agent Activity**, those agents sit under **Code review agent** and show its status, such as "Covered by Code review agent · In progress". The guide keeps its own instructions, and agents on Cursor or Codex run as usual. /code-review reads the diff with `git` in Claude Code's sandbox, which writes nothing and reads only the checkout and its git history. **X-RayViewer: Show Agent Log** has its report.
 
@@ -164,6 +187,7 @@ X-RayViewer adds no charge of its own. Usage counts against the account of the p
 | Customize Agents… | Open the agent files. |
 | Copy Agent Review as Markdown | Copy the findings for another agent. It includes code. Paste it only where that code may go. |
 | Copy Link to This Review | Copy an `aliqaryan.xrayviewer` link. |
+| Choose Theme… | **System**, **Light**, or **Dark** for review pages. |
 | Show Review Metrics / Delete Review Metrics | A local log of reviews you posted. It is never uploaded. |
 
 **Open a Pull Request…** is **⌥⇧⌘P** on macOS and **Ctrl+Shift+Alt+P** on Windows and Linux.
@@ -174,6 +198,7 @@ Claude Code, Codex, and Cursor Agent run the newest version installed on this ma
 
 | Setting | Default | What it does |
 |---|---|---|
+| `xrayviewer.theme` | `system` | Review pages: `system` follows the editor, `light` or `dark` keeps that theme |
 | `xrayviewer.harness` | `claude` | Default program: `claude`, `codex`, or `cursor` |
 | `xrayviewer.cursor.path` / `.model` / `.extraArgs` | `cursor-agent` / empty / none | Cursor Agent CLI and model |
 | `xrayviewer.claude.path` / `.model` / `.extraArgs` | `claude` / `sonnet` / none | Claude Code |

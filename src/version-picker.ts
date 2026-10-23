@@ -24,6 +24,8 @@ export interface VersionPickerDeps {
   currentModel?: () => string;
   currentExtraArgs?: () => readonly string[];
   setAgentModel?: (id: string, model: string) => Promise<void>;
+  /** Saves a model or level setting under `xrayviewer`. Without it, the user's settings.json is written. */
+  saveSetting?: (key: string, value: unknown) => PromiseLike<void>;
   listModels?: (command: string) => Promise<CliModel[] | null>;
 }
 
@@ -159,11 +161,10 @@ async function pickModel(
     if (!level) return false;
     effort = level.value;
   }
+  const saveSetting = deps.saveSetting ?? ((key: string, value: unknown) => workspace.getConfiguration("xrayviewer").update(key, value, ConfigurationTarget.Global));
   if (agent?.id && deps.setAgentModel) await deps.setAgentModel(agent.id, picked.value);
-  else await workspace.getConfiguration("xrayviewer").update(chosen.modelSetting, picked.value, ConfigurationTarget.Global);
-  if (model) {
-    await workspace.getConfiguration("xrayviewer").update(chosen.argsSetting, chosen.writeLevel(extraArgs, effort), ConfigurationTarget.Global);
-  }
+  else await saveSetting(chosen.modelSetting, picked.value);
+  if (model) await saveSetting(chosen.argsSetting, chosen.writeLevel(extraArgs, effort));
   deps.log(`${who} now ${agent ? "uses" : "use"} ${picked.value || fallback}${effort ? `, ${chosen.levelWord} ${effort}` : ""}`);
   return true;
 }

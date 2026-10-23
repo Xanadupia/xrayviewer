@@ -8,9 +8,36 @@
  * reviewer schema, Hu turns a reviewer's output into findings, x is the diff index and xn matches skip patterns.
  */
 import { activityGroups, activityHTML, activitySummary, activityTime } from "./activity-ui.mjs";
+import { CHROME_NAMES, CHROME_PATCHES } from "./chrome-ui.mjs";
 import { commentLevel, findingDrafts, readTag, tagBadge, withTag } from "./comment-tags.mjs";
 import { modelSummary } from "./model-line.mjs";
+import { NAV_NAMES, NAV_PATCHES } from "./nav-ui.mjs";
 import { noticeFind, noticeReplace, noticeSource, toastFind } from "./notice-ui.mjs";
+import { THEME_NAMES, THEME_PATCHES } from "./theme-ui.mjs";
+
+/** The architecture agent's default instructions. They sit in a template literal in the bundle, so no backticks or `${`. */
+const ARCHITECTURE_INSTRUCTIONS = `## Look for
+
+Check that each change sits in the module that owns it and follows the patterns around it. Flag business logic in request handlers, modules that reach into another module's storage, helpers that duplicate existing ones, and new abstractions without a clear owner.
+
+Check that each change follows the programming paradigm of the file it's in. For each file the pull request touches, first decide from the code that was already there whether it's object-oriented (classes that hold state and expose behavior through methods) or functional (pure functions that take data and return new data, with no shared mutable state). For a new file, go by the files next to it. Then flag new or changed code that brings the other paradigm into that file, such as:
+
+- a class with its own state added to a file of pure functions
+- functions that change module-level state or their inputs, in a functional file
+- a function outside the class, in an object-oriented file. If it works on the class's data or only the class uses it, it should be a method of the class, private if nothing else needs it. If it isn't about the class, it belongs in a module of functions, such as an existing helper file. Name that file when there is one.
+
+Say which paradigm the file uses, with a line that shows it, and how the new code would look in that paradigm. Rate a paradigm mismatch medium at most, unless it causes a real defect.
+
+## Leave alone
+
+Naming, formatting and style. Linters handle those.
+
+Code the pull request didn't add or change. If a file already mixed both paradigms before this pull request, don't flag that. Only flag new code that goes against the part of the file it extends.
+
+Which paradigm is better in general. Follow the one the file already uses.
+
+Things that are normal in either paradigm: error classes, classes or decorators a framework requires, plain data types, and constants.
+`;
 
 export const PATCHES = [
   {
@@ -138,21 +165,22 @@ export const PATCHES = [
     id: "model-picker",
     find: "let P=async m=>{let v=Yt().harnesses.pi,A=m?`the ${Ue(m.name).toLowerCase()} agent`:\"agents on Pi\",E=`the other Pi agents' model (${v.model||\"Pi's default\"})`,M=(B=>_e(B)?B.replace(/:[a-z]+$/,\"\"):B)(m?m.model:v.model),J=await C.window.withProgress({location:C.ProgressLocation.Window,title:\"Listing Pi's models\"},()=>Ca(v)),_,$=!0;if(J===null){let B=await C.window.showInputBox({title:`Pi model for ${A}`,prompt:`Pi couldn't list its models. Type one as provider/id or a name Pi knows, with an optional :<thinking> suffix. Empty uses ${m?E:\"Pi's default\"}.`,placeHolder:\"anthropic/claude-sonnet-5-5\",value:m?m.model:v.model});if(B===void 0)return!1;_=B.trim()}else if(J.length){let B=[{label:m?\"Same as the other Pi agents\":\"Pi's default\",description:[m?v.model||\"Pi's default\":\"\",M?\"\":\"in use\"].filter(Boolean).join(\" \\xB7 \"),detail:m?\"Uses xrayviewer.pi.model.\":\"The model you set in Pi, else its first signed-in provider's.\",value:\"\",thinking:!0},...J.map(j=>{let ce=`${j.provider}/${j.id}`;return{label:j.id,description:[j.provider,j.thinking?\"\":\"no thinking\",ce===M?\"in use\":\"\"].filter(Boolean).join(\" \\xB7 \"),value:ce,thinking:j.thinking}})],se=await C.window.showQuickPick(B,{title:`Pi model for ${A}`,placeHolder:\"Models Pi is signed in to\",matchOnDescription:!0});if(!se)return!1;_=se.value,$=se.thinking}else return C.window.showWarningMessage(\"Pi has no models to use yet. Run pi in a terminal and use /login, or set a provider's API key, then choose again.\"),!1;let L=\"\";if($&&!_e(_)&&(_||!m)){let B=m?_e(m.model)||\"\":v.thinking||\"\",se=await C.window.showQuickPick([{label:m?\"Same as the other Pi agents\":\"Pi's default\",description:[m?v.thinking||\"Pi's default\":\"\",B?\"\":\"in use\"].filter(Boolean).join(\" \\xB7 \"),detail:m?\"Uses xrayviewer.pi.thinking.\":\"The level you set in Pi, else medium.\",value:\"\"},...Zn.map(j=>({label:j,description:j===B?\"in use\":\"\",value:j}))],{title:`Thinking for ${A}`,placeHolder:\"Pi lowers a level the model doesn't support\"});if(!se)return!1;L=se.value}if(m){let B=_&&L?`${_}:${L}`:_;await Cu(m.id,B),t(`${m.name} now runs on Pi with ${B||\"the other Pi agents' model\"}`)}else{let B=C.workspace.getConfiguration(\"xrayviewer\");await B.update(\"pi.model\",_,C.ConfigurationTarget.Global),await B.update(\"pi.thinking\",L,C.ConfigurationTarget.Global),t(`Pi agents now use ${_||\"Pi's default model\"}${L?`, thinking ${L}`:\"\"}`)}return!0},R=async()=>{let m=ji,",
     replace:
-      "let xrvPick=m=>xrvCursor().pickModel({vscode:C,readConfig:()=>Yt().harnesses.cursor,setAgentModel:Cu,log:t},m)," +
-      'xrvClaude=m=>xrvCursor().pickCli({vscode:C,log:t,currentPath:()=>Yt().harnesses.claude.command,currentModel:()=>m&&m.model||Yt().harnesses.claude.model,currentExtraArgs:()=>Yt().harnesses.claude.extraArgs,setAgentModel:Cu},"claude",m),' +
-      'xrvCodex=m=>xrvCursor().pickCli({vscode:C,log:t,currentPath:()=>Yt().harnesses.codex.command,currentModel:()=>m&&m.model||Yt().harnesses.codex.model,currentExtraArgs:()=>Yt().harnesses.codex.extraArgs,setAgentModel:Cu},"codex",m),' +
-      'xrvModel=(h,m)=>h==="cursor"?xrvPick(m):h==="claude"?xrvClaude(m):h==="codex"?xrvCodex(m):Promise.resolve(!1),' +
-      'xrvDone=async(h,a)=>{o.notifyModel();let E=Yt().harnesses,{settings:O}=await $t(),g=a?O.agents[a]:null;await xrvCursor().announceChoice({vscode:C,log:t},{harness:h,settings:E[h],agent:g?{name:Ue(g.name),model:g.model||""}:null,inUse:Object.values(O.agents).some(x=>x.enabled&&(x.harness||E.default)===h),agents:O.agents,harnesses:E})},' +
-      'xrvMove=async h=>{let E=Yt().harnesses,{settings:O}=await $t(),w=[];E.default!==h&&await C.workspace.getConfiguration("xrayviewer").update("harness",h,C.ConfigurationTarget.Global);' +
-      'for(let[d,x]of Object.entries(O.agents)){if(x.harness&&x.harness!==h){await Eu(d,"");w.push(Ue(x.name))}else if(!x.harness&&x.model&&E.default!==h){await Cu(d,"");w.push(Ue(x.name))}}' +
-      '(E.default!==h||w.length)&&t(`Every agent now runs on ${Nt[h]}${w.length?`. ${w.join(", ")} no longer ${w.length>1?"have":"has"} a harness or model of ${w.length>1?"their":"its"} own`:""}`)},' +
-      "R=async()=>{let m=ji,",
+      'let xrvScope=key=>xrvCursor().modelScope({key,harnesses:()=>Yt().harnesses,settings:$t,setAgentHarness:Eu,setAgentModel:Cu,saveSetting:(k,x)=>C.workspace.getConfiguration("xrayviewer").update(k,x,C.ConfigurationTarget.Global)}),' +
+      "xrvPick=(sc,m)=>xrvCursor().pickModel({vscode:C,readConfig:()=>sc.harnesses().cursor,setAgentModel:sc.setAgentModel,saveSetting:sc.saveSetting,log:t},m)," +
+      'xrvClaude=(sc,m)=>xrvCursor().pickCli({vscode:C,log:t,currentPath:()=>Yt().harnesses.claude.command,currentModel:()=>m&&m.model||sc.harnesses().claude.model,currentExtraArgs:()=>sc.harnesses().claude.extraArgs,setAgentModel:sc.setAgentModel,saveSetting:sc.saveSetting},"claude",m),' +
+      'xrvCodex=(sc,m)=>xrvCursor().pickCli({vscode:C,log:t,currentPath:()=>Yt().harnesses.codex.command,currentModel:()=>m&&m.model||sc.harnesses().codex.model,currentExtraArgs:()=>sc.harnesses().codex.extraArgs,setAgentModel:sc.setAgentModel,saveSetting:sc.saveSetting},"codex",m),' +
+      'xrvModel=(sc,h,m)=>h==="cursor"?xrvPick(sc,m):h==="claude"?xrvClaude(sc,m):h==="codex"?xrvCodex(sc,m):Promise.resolve(!1),' +
+      'xrvDone=async(sc,h,a)=>{o.notifyModel();let E=sc.harnesses(),{settings:O}=await sc.settings(),g=a?O.agents[a]:null;await xrvCursor().announceChoice({vscode:C,log:t},{harness:h,settings:E[h],agent:g?{name:Ue(g.name),model:g.model||""}:null,inUse:Object.values(O.agents).some(x=>x.enabled&&(x.harness||E.default)===h),agents:O.agents,harnesses:E,scope:sc.label})},' +
+      'xrvMove=async(sc,h)=>{let E=sc.harnesses(),{settings:O}=await sc.settings(),w=[];E.default!==h&&await sc.saveSetting("harness",h);' +
+      'for(let[d,x]of Object.entries(O.agents)){if(x.harness&&x.harness!==h){await sc.setAgentHarness(d,"");w.push(Ue(x.name))}else if(!x.harness&&x.model&&E.default!==h){await sc.setAgentModel(d,"");w.push(Ue(x.name))}}' +
+      '(E.default!==h||w.length)&&t(`Every agent now runs on ${Nt[h]}${sc.label?" for "+sc.label:""}${w.length?`. ${w.join(", ")} no longer ${w.length>1?"have":"has"} a harness or model of ${w.length>1?"their":"its"} own`:""}`)},' +
+      "R=async xrvKey=>{let xrvSc=xrvScope(xrvKey),m=ji,",
   },
   {
     id: "model-picker-default",
     find: 'j&&await C.workspace.getConfiguration("xrayviewer").update("harness",j.value,C.ConfigurationTarget.Global),j?.value==="pi"&&await P(null);continue}',
     replace:
-      'if(j){await C.workspace.getConfiguration("xrayviewer").update("harness",j.value,C.ConfigurationTarget.Global);if(await xrvModel(j.value,null)){await xrvDone(j.value,null);return}}continue}',
+      'if(j){await xrvSc.saveSetting("harness",j.value);if(await xrvModel(xrvSc,j.value,null)){await xrvDone(xrvSc,j.value,null);return}}continue}',
   },
   {
     id: "model-picker-agent",
@@ -163,15 +191,15 @@ export const PATCHES = [
       '{label:cv?"Cursor Agent "+cv:"Cursor Agent CLI",description:[cv?"":"Not found",cur==="cursor"?"in use":""].filter(Boolean).join(" \\u00b7 "),detail:cv?"Pick a model on your Cursor account. Then this agent runs on Cursor.":"Install it, or set xrayviewer.cursor.path to where it is.",value:"cursor"},' +
       '{label:co?"Codex "+co:"Install Codex\\u2026",description:[co?"":"Not installed",cur==="codex"?"in use":""].filter(Boolean).join(" \\u00b7 "),detail:co?"Pick a model and reasoning level. The run uses the newest Codex on this machine.":"Download the Codex CLI, then pick a model. Then this agent runs on Codex.",value:"codex"},' +
       '{label:cl?"Claude Code "+cl:"Install Claude Code\\u2026",description:[cl?"":"Not installed",cur==="claude"?"in use":""].filter(Boolean).join(" \\u00b7 "),detail:cl?"Pick a model and effort level. The run uses the newest Claude Code on this machine.":"Download Claude Code, then pick a model. Then this agent runs on Claude Code.",value:"claude"}' +
-      '],{title:`Which CLI runs the ${nm.toLowerCase()} agent?`,placeHolder:`Only the ${nm.toLowerCase()} agent changes. The other agents keep theirs, and they all still run together.`});if(!L)continue;let B=null;L.value!==own&&({clearedModel:B}=await Eu(_,L.value),t(`${ag.name} now runs on ${Nt[L.value]}`));let se=await xrvModel(L.value,{id:_,name:nm,model:L.value===own?ag.model:""});if(se){await xrvDone(L.value,_);return}',
+      '],{title:`Which CLI runs the ${nm.toLowerCase()} agent?`,placeHolder:`Only the ${nm.toLowerCase()} agent changes. The other agents keep theirs, and they all still run together.`});if(!L)continue;let B=null;L.value!==own&&({clearedModel:B}=await xrvSc.setAgentHarness(_,L.value),t(`${ag.name} now runs on ${Nt[L.value]}${xrvSc.label?" for "+xrvSc.label:""}`));let se=await xrvModel(xrvSc,L.value,{id:_,name:nm,model:L.value===own?ag.model:""});if(se){await xrvDone(xrvSc,L.value,_);return}',
   },
   {
     id: "harness-picker-rows",
     find:
       'M=[{label:"Default for all agents",description:Nt[E.default],detail:"Agents without a harness of their own use this one.",agent:"default"},{label:"Agents",kind:C.QuickPickItemKind.Separator},...Object.entries(O.agents).map(([j,ce])=>{let Me=ce.harness,q=Me||E.default,Le=ce.model||E[q].model||(q==="pi"?"Pi\'s default model":"the CLI\'s default model"),gt=q==="pi"&&E.pi.thinking&&!_e(ce.model)?`, thinking ${E.pi.thinking}`:"";return{label:Ue(ce.name),description:`${Nt[q]}${Me?"":" (default)"} \\xB7 ${Le}${gt}${ce.enabled?"":" \\xB7 off"}`,detail:j===z?"Also writes the briefing\'s opening line.":void 0,agent:j}})],J=await C.window.showQuickPick(M,{title:"Which CLI runs each agent?",placeHolder:"Pick the default or an agent to change it"});',
     replace:
-      'xrvRows=await xrvCursor().harnessPicker(E,O.agents,{cursor:v.get("cursor")||"",codex:xrvCursor().installedSummary("codex"),claude:xrvCursor().installedSummary("claude")},z),' +
-      'M=xrvRows.rows.map(x=>x.separator?{label:x.label,kind:C.QuickPickItemKind.Separator}:{...x,...x.action?{buttons:[{iconPath:new C.ThemeIcon("cloud-download"),tooltip:x.action==="install"?"Install":"Install update"}]}:{}}),' +
+      'xrvRows=await xrvCursor().harnessPicker(E,O.agents,{cursor:v.get("cursor")||"",codex:xrvCursor().installedSummary("codex"),claude:xrvCursor().installedSummary("claude")},z,xrvSc.picker),' +
+      'M=xrvRows.rows.map(x=>x.separator?{label:x.label,kind:C.QuickPickItemKind.Separator}:{...x,...x.icon?{iconPath:new C.ThemeIcon(x.icon)}:{},...x.action?{buttons:[{iconPath:new C.ThemeIcon("cloud-download"),tooltip:x.action==="install"?"Install":"Install update"}]}:{}}),' +
       'J=await new Promise(res=>{let qp=C.window.createQuickPick(),done=!1,finish=v=>{if(done)return;done=!0;qp.hide();qp.dispose();res(v)};qp.title=xrvRows.title;qp.placeholder=xrvRows.placeHolder;qp.matchOnDescription=!0;qp.items=M;qp.onDidTriggerItemButton(e=>finish({agent:(e.item.action==="install"?"install-":"update-")+e.item.harness,button:!0}));qp.onDidAccept(()=>finish(qp.selectedItems[0]));qp.onDidHide(()=>finish());qp.show()});',
   },
   {
@@ -203,14 +231,15 @@ export const PATCHES = [
     find: 'let l=this.record(e).run;return l.state==="held"&&l.note&&(o.runNote=l.note),',
     replace:
       'let l=this.record(e).run;return l.state==="held"&&l.note&&(o.runNote=l.note),o.agentsRunning=["running","queued","waiting","elsewhere"].includes(l.state),o.agentProgress=l.progress??null,o.runState=l.state,' +
-      "o.modelPlan=await $t().then(c=>xrvCursor().modelPlan(Yt().harnesses,c.settings.agents)).catch(()=>null),",
+      "o.modelPlan=await $t().then(c=>xrvCursor().modelPlan(Yt().harnesses,c.settings.agents,N(e))).catch(()=>null),",
   },
   {
     id: "run-button-notify",
     find: "noticeChange(e){",
     replace:
-      'notifyRun(){for(let tab of this.xrvTabs.values()){if(!tab.panel||!tab.current)continue;let run=this.service.get(tab.current)?.run,s=run?.state||"idle",id=N(tab.current).toLowerCase(),auto=xrvCursor().wantsAutoPost(id);if(auto&&(s==="done"||s==="failed"||s==="cancelled"))xrvCursor().clearAutoPost(id);tab.panel.webview.postMessage({type:"host-run",running:s==="running"||s==="queued"||s==="waiting"||s==="elsewhere",state:s,automatic:!!run?.automatic,progress:run?.progress??null,autoPost:auto})}let slot=this.xrvSlot,cur=slot&&slot.current,active=cur?this.service.get(cur)?.run:null;xrvCursor().publishActivity(active?.progress??null,()=>$t().then(c=>xrvCursor().modelPlan(Yt().harnesses,c.settings.agents)).catch(()=>null))}' +
-      'notifyModel(){if(!this.panel)return;$t().then(c=>xrvCursor().modelPlan(Yt().harnesses,c.settings.agents)).then(p=>this.panel?.webview.postMessage({type:"host-model",plan:p}),()=>{})}noticeChange(e){',
+      'notifyRun(){for(let tab of this.xrvTabs.values()){if(!tab.panel||!tab.current)continue;let run=this.service.get(tab.current)?.run,s=run?.state||"idle",id=N(tab.current).toLowerCase(),auto=xrvCursor().wantsAutoPost(id);if(auto&&(s==="done"||s==="failed"||s==="cancelled"))xrvCursor().clearAutoPost(id);tab.panel.webview.postMessage({type:"host-run",running:s==="running"||s==="queued"||s==="waiting"||s==="elsewhere",state:s,automatic:!!run?.automatic,progress:run?.progress??null,autoPost:auto})}let slot=this.xrvSlot,cur=slot&&slot.current,active=cur?this.service.get(cur)?.run:null;xrvCursor().publishActivity(active?.progress??null,()=>$t().then(c=>xrvCursor().modelPlan(Yt().harnesses,c.settings.agents,cur?N(cur):"")).catch(()=>null))}' +
+      'notifyTheme(){let m={type:"host-theme",theme:xrvCursor().themeChoice(ee)};for(let p of this.xrvPanels||[])p.webview.postMessage(m)}' +
+      'notifyModel(){for(let tab of this.xrvTabs.values()){if(!tab.panel||!tab.current)continue;let panel=tab.panel,key=N(tab.current);$t().then(c=>xrvCursor().modelPlan(Yt().harnesses,c.settings.agents,key)).then(p=>panel.webview.postMessage({type:"host-model",plan:p}),()=>{})}}noticeChange(e){',
   },
   {
     id: "run-button-change",
@@ -221,25 +250,36 @@ export const PATCHES = [
     id: "run-button-shim",
     find: 'm.type === "host-view" || m.type === "host-list" || m.type === "host-pr-changed" || m.type === "host-data"',
     replace:
-      'm.type === "host-view" || m.type === "host-list" || m.type === "host-pr-changed" || m.type === "host-data" || m.type === "host-run" || m.type === "host-model" || m.type === "host-notice"',
+      'm.type === "host-view" || m.type === "host-list" || m.type === "host-pr-changed" || m.type === "host-data" || m.type === "host-run" || m.type === "host-model" || m.type === "host-notice" || m.type === "host-theme"',
   },
   {
     id: "harness-install-actions",
     find: 'if(!J?.agent)return;if(J.agent==="default"){',
     replace:
-      'if(!J?.agent)return;if(J.button){let id=J.agent.slice(J.agent.startsWith("update-")?7:8),ok=J.agent.startsWith("update-")?await xrvCursor().updateCli({vscode:C,log:t},id):await xrvCursor().installCli({vscode:C,log:t},id);if(ok)o.notifyModel();continue}if(J.agent==="pick-cursor"||J.agent==="install-codex"||J.agent==="install-claude"){let h=J.agent.replace(/^(pick|install)-/,"");if(await xrvModel(h,null)){await xrvMove(h);await xrvDone(h,null);return}continue}if(J.agent==="default"){',
+      'if(!J?.agent)return;if(J.button){let id=J.agent.slice(J.agent.startsWith("update-")?7:8),ok=J.agent.startsWith("update-")?await xrvCursor().updateCli({vscode:C,log:t},id):await xrvCursor().installCli({vscode:C,log:t},id);if(ok)o.notifyModel();continue}if(J.agent==="scope-reset"){let note=await xrvSc.reset();o.notifyModel();t(note);C.window.showInformationMessage(note);return}if(J.agent==="scope-global"){xrvSc=xrvScope();continue}' +
+      'if(J.agent==="pick-cursor"||J.agent==="install-codex"||J.agent==="install-claude"){let h=J.agent.replace(/^(pick|install)-/,"");if(await xrvModel(xrvSc,h,null)){await xrvMove(xrvSc,h);await xrvDone(xrvSc,h,null);return}continue}if(J.agent==="default"){',
   },
   {
     id: "choose-model-host",
     find: 'runAgents() { vscode.postMessage({ type: "runAgents", key }); },',
     replace:
-      'runAgents() { vscode.postMessage({ type: "runAgents", key }); },\n    chooseHarness() { vscode.postMessage({ type: "chooseHarness", key }); },\n    showActivity() { vscode.postMessage({ type: "showActivity", key }); },',
+      'runAgents() { vscode.postMessage({ type: "runAgents", key }); },\n    chooseHarness() { vscode.postMessage({ type: "chooseHarness", key }); },\n    showActivity() { vscode.postMessage({ type: "showActivity", key }); },\n    setTheme(theme) { vscode.postMessage({ type: "setTheme", key, theme }); },',
   },
   {
     id: "choose-model-command",
     find: 'else if(e.type==="runAgents")ee.commands.executeCommand("xrayviewer.runAgents",N(t));',
     replace:
-      'else if(e.type==="chooseHarness")ee.commands.executeCommand("xrayviewer.selectHarness");else if(e.type==="showActivity")ee.commands.executeCommand("xrayviewer.agentActivity.focus");else if(e.type==="runAgents")ee.commands.executeCommand("xrayviewer.runAgents",N(t));',
+      'else if(e.type==="chooseHarness")ee.commands.executeCommand("xrayviewer.selectHarness",N(t));else if(e.type==="showActivity")ee.commands.executeCommand("xrayviewer.agentActivity.focus");else if(e.type==="setTheme")xrvCursor().saveTheme(ee,e.theme).catch(()=>{});else if(e.type==="runAgents")ee.commands.executeCommand("xrayviewer.runAgents",N(t));',
+  },
+  {
+    id: "theme-page-tag",
+    find: "return pf(this.template,{csp:a,",
+    replace: 'return pf(this.template.replace(\'<html lang="en">\',()=>xrvCursor().themeTag(ee)),{csp:a,',
+  },
+  {
+    id: "theme-setting-change",
+    find: 'onDidChangeConfiguration(m=>{m.affectsConfiguration("xrayviewer.sidebar")&&',
+    replace: 'onDidChangeConfiguration(m=>{m.affectsConfiguration("xrayviewer.theme")&&o.notifyTheme(),m.affectsConfiguration("xrayviewer.sidebar")&&',
   },
   {
     id: "sidebar-settings",
@@ -328,7 +368,7 @@ export const PATCHES = [
       'if(a.state==="behind")return{short:pa?"Reviewed & posted, new commits":"Reviewed, new commits",long:"Reviewed "+c+" "+ht(a.ranAt,t)+": "+fs+"."+posted+" New commits came after it."+hold,color:"#E2C08D",flag};' +
       'if(!pa)return{short:"Reviewed, not posted, "+fs,long:"Reviewed "+c+" "+ht(a.ranAt,t)+": "+fs+"."+posted+hold,color:"#E2C08D",flag};' +
       'return{short:"Reviewed & posted, "+fs,long:"Reviewed "+c+" "+ht(a.ranAt,t)+": "+fs+"."+posted+hold,color:"#3FB950",flag}}' +
-      'function bf(n,e,t=Date.now()){let s=n.summary,i=Ai(s),state=!s?"":s.state==="MERGED"?"merged":s.state==="CLOSED"?"closed":s.isDraft?"draft":"open";return[state,xrvAgentState(n,t).short,e.tag||"",i&&yf(s)?"conflicts":"",Fv(s,t),e.inRepoGroup?"":n.key.name].filter(Boolean).join(" \\xB7 ")}',
+      'function bf(n,e,t=Date.now()){let s=n.summary,i=Ai(s),state=!s?"":s.state==="MERGED"?"merged":s.state==="CLOSED"?"closed":s.isDraft?"draft":"",agent=xrvAgentState(n,t).short;return["#"+n.key.number,state,agent==="Not reviewed"?"":agent,e.tag||"",i&&yf(s)?"conflicts":"",Fv(s,t),e.inRepoGroup?"":n.key.name].filter(Boolean).join(" \\xB7 ")}',
   },
   {
     id: "agent-summary-posted",
@@ -345,7 +385,7 @@ export const PATCHES = [
     id: "sidebar-status-icon",
     find: 'let a=t.run.state==="running"||t.run.state==="queued"||t.run.state==="elsewhere",l=jn(t.agent,s),c=l.state==="current"?"pass-filled":l.state==="behind"?"pass":"circle-large-outline";r.iconPath=a?new oe.ThemeIcon("sync~spin"):t.run.state==="failed"?new oe.ThemeIcon("error",new oe.ThemeColor("list.errorForeground")):new oe.ThemeIcon(c,new oe.ThemeColor(e.risk?Bv[e.risk.level]:"disabledForeground"));let d=t.run.state==="elsewhere"?"elsewhere":a||t.run.state==="waiting"?"running":"idle";',
     replace:
-      'let xrvSt=!s?"open":s.state==="MERGED"?"merged":s.state==="CLOSED"?"closed":s.isDraft?"draft":"open",xrvIcon=xrvSt==="merged"?"git-merge":xrvSt==="closed"?"git-pull-request-closed":xrvSt==="draft"?"git-pull-request-draft":"git-pull-request",xrvColor=xrvSt==="merged"?"charts.purple":xrvSt==="closed"?"charts.red":xrvSt==="draft"?"disabledForeground":"charts.green",xrvExt=oe.extensions.getExtension("aliqaryan.xrayviewer"),xrvFlag=xrvAgentState(t).flag;r.resourceUri=oe.Uri.from({scheme:"xrayviewer",path:"/"+t.key.owner+"/"+t.key.name+"/"+t.key.number,query:xrvFlag});r.iconPath=xrvExt&&e.risk?oe.Uri.joinPath(xrvExt.extensionUri,"media","risk",xrvSt+"-"+e.risk.level+".svg"):new oe.ThemeIcon(xrvIcon,new oe.ThemeColor(xrvColor));let d=t.run.state==="elsewhere"?"elsewhere":t.run.state==="running"||t.run.state==="queued"||t.run.state==="waiting"?"running":"idle";',
+      'let xrvSt=!s?"open":s.state==="MERGED"?"merged":s.state==="CLOSED"?"closed":s.isDraft?"draft":"open",xrvIcon=xrvSt==="merged"?"git-merge":xrvSt==="closed"?"git-pull-request-closed":xrvSt==="draft"?"git-pull-request-draft":"git-pull-request",xrvFlag=xrvAgentState(t).flag;r.resourceUri=oe.Uri.from({scheme:"xrayviewer",path:"/"+t.key.owner+"/"+t.key.name+"/"+t.key.number,query:xrvFlag});r.iconPath=new oe.ThemeIcon(xrvIcon,e.risk?.level==="high"?new oe.ThemeColor("charts.red"):e.risk?.level==="medium"?new oe.ThemeColor("charts.yellow"):void 0);let d=t.run.state==="elsewhere"?"elsewhere":t.run.state==="running"||t.run.state==="queued"||t.run.state==="waiting"?"running":"idle";',
   },
   {
     id: "review-tabs-state",
@@ -357,7 +397,7 @@ export const PATCHES = [
     id: "review-tabs-panel",
     find: 'ensurePanel(){if(this.panel)return this.panel;let e=ee.window.createWebviewPanel("xrayviewer.review","X-RayViewer",ee.ViewColumn.Active,{enableScripts:!0,retainContextWhenHidden:!0,localResourceRoots:[this.ui()]});return e.iconPath=ee.Uri.joinPath(this.extensionUri,"media","xrayviewer.svg"),e.onDidDispose(()=>{this.panel=null,this.current=null,this.shownSeq=-1,this.shownPr=null}),e.webview.onDidReceiveMessage(t=>{this.onMessage(t)}),this.panel=e,e}',
     replace:
-      'ensurePanel(pr){let id=pr?N(pr).toLowerCase():"";if(id){let tab=this.xrvTabs.get(id);if(tab?.panel)return this.xrvSlot=tab,tab.panel}else if(this.panel)return this.panel;let e=ee.window.createWebviewPanel("xrayviewer.review",pr?`#${pr.number}`:"X-RayViewer",ee.ViewColumn.Active,{enableScripts:!0,retainContextWhenHidden:!0,localResourceRoots:[this.ui()]});let tab={panel:e,current:pr||null,home:!1,view:void 0,loadSeq:0,shownSeq:-1,shownPr:null,noticed:null,drawing:new Map};id&&this.xrvTabs.set(id,tab);this.xrvSlot=tab;e.iconPath=ee.Uri.joinPath(this.extensionUri,"media","xrayviewer.svg");e.onDidDispose(()=>{id&&this.xrvTabs.delete(id);this.xrvSlot===tab&&(xrvCursor().cancelNotices(),this.xrvSlot=null)});e.onDidChangeViewState(v=>{if(v.webviewPanel.active)this.xrvSlot=tab,this.notifyRun()});e.webview.onDidReceiveMessage(t=>{this.xrvSlot=tab;if(t&&t.type==="notice-answer")xrvCursor().answerNotice(t);this.onMessage(t)});xrvCursor().bindNotice(m=>{let p=this.panel;if(!p||!String(p.webview.html||"").includes("host-notice"))return!1;p.webview.postMessage(m);return!0});return e}',
+      'ensurePanel(pr){let id=pr?N(pr).toLowerCase():"";if(id){let tab=this.xrvTabs.get(id);if(tab?.panel)return this.xrvSlot=tab,tab.panel}else if(this.panel)return this.panel;let e=ee.window.createWebviewPanel("xrayviewer.review",pr?`#${pr.number}`:"X-RayViewer",ee.ViewColumn.Active,{enableScripts:!0,retainContextWhenHidden:!0,localResourceRoots:[this.ui()]});let tab={panel:e,current:pr||null,home:!1,view:void 0,loadSeq:0,shownSeq:-1,shownPr:null,noticed:null,drawing:new Map};id&&this.xrvTabs.set(id,tab);this.xrvSlot=tab;(this.xrvPanels??=new Set).add(e);e.iconPath=ee.Uri.joinPath(this.extensionUri,"media","xrayviewer.svg");e.onDidDispose(()=>{id&&this.xrvTabs.delete(id);this.xrvPanels.delete(e);this.xrvSlot===tab&&(xrvCursor().cancelNotices(),this.xrvSlot=null)});e.onDidChangeViewState(v=>{if(v.webviewPanel.active)this.xrvSlot=tab,this.notifyRun()});e.webview.onDidReceiveMessage(t=>{this.xrvSlot=tab;if(t&&t.type==="notice-answer")xrvCursor().answerNotice(t);this.onMessage(t)});xrvCursor().bindNotice(m=>{let p=this.panel;if(!p||!String(p.webview.html||"").includes("host-notice"))return!1;p.webview.postMessage(m);return!0});return e}',
   },
   {
     id: "review-tabs-show",
@@ -394,7 +434,8 @@ export const PATCHES = [
     id: "review-decoration",
     find: 'l=C.window.createTreeView("xrayviewer.pullRequests",{treeDataProvider:a,showCollapseAll:!0});n.subscriptions.push(l,a,{dispose:()=>r.dispose()},{dispose:()=>o.dispose()});',
     replace:
-      'l=C.window.createTreeView("xrayviewer.pullRequests",{treeDataProvider:a,showCollapseAll:!0,canSelectMany:!0});l.onDidChangeCheckboxState(ev=>{let blocked="";for(let [item,state] of ev.items||[]){if(!item||item.kind!=="pr"||!item.record?.key)continue;let res=xrvCursor().setChecked(N(item.record.key),state===1);if(!res.ok)blocked=res.reason||"Five is the most you can select."}blocked&&(xrvCursor().offerNotice(blocked,[],"warning")||C.window.showInformationMessage(blocked));a.refresh()});n.subscriptions.push(l,a,{dispose:()=>r.dispose()},{dispose:()=>o.dispose()},C.window.registerFileDecorationProvider({provideFileDecoration(u){if(u.scheme!=="xrayviewer")return;let f=u.query;return f==="ongoing"?{badge:"\\u25cf",color:new C.ThemeColor("charts.blue"),tooltip:"Reviewing"}:f==="posted"?{badge:"\\u2713",color:new C.ThemeColor("charts.green"),tooltip:"Reviewed and posted by X-RayViewer"}:f==="reviewed"?{badge:"\\u2713",color:new C.ThemeColor("charts.yellow"),tooltip:"Reviewed by X-RayViewer, not posted yet"}:{badge:"\\u2013",tooltip:"Not reviewed by X-RayViewer"}}}));',
+      'l=C.window.createTreeView("xrayviewer.pullRequests",{treeDataProvider:a,showCollapseAll:!0,canSelectMany:!0});l.onDidChangeCheckboxState(ev=>{let blocked="";for(let [item,state] of ev.items||[]){if(!item||item.kind!=="pr"||!item.record?.key)continue;let res=xrvCursor().setChecked(N(item.record.key),state===1);if(!res.ok)blocked=res.reason||"Five is the most you can select."}blocked&&(xrvCursor().offerNotice(blocked,[],"warning")||C.window.showInformationMessage(blocked));a.refresh()});n.subscriptions.push(l,a,{dispose:()=>r.dispose()},{dispose:()=>o.dispose()},C.window.registerFileDecorationProvider({provideFileDecoration(u){if(u.scheme!=="xrayviewer")return;let f=u.query;return f==="ongoing"?{badge:"\\u25cf",tooltip:"Reviewing"}:f==="posted"?{badge:"\\u2713",tooltip:"Reviewed and posted by X-RayViewer"}:f==="reviewed"?{badge:"\\u2713",tooltip:"Reviewed by X-RayViewer, not posted yet"}:void 0}}));' +
+      'xrvCursor().bindRunningView({vscode:C,records:()=>r.all(),onChange:f=>r.on("change",f),subscriptions:n.subscriptions});',
   },
   {
     id: "sidebar-group-author",
@@ -411,7 +452,7 @@ export const PATCHES = [
         id: "sidebar-view-label",
     find: 'let c=()=>{let{groupBy:m,sortBy:v}=Ei();l.description=`${m==="repository"?"by repository":"by relationship"} \\xB7 ${md[v]}`}',
     replace:
-      'let c=()=>{let{groupBy:m,sortBy:v,author:au,status:st,mine}=Ei(),by=m==="repository"?"by repository":m==="author"?"by author":m==="review"?"by review":"by relationship",shown=Array.isArray(st)&&st.length&&st.length<4?st.join(", "):"",who=Array.isArray(au)?au.join(", "):au||"",extra=[mine?"mine":"",shown,who].filter(Boolean).join(" · ");l.description=`${by}${extra?` · ${extra}`:""} · ${md[v]}`}',
+      'let c=()=>{let{groupBy:m,sortBy:v,author:au,status:st,mine}=Ei(),by=m==="repository"?"by repository":m==="author"?"by author":m==="review"?"by review":"",shown=Array.isArray(st)&&st.length&&st.length<4?st.join(", "):"",who=Array.isArray(au)?au.join(", "):au||"";l.description=[by,mine?"mine":"",shown,who,v==="risk"?"":md[v]].filter(Boolean).join(" · ")}',
   },
   {
     id: "sidebar-filter-author",
@@ -423,7 +464,7 @@ export const PATCHES = [
     id: "page-notices",
     find: 'async function Uv(n){let e=C.window.createOutputChannel("X-RayViewer",{log:!0})',
     replace:
-      'function xrvInstallNotices(){if(C.window.__xrvNotices)return;C.window.__xrvNotices=1;let w=C.window,info=w.showInformationMessage.bind(w),warn=w.showWarningMessage.bind(w),err=w.showErrorMessage.bind(w),prog=w.withProgress.bind(w),buttons=a=>a.filter(x=>typeof x==="string"),ask=(fallback,tone,message,...rest)=>{let choice=xrvCursor().offerNotice(String(message??""),buttons(rest),tone);return choice||fallback(message,...rest)};w.showInformationMessage=(m,...r)=>ask(info,"info",m,...r);w.showWarningMessage=(m,...r)=>ask(warn,"warning",m,...r);w.showErrorMessage=(m,...r)=>ask(err,"error",m,...r);w.withProgress=(o,task)=>{if(o&&o.location===C.ProgressLocation.Notification){let g=xrvCursor().holdNotice(String(o.title||"Working…"));if(g)return Promise.resolve(task({report(){}})).finally(()=>xrvCursor().clearNotice(g))}return prog(o,task)}}async function Uv(n){xrvInstallNotices();let xrvGo=async run=>{let note=run?"Check up to 5 pull requests, then Review all selected and post.":"Check up to 5 pull requests, then Open selected PRs.";let sent=xrvCursor().offerNotice(note,[],"warning");sent||C.window.showInformationMessage(note)};n.subscriptions.push(C.commands.registerCommand("xrayviewer.openSelected",()=>xrvGo(!1)),C.commands.registerCommand("xrayviewer.runSelected",()=>xrvGo(!0)),C.window.registerWebviewViewProvider("xrayviewer.selectionButtons",{resolveWebviewView(view){let nonce=Math.random().toString(36).slice(2);view.title="";view.webview.options={enableCommandUris:["xrayviewer.openSelected","xrayviewer.runSelected"]};view.webview.html=xrvCursor().selectionBarHTML(nonce)}}),C.window.registerWebviewViewProvider("xrayviewer.agentActivity",{resolveWebviewView(view){let nonce=Math.random().toString(36).slice(2);view.webview.options={enableScripts:!0,localResourceRoots:[n.extensionUri]};let css=view.webview.asWebviewUri(C.Uri.joinPath(n.extensionUri,"media","ui","styles.css"));view.webview.html=xrvCursor().activityPanelHTML(view.webview.cspSource,nonce,String(css));xrvCursor().bindActivity(view.webview);view.webview.onDidReceiveMessage(m=>xrvCursor().onActivityMessage(m))}}));let e=C.window.createOutputChannel("X-RayViewer",{log:!0})',
+      'function xrvInstallNotices(){if(C.window.__xrvNotices)return;C.window.__xrvNotices=1;let w=C.window,info=w.showInformationMessage.bind(w),warn=w.showWarningMessage.bind(w),err=w.showErrorMessage.bind(w),prog=w.withProgress.bind(w),buttons=a=>a.filter(x=>typeof x==="string"),ask=(fallback,tone,message,...rest)=>{let choice=xrvCursor().offerNotice(String(message??""),buttons(rest),tone);return choice||fallback(message,...rest)};w.showInformationMessage=(m,...r)=>ask(info,"info",m,...r);w.showWarningMessage=(m,...r)=>ask(warn,"warning",m,...r);w.showErrorMessage=(m,...r)=>ask(err,"error",m,...r);w.withProgress=(o,task)=>{if(o&&o.location===C.ProgressLocation.Notification){let g=xrvCursor().holdNotice(String(o.title||"Working…"));if(g)return Promise.resolve(task({report(){}})).finally(()=>xrvCursor().clearNotice(g))}return prog(o,task)}}async function Uv(n){xrvInstallNotices();xrvCursor().bindModelStore(n.globalState);let xrvGo=async run=>{let note=run?"Check up to 5 pull requests, then Review all selected and post.":"Check up to 5 pull requests, then Open selected PRs.";let sent=xrvCursor().offerNotice(note,[],"warning");sent||C.window.showInformationMessage(note)};n.subscriptions.push(C.commands.registerCommand("xrayviewer.openSelected",()=>xrvGo(!1)),C.commands.registerCommand("xrayviewer.runSelected",()=>xrvGo(!0)),C.commands.registerCommand("xrayviewer.chooseTheme",()=>xrvCursor().chooseTheme(C)),C.window.registerWebviewViewProvider("xrayviewer.selectionButtons",{resolveWebviewView(view){view.webview.options={enableCommandUris:["xrayviewer.openSelected","xrayviewer.runSelected"]};xrvCursor().bindSelectionBar(view)}}),C.window.registerWebviewViewProvider("xrayviewer.agentActivity",{resolveWebviewView(view){let nonce=Math.random().toString(36).slice(2);view.webview.options={enableScripts:!0,localResourceRoots:[n.extensionUri]};let css=view.webview.asWebviewUri(C.Uri.joinPath(n.extensionUri,"media","ui","styles.css"));view.webview.html=xrvCursor().activityPanelHTML(view.webview.cspSource,nonce,String(css));xrvCursor().bindActivity(view.webview);view.webview.onDidReceiveMessage(m=>xrvCursor().onActivityMessage(m))}}));let e=C.window.createOutputChannel("X-RayViewer",{log:!0})',
   },
   {
     id: "page-notice-answer",
@@ -451,7 +492,6 @@ export const PATCHES = [
     find: 'k("xrayviewer.sortBy",async()=>{let m=Ei().sortBy,v=[{label:"Risk",detail:"Riskiest first",value:"risk"},{label:"Newest",detail:"Most recently created first",value:"created"},{label:"Recently updated",detail:"Most recent activity first",value:"updated"}].map(E=>({...E,description:E.value===m?"current":""})),A=await C.window.showQuickPick(v,{title:"Sort pull requests"});A&&await C.workspace.getConfiguration("xrayviewer.sidebar").update("sortBy",A.value,C.ConfigurationTarget.Global)}),k("xrayviewer.selectHarness"',
     replace:
       'k("xrayviewer.sortBy",async()=>{let m=Ei().sortBy,v=[{label:"Risk",detail:"Riskiest first, inside every group",value:"risk"},{label:"Recently updated",detail:"Most recent activity first, inside every group",value:"updated"},{label:"Newest",detail:"Most recently created first, inside every group",value:"created"},{label:"Title",detail:"A to Z, inside every group",value:"title"},{label:"Size",detail:"Largest diff first, inside every group",value:"size"},{label:"Number",detail:"Highest pull request number first, inside every group",value:"number"}].map(E=>({...E,description:E.value===m?"current":""})),A=await C.window.showQuickPick(v,{title:"Sort within each group"});A&&await C.workspace.getConfiguration("xrayviewer.sidebar").update("sortBy",A.value,C.ConfigurationTarget.Global)}),' +
-      'k("xrayviewer.toggleCheck",item=>{if(!item?.record?.key)return;let id=N(item.record.key),res=xrvCursor().setChecked(id,!xrvCursor().isChecked(id));if(!res.ok){let sent=xrvCursor().offerNotice(res.reason,[],"warning");sent||C.window.showInformationMessage(res.reason);return}a.refresh()}),' +
       '(xrvGo=async run=>{try{let marked=xrvCursor().checkedKeys().map(id=>r.all().find(rec=>N(rec.key).toLowerCase()===id)).filter(Boolean).map(rec=>({kind:"pr",record:rec})),pick=xrvCursor().chosenPullRequests(marked.length?marked:[...l.selection]);if(!pick.chosen.length){let note="Check up to 5 pull requests first.";let sent=xrvCursor().offerNotice(note,[],"warning");sent||C.window.showInformationMessage(note);return}xrvCursor().clearChecked();a.refresh();for(let row of pick.chosen)await o.show(row.record.key);if(run)for(let row of pick.chosen)xrvCursor().armAutoPost(N(row.record.key)),r.runAgents(row.record.key)}catch(err){let note=`X-RayViewer could not ${run?"run":"open"} the selected pull requests. ${err&&err.message||err}`;let sent=xrvCursor().offerNotice(note,[],"error");sent||C.window.showErrorMessage(note)}}),k("xrayviewer.selectHarness"',
   },
   {
@@ -470,10 +510,45 @@ export const PATCHES = [
     find: 'return r.contextValue=`pr.${d}${t.agent?".agent":""}${t.pinned?".pinned":""}`,r.command={command:"xrayviewer.open",title:"Open Review",arguments:[i]}',
     replace: 'r.checkboxState=xrvCursor().isChecked(i)?1:0;return r.contextValue=`pr.${d}${t.agent?".agent":""}${xrvCursor().isChecked(i)?".on":""}${t.pinned?".pinned":""}`,r.command={command:"xrayviewer.open",title:"Open Review",arguments:[i]}',
   },
+  {
+    id: "sidebar-title-first",
+    find: "i=N(t.key),r=new oe.TreeItem(`#${t.key.number} ${s?.title??i}`,oe.TreeItemCollapsibleState.None);",
+    replace: "i=N(t.key),r=new oe.TreeItem(s?.title??i,oe.TreeItemCollapsibleState.None);",
+  },
+  {
+    id: "sidebar-repo-icon",
+    find: "u.contextValue=\"group\",u.id=`group:${e.id}`,u}",
+    replace: "u.contextValue=\"group\",u.id=`group:${e.id}`,String(e.id).startsWith(\"repo:\")&&(u.iconPath=new oe.ThemeIcon(\"repo\")),u}",
+  },
+  {
+    id: "sidebar-badge",
+    find: "l.badge=m?{value:m,tooltip:`${m} agent run${m===1?\"\":\"s\"} in progress`}:void 0",
+    replace: "l.badge=xrvCursor().sidebarBadge(r.all(),m)",
+  },
+  {
+    id: "model-scope-loop",
+    find: "for(;;){await ut();let E=Yt().harnesses,{settings:O}=await $t(),",
+    replace: "for(;;){await ut();let E=xrvSc.harnesses(),{settings:O}=await xrvSc.settings(),",
+  },
+  {
+    id: "model-scope-command",
+    find: "()=>R());let D=async()=>{",
+    replace: "m=>R(m));let D=async()=>{",
+  },
+  {
+    id: "run-pr-models",
+    find: "harnesses:o.harnesses,settings:b,enabled:o.agents.enabled",
+    replace: "...xrvCursor().withModelChoice(N(e),o.harnesses,b),enabled:o.agents.enabled",
+  },
+  {
+    id: "architecture-instructions",
+    find: "architecture:`## Look for\n\nCheck that each change sits in the module that owns it and follows the patterns around it. Flag business logic in request handlers, modules that reach into another module's storage, helpers that duplicate existing ones, and new abstractions without a clear owner.\n\n## Leave alone\n\nNaming, formatting and style. Linters handle those.\n`,correctness:`",
+    replace: "architecture:`" + ARCHITECTURE_INSTRUCTIONS + "`,correctness:`",
+  },
 ];
 
 /** Names the patches add; the original bundle must not use them already. */
-export const ADDED_NAMES = ["xrvCursorHarness", "xrvCursor", "xrvReview", "xrvA", "xrvPick", "xrvClaude", "xrvCodex", "xrvModel", "xrvDone", "xrvRows", "xrvMove", "xrvSt", "xrvIcon", "xrvColor", "xrvExt", "xrvStatus", "xrvAgentState", "xrvTabs", "xrvSlot", "xrvHold", "xrvInstallNotices"];
+export const ADDED_NAMES = ["xrvCursorHarness", "xrvCursor", "xrvReview", "xrvA", "xrvPick", "xrvClaude", "xrvCodex", "xrvModel", "xrvDone", "xrvRows", "xrvMove", "xrvSt", "xrvIcon", "xrvStatus", "xrvAgentState", "xrvTabs", "xrvSlot", "xrvHold", "xrvInstallNotices", "xrvScope", "xrvSc", "xrvKey"];
 
 const modelBit = '${modelSummary(AGENTS).line ? ` · ${esc(modelSummary(AGENTS).line)} <button type="button" class="link" data-act="choose-model">Change</button>` : ""}';
 
@@ -997,16 +1072,6 @@ function prHeadHTML() {`,
     replace: '<span class="brand-word">X-RayViewer</span>',
   },
   {
-    id: "ribbon-plain",
-    find: '<span class="ribbon-tag">Local</span>',
-    replace: '<span class="ribbon-tag">This computer</span>',
-  },
-  {
-    id: "ribbon-drafts",
-    find: "Drafts stay on this machine until you post them.",
-    replace: "Comments stay here until you post them.",
-  },
-  {
     id: "post-still-reloads",
     find: 'showPushPanel(`<p class="push-ok">${icon("check-circle")}<span>Posted to GitHub.${review && review.url ? ` <a class="link" href="${esc(review.url)}" target="_blank" rel="noopener">Open the review</a>.` : ""} Reloading with the latest from GitHub…</span></p>`);\n    await api("POST", "/refresh");\n    reloadPage();',
     replace:
@@ -1122,6 +1187,9 @@ function statusLineHTML() {
     find: 'if (fn) { if (el.tagName === "A") e.preventDefault(); fn(el, e); return; }',
     replace: 'if (fn) { if (el.tagName === "A") e.preventDefault(); if (el.closest(".notice")) releaseBanner(el); fn(el, e); return; }',
   },
+  ...THEME_PATCHES,
+  ...CHROME_PATCHES,
+  ...NAV_PATCHES,
 ];
 
 export const UI_ADDED_NAMES = [
@@ -1132,6 +1200,9 @@ export const UI_ADDED_NAMES = [
   "findingDrafts", "lastAdopted", "adoptAllHTML", "adoptAll", "undoAdoptAll", "adoptAllCardHTML", "syncAdoptAll", "xrayState", "xrayPillHTML", "applyXrayPill",
   "postAllKey", "postAllOn", "postAllArmed", "armPostAll", "disarmPostAll", "setPostAll", "postAllHTML", "postingAll", "onHostRun", "postFinishedReview", "maybePostAll", "runState",
   "TONE_ICONS", "toneOf", "toneHTML", "notePosted", "showPostedNotice", "bannerTimer", "bannerPin", "bannerNow", "bannerStay", "bannerHost", "bannerHTML", "paintBanner", "dropBanner", "releaseBanner", "showPinnedNotice", "showHostNotice",
+  ...THEME_NAMES,
+  ...CHROME_NAMES,
+  ...NAV_NAMES,
 ];
 
 export function countOccurrences(text, needle) {

@@ -11,6 +11,8 @@ export interface PickerRow {
   label: string;
   description?: string;
   detail?: string;
+  /** A codicon drawn before the label. */
+  icon?: string;
   agent?: string;
   /** Which CLI the right-hand control downloads. */
   harness?: HarnessId;
@@ -28,6 +30,8 @@ export interface PickerInput {
   /** A newer published version, when one is available for that installed CLI. */
   updates?: Partial<Record<HarnessId, string>>;
   guideId: string;
+  /** Set when the picker changes one pull request: its label, and whether it has a choice of its own yet. */
+  scope?: { label: string; custom: boolean };
 }
 
 export interface Picker {
@@ -36,49 +40,41 @@ export interface Picker {
   rows: PickerRow[];
 }
 
-const agentCount = (n: number) => (n === 1 ? "the agent" : `all ${n} agents`);
-
 const sentence = (text: string) => (/[.!?]$/.test(text.trim()) ? text.trim() : `${text.trim()}.`);
 
-const cliLabel = (harness: HarnessId) => (harness === "cursor" ? "Cursor Agent" : harnessName(harness));
+const section = (title: string): PickerRow => ({ label: title, separator: true });
 
-/** A quiet rule, so a section break stays visible in a dim menu without a heavy bar. */
-const section = (title: string): PickerRow => ({ label: `—  ${title}  —`, separator: true });
+/** Cursor's builds end in a commit hash, which tells a reader nothing. */
+const shortVersion = (version: string) => version.replace(/-[0-9a-f]{7,}$/i, "");
 
-function cliRow(harness: HarnessId, installed: string, latest: string, total: number, usedBy: number, running: number): PickerRow {
-  const name = cliLabel(harness);
-  const move = `Move ${agentCount(total)} to ${harnessName(harness)}`;
-  const used = !usedBy ? "" : usedBy === running ? `used by ${agentCount(running)}` : `used by ${usedBy} of ${running} agents`;
+const AGENT_ICONS: Record<string, string> = { architecture: "layers", correctness: "bug", tests: "beaker", security: "shield" };
+
+function cliRow(harness: HarnessId, installed: string, latest: string, usedBy: number, running: number): PickerRow {
   const action: PickerRow["action"] = !installed ? "install" : latest ? "update" : undefined;
-  const actionLabel = action === "install" ? "Install" : action === "update" ? "Install update" : "";
-  const description = [installed ? used : "", actionLabel].filter(Boolean).join(" · ");
-  const base = { description, harness, ...(action ? { action } : {}) };
+  const all = Boolean(installed) && running > 0 && usedBy === running;
+  const used = !installed || !usedBy ? "" : all ? "In use" : `${usedBy} of ${running} agents`;
+  const description = [used, installed ? shortVersion(installed) : "Not installed", action === "update" ? "Update available" : ""].filter(Boolean).join(" · ");
+  const base = { description, icon: all ? "pass-filled" : usedBy && installed ? "pass" : "circle-large-outline", harness, ...(action ? { action } : {}) };
   switch (harness) {
     case "cursor":
       return {
         ...base,
-        label: installed ? `Cursor Agent ${installed}` : "Cursor Agent",
-        detail: installed
-          ? `${move}, then pick a model on your Cursor account.`
-          : "Not installed. Install downloads it. Picking the row chooses a model once it is there.",
+        label: "Cursor Agent",
+        detail: installed ? "Pick a model on your Cursor account." : "Install it, then pick a model on your Cursor account.",
         agent: "pick-cursor",
       };
     case "codex":
       return {
         ...base,
-        label: installed ? `Codex ${installed}` : "Codex",
-        detail: installed
-          ? `${move}, then pick a model and reasoning level. The run uses the newest Codex on this machine.`
-          : `Not installed. Install downloads it. Picking the row downloads it and moves ${agentCount(total)} to Codex.`,
+        label: "Codex",
+        detail: installed ? "Pick a model and reasoning level." : "Picking it installs Codex, then you pick a model.",
         agent: "install-codex",
       };
     case "claude":
       return {
         ...base,
-        label: installed ? `Claude Code ${installed}` : "Claude Code",
-        detail: installed
-          ? `${move}, then pick a model and effort level. The run uses the newest Claude Code on this machine.`
-          : `Not installed. Install downloads it. Picking the row downloads it and moves ${agentCount(total)} to Claude Code.`,
+        label: "Claude Code",
+        detail: installed ? "Pick a model and effort level." : "Picking it installs Claude Code, then you pick a model.",
         agent: "install-claude",
       };
     default: {
@@ -88,42 +84,49 @@ function cliRow(harness: HarnessId, installed: string, latest: string, total: nu
   }
 }
 
+function scopeRows(scope: NonNullable<PickerInput["scope"]>): PickerRow[] {
+  return [
+    section("Every pull request"),
+    ...(scope.custom
+      ? [{ label: "Use the default", detail: `Drop ${scope.label}'s own choice.`, icon: "discard", agent: "scope-reset" }]
+      : []),
+    { label: "Change the default…", detail: "For pull requests without a choice of their own.", icon: "globe", agent: "scope-global" },
+  ];
+}
+
 /**
  * The agent picker: move every agent to one CLI, or change one agent. It only saves the choice. Every agent that's
  * on runs together when Run agents is pressed, whichever row was changed, so the placeholder says so.
  * Install and Install update sit on the CLI row. Picking the row still chooses that CLI.
+ * With a scope, the choice is for that pull request only, and the last rows lead back to the default.
  */
 export function harnessPicker(input: PickerInput): Picker {
-  const { agents, plan, installed, guideId } = input;
+  const { agents, plan, installed, guideId, scope } = input;
   const updates = input.updates ?? {};
   const running = plan.filter((p) => agents[p.id]?.enabled !== false);
   const usedBy = (harness: HarnessId) => running.filter((p) => p.harness === harness).length;
   const clis = (["cursor", "codex", "claude"] as const).map((harness) =>
-    cliRow(harness, installed[harness], updates[harness] ?? "", plan.length, usedBy(harness), running.length),
+    cliRow(harness, installed[harness], updates[harness] ?? "", usedBy(harness), running.length),
   );
 
   const agentRows = plan.map((p): PickerRow => {
     const agent = agents[p.id];
     const off = agent?.enabled === false;
-    const notes = [
-      agent?.focus ? sentence(agent.focus) : "",
-      p.id === guideId ? "Also writes the briefing's opening line." : "",
-      off ? "Turned off, so it doesn't run." : p.harness === "claude" && p.id !== guideId ? "On Claude Code, /code-review reviews for it, using its instructions." : "",
-    ];
+    const viaReview = !off && p.harness === "claude" && p.id !== guideId;
+    const model = p.model === "auto" ? "Auto" : p.model || "Default model";
     return {
       label: p.short,
-      description: [harnessName(p.harness), p.model || "its default model", p.thinking, off ? "off" : ""].filter(Boolean).join(" · "),
-      detail: notes.filter(Boolean).join(" "),
+      description: [harnessName(p.harness), model, p.thinking, viaReview ? "via /code-review" : "", off ? "Off" : ""].filter(Boolean).join(" · "),
+      ...(agent?.focus ? { detail: sentence(agent.focus) } : {}),
+      icon: off ? "circle-slash" : p.id === guideId ? "compass" : AGENT_ICONS[p.id] ?? "hubot",
       agent: p.id,
     };
   });
 
+  const together = running.length > 1 ? `All ${running.length} agents run together. ` : "";
   return {
-    title: "Choose model",
-    placeHolder:
-      running.length > 1
-        ? `Run agents runs all ${running.length} agents together. A change here is saved for the next run.`
-        : "A change here is saved for the next run.",
-    rows: [section("Change all agents"), ...clis, section("Change one agent"), ...agentRows],
+    title: scope ? `What the agents run on for ${scope.label}` : "What the agents run on",
+    placeHolder: scope ? `${together}Changes apply to ${scope.label} only.` : `${together}Changes apply to the next run.`,
+    rows: [section("All agents"), ...clis, section("One agent"), ...agentRows, ...(scope ? scopeRows(scope) : [])],
   };
 }

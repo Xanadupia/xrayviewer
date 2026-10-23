@@ -1,4 +1,4 @@
-export const VERSION = "0.4.10";
+export const VERSION = "0.5.0";
 
 const CURSOR_SETTINGS = {
   "xrayviewer.cursor.path": {
@@ -77,14 +77,8 @@ export function transformManifest(original) {
   if (!Array.isArray(views)) throw new Error("package.json has no X-RayViewer views.");
   const pullRequests = views.find((view) => view.id === "xrayviewer.pullRequests");
   if (!pullRequests) throw new Error("package.json has no pull request view.");
-  pullRequests.name = "X-RayViewer";
+  pullRequests.name = "Pull Requests";
   views.push(
-    {
-      id: "xrayviewer.agentActivity",
-      name: "Agent Activity",
-      type: "webview",
-      initialSize: 8,
-    },
     {
       id: "xrayviewer.selectionButtons",
       name: "Selection",
@@ -92,12 +86,27 @@ export function transformManifest(original) {
       when: "xrayviewer.hasPullRequests",
       initialSize: 1,
     },
+    {
+      id: "xrayviewer.running",
+      name: "Running Reviews",
+      initialSize: 2,
+    },
+    {
+      id: "xrayviewer.agentActivity",
+      name: "Agent Activity",
+      type: "webview",
+      initialSize: 8,
+    },
   );
 
   const welcome = manifest.contributes.viewsWelcome.find((item) => item.view === "xrayviewer.pullRequests");
   if (!welcome) throw new Error("package.json has no pull request welcome.");
   welcome.contents =
     "Pull requests that need your review, and the ones you opened, show up here.\n[Refresh](command:xrayviewer.refresh)\n[Open a pull request](command:xrayviewer.openPullRequest)\nIf the list is empty, run `gh auth login` in a terminal, then Refresh.";
+  manifest.contributes.viewsWelcome.push({
+    view: "xrayviewer.running",
+    contents: "No reviews are running. A pull request shows here while its agents review it.",
+  });
 
   manifest.contributes.commands.push(
     {
@@ -117,10 +126,10 @@ export function transformManifest(original) {
       category: "X-RayViewer",
     },
     {
-      command: "xrayviewer.toggleCheck",
-      title: "Select",
+      command: "xrayviewer.chooseTheme",
+      title: "Choose Theme…",
       category: "X-RayViewer",
-      icon: "$(check)",
+      icon: "$(color-mode)",
     },
   );
   manifest.contributes.menus["view/title"].push(
@@ -130,15 +139,6 @@ export function transformManifest(original) {
       group: "navigation@31",
     },
   );
-  manifest.contributes.menus["view/item/context"].push({
-    command: "xrayviewer.toggleCheck",
-    when: "view == xrayviewer.pullRequests && viewItem =~ /^pr\\./",
-    group: "inline@0",
-  });
-  manifest.contributes.menus.commandPalette.push({
-    command: "xrayviewer.toggleCheck",
-    when: "false",
-  });
   const sortBy = manifest.contributes.configuration.properties["xrayviewer.sidebar.sortBy"];
   sortBy.enum = ["risk", "updated", "created", "title", "size", "number"];
   sortBy.enumDescriptions = [
@@ -193,5 +193,19 @@ export function transformManifest(original) {
         "Statuses to show. Empty shows open, draft, merged, and closed. **X-RayViewer: Filter…** sets it.",
     },
   });
+  configuration.properties = {
+    "xrayviewer.theme": {
+      type: "string",
+      enum: ["system", "light", "dark"],
+      enumDescriptions: [
+        "Match the editor's theme, including high contrast",
+        "Light review pages, whatever the editor uses",
+        "Dark review pages, whatever the editor uses",
+      ],
+      default: "system",
+      markdownDescription: "How review pages look. Every open review follows it. **X-RayViewer: Choose Theme…** and the theme button on a review page set it.",
+    },
+    ...configuration.properties,
+  };
   return manifest;
 }

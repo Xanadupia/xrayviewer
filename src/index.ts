@@ -22,8 +22,11 @@ import { harnessPicker, type PickerAgent } from "./harness-picker.ts";
 import { agentUnavailable, comparePullRequests } from "./agent-pool.ts";
 import { activityBody, activityPanelHTML, bindActivity, onActivityMessage, publishActivity } from "./activity-panel.ts";
 import { answerNotice, bindNotice, cancelNotices, clearNotice, holdNotice, offerNotice } from "./page-notice.ts";
-import { armAutoPost, checkedKeys, chosenPullRequests, clearAutoPost, clearChecked, isChecked, selectionBarHTML, setChecked, wantsAutoPost } from "./sidebar-batch.ts";
+import { bindModelStore, modelScope, withModelChoice } from "./pr-models.ts";
+import { bindRunningView } from "./running-view.ts";
+import { armAutoPost, bindSelectionBar, checkedKeys, chosenPullRequests, clearAutoPost, clearChecked, isChecked, setChecked, sidebarBadge, wantsAutoPost } from "./sidebar-batch.ts";
 import { announceChoice, plannedAgents, type AgentSetting, type HarnessId, type HarnessTable, type NoticeDeps, type RunChoice } from "./run-confirm.ts";
+import { chooseTheme, saveTheme, themeChoice, themeTag } from "./theme.ts";
 import { officialInstallCommand, pickCliVersion, runOfficialInstall, type CliId, type VersionPickerDeps } from "./version-picker.ts";
 
 /** What each agent runs on, with Claude Code models named with their versions. `all` includes agents turned off. */
@@ -72,8 +75,13 @@ export function createCursorHarness(internals: BundleInternals) {
       const catalog = await readClaudeCatalog(resolveCommand(choice.settings.command));
       return announceChoice(deps, { ...choice, plan, modelName: claudeModelName(catalog, choice.agent?.model || choice.settings.model) });
     },
-    harnessPicker: async (harnesses: HarnessTable, agents: Record<string, AgentSetting & PickerAgent>, installed: Record<HarnessId, string>, guideId: string) =>
-      harnessPicker({ agents, plan: await namedPlan(harnesses, agents, true), installed, updates: await availableUpdates(installed), guideId }),
+    harnessPicker: async (
+      harnesses: HarnessTable,
+      agents: Record<string, AgentSetting & PickerAgent>,
+      installed: Record<HarnessId, string>,
+      guideId: string,
+      scope?: { label: string; custom: boolean },
+    ) => harnessPicker({ agents, plan: await namedPlan(harnesses, agents, true), installed, updates: await availableUpdates(installed), guideId, scope }),
     updateCli: (deps: Parameters<typeof updateInstalledCli>[0], id: InstalledCli) => updateInstalledCli(deps, id, homedir()),
     installCli: (deps: Parameters<typeof installCli>[0], id: InstalledCli) => installCli(deps, id, homedir()),
     bindNotice,
@@ -97,8 +105,19 @@ export function createCursorHarness(internals: BundleInternals) {
     armAutoPost,
     clearAutoPost,
     wantsAutoPost,
-    selectionBarHTML,
-    modelPlan: async (harnesses: HarnessTable, agents: Record<string, AgentSetting>) =>
-      plannedWithCodeReview(await namedPlan(harnesses, agents), "guide"),
+    bindSelectionBar,
+    sidebarBadge,
+    bindRunningView,
+    themeChoice,
+    themeTag,
+    saveTheme,
+    chooseTheme,
+    bindModelStore,
+    modelScope,
+    withModelChoice,
+    modelPlan: async (harnesses: HarnessTable, agents: Record<string, AgentSetting>, key = "") => {
+      const chosen = withModelChoice(key, harnesses, { agents });
+      return plannedWithCodeReview(await namedPlan(chosen.harnesses, chosen.settings.agents), "guide");
+    },
   };
 }

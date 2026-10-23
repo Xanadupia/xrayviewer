@@ -45,7 +45,7 @@ function attr(value: string): string {
   return value.replace(/[&"<>]/g, (char) => ({ "&": "&amp;", '"': "&quot;", "<": "&lt;", ">": "&gt;" })[char] ?? char);
 }
 
-/** The sidebar document. The review page's stylesheet draws the same checks tree. */
+/** The sidebar document. The review page's stylesheet draws the same checks tree, in the editor's theme. */
 export function activityPanelHTML(cspSource: string, nonce: string, cssHref: string): string {
   const id = nonce.replace(/[^a-zA-Z0-9]/g, "");
   const csp = attr(cspSource);
@@ -68,6 +68,14 @@ ${SPRITES}
 <script nonce="${id}">
   const vscode = acquireVsCodeApi();
   const root = document.getElementById("activity");
+  const followEditor = () => {
+    const c = document.body.classList, html = document.documentElement;
+    html.dataset.theme = c.contains("vscode-light") || c.contains("vscode-high-contrast-light") ? "light" : "dark";
+    if (c.contains("vscode-high-contrast") || c.contains("vscode-high-contrast-light")) html.dataset.contrast = "more";
+    else delete html.dataset.contrast;
+  };
+  followEditor();
+  new MutationObserver(followEditor).observe(document.body, { attributes: true, attributeFilter: ["class"] });
   const clock = (ms) => {
     const s = Math.max(0, Math.round(ms / 1000));
     if (s < 60) return s + "s";
