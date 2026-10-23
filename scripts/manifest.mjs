@@ -80,6 +80,13 @@ export function transformManifest(original) {
   pullRequests.name = "Pull Requests";
   views.push(
     {
+      id: "xrayviewer.selectionButtons",
+      name: "Selection",
+      type: "webview",
+      when: "xrayviewer.hasPullRequests",
+      initialSize: 1,
+    },
+    {
       id: "xrayviewer.running",
       name: "Running Reviews",
       initialSize: 2,
@@ -89,13 +96,6 @@ export function transformManifest(original) {
       name: "Agent Activity",
       type: "webview",
       initialSize: 8,
-    },
-    {
-      id: "xrayviewer.selectionButtons",
-      name: "Selection",
-      type: "webview",
-      when: "xrayviewer.hasPullRequests",
-      initialSize: 1,
     },
   );
 

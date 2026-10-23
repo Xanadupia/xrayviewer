@@ -253,8 +253,8 @@ describe("the built extension", () => {
     assert.equal(manifest.contributes.views.xrayviewer.find((view: { id: string; name: string }) => view.id === "xrayviewer.agentActivity").name, "Agent Activity");
     assert.deepEqual(
       manifest.contributes.views.xrayviewer.map((view: { id: string; name: string }) => view.name),
-      ["Pull Requests", "Running Reviews", "Agent Activity", "Selection"],
-      "Running Reviews sits between the list and Agent Activity",
+      ["Pull Requests", "Selection", "Running Reviews", "Agent Activity"],
+      "the selection buttons sit right under the list, then Running Reviews, then Agent Activity",
     );
     assert.ok(manifest.contributes.viewsWelcome.some((item: { view: string }) => item.view === "xrayviewer.running"), "an empty Running Reviews says what shows there");
     assert.ok(bundle.includes("xrvCursor().bindRunningView({vscode:C,records:()=>r.all(),"), "Running Reviews reads every pull request's run");
