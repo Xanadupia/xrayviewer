@@ -552,31 +552,48 @@ body {
   font-weight: 650;
 }
 
+/* Same tints as the severity pills on each finding. */
+.bi-sev {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 22px;
+  padding: 0 9px 0 8px;
+  border-radius: var(--r-chip);
+  background: var(--sheet-3);
+  color: var(--ink-2);
+}
+
+.bi-high .bi-sev {
+  background: var(--bad-bg);
+  color: var(--bad);
+}
+
+.bi-medium .bi-sev {
+  background: var(--warn-bg);
+  color: var(--warn);
+}
+
+:root[data-contrast="more"] .bi-sev {
+  border: 1px solid currentColor;
+}
+
 .bi-dot {
-  width: 8px;
-  height: 8px;
+  width: 7px;
+  height: 7px;
   flex: none;
   border-radius: 50%;
+  background: currentColor;
+}
+
+.bi-low .bi-dot {
   background: var(--ink-3);
-}
-
-.bi-high .bi-dot {
-  background: var(--bad);
-}
-
-.bi-medium .bi-dot {
-  background: var(--warn);
 }
 
 .bi-count {
   color: var(--ink-3);
   font-weight: 500;
   font-variant-numeric: tabular-nums;
-}
-
-.bi-count::before {
-  content: "·";
-  margin-right: 7px;
 }
 
 .bi-list {

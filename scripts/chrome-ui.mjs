@@ -72,16 +72,33 @@ function briefItemsHTML() {
     const shown = fold ? xs.slice(0, LOW_SHOWN) : xs;
     const more = fold ? `<button type="button" class="bi-more" data-act="brief-low">Show ${xs.length - LOW_SHOWN} more low findings</button>` : "";
     const tally = open === xs.length ? String(xs.length) : open ? `${open} of ${xs.length} open` : `${xs.length}, all decided`;
-    return `<section class="bi-group bi-${sev}" aria-label="${SEV[sev]} findings"><h3 class="bi-head"><span class="bi-dot" aria-hidden="true"></span>${SEV[sev]}<span class="bi-count">${tally}</span></h3>
+    return `<section class="bi-group bi-${sev}" aria-label="${SEV[sev]} findings"><h3 class="bi-head"><span class="bi-sev"><span class="bi-dot" aria-hidden="true"></span>${SEV[sev]}</span><span class="bi-count">${tally}</span></h3>
       <ol class="bi-list">${shown.map(briefItemHTML).join("")}</ol>${more}</section>`;
   }).join("");
 }
 
-export function chromeSource() {
-  return `const SAVED_TIP = ${JSON.stringify(SAVED_TIP)};\nconst LOW_SHOWN = ${LOW_SHOWN};\nlet barDone = -1;\n${[syncHTML, ribbonHTML, miniLabel, reviewedShare, progressLineHTML, paintProgress, briefItemHTML, briefItemsHTML].map(String).join("\n")}\n`;
+function hasShownText(el) {
+  const walk = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
+  for (let n = walk.nextNode(); n; n = walk.nextNode()) {
+    if (n.data.trim() && !n.parentElement.closest(".sr-only, [aria-hidden='true']") && n.parentElement.checkVisibility()) return true;
+  }
+  return false;
 }
 
-export const CHROME_NAMES = ["SAVED_TIP", "miniLabel", "barDone", "reviewedShare", "progressLineHTML", "paintProgress", "LOW_SHOWN", "briefItemHTML", "briefItemsHTML", "lowOpen"];
+/** An icon-only control shows its accessible name on hover. Set on the way in, so it covers every control the page draws. */
+function tipOnHover(e) {
+  const el = e.target instanceof Element ? e.target.closest("button, a[href], summary, [role='button']") : null;
+  const label = el && el.getAttribute("aria-label");
+  if (!label || (el.title && !("tip" in el.dataset)) || hasShownText(el)) return;
+  el.title = label;
+  el.dataset.tip = "";
+}
+
+export function chromeSource() {
+  return `const SAVED_TIP = ${JSON.stringify(SAVED_TIP)};\nconst LOW_SHOWN = ${LOW_SHOWN};\nlet barDone = -1;\n${[syncHTML, ribbonHTML, miniLabel, reviewedShare, progressLineHTML, paintProgress, briefItemHTML, briefItemsHTML, hasShownText, tipOnHover].map(String).join("\n")}\n`;
+}
+
+export const CHROME_NAMES = ["SAVED_TIP", "miniLabel", "barDone", "reviewedShare", "progressLineHTML", "paintProgress", "LOW_SHOWN", "briefItemHTML", "briefItemsHTML", "lowOpen", "hasShownText", "tipOnHover"];
 
 export const CHROME_PATCHES = [
   {
@@ -193,5 +210,10 @@ export const CHROME_PATCHES = [
     id: "chrome-reduce-motion",
     find: 'const reduced = mq("(prefers-reduced-motion: reduce)");',
     replace: 'const reduced = { get matches() { return mq("(prefers-reduced-motion: reduce)").matches || document.body.classList.contains("vscode-reduce-motion"); } };',
+  },
+  {
+    id: "chrome-tips",
+    find: 'document.addEventListener("input", (e) => {',
+    replace: 'document.addEventListener("pointerover", tipOnHover, { signal });\n\ndocument.addEventListener("input", (e) => {',
   },
 ];

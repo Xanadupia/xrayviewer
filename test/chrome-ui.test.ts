@@ -22,8 +22,38 @@ interface Env {
   S?: Record<string, unknown>;
 }
 
+interface TextBit {
+  data: string;
+  hidden?: boolean;
+  srOnly?: boolean;
+}
+
+class Control {
+  title = "";
+  dataset: Record<string, string> = {};
+  attrs: Record<string, string>;
+  texts: TextBit[];
+  constructor(attrs: Record<string, string>, texts: TextBit[] = []) {
+    this.attrs = attrs;
+    this.texts = texts;
+  }
+  getAttribute(name: string) { return this.attrs[name] ?? null; }
+  closest() { return this; }
+}
+
+const fakeDocument = {
+  createTreeWalker: (el: Control) => {
+    const nodes = el.texts.map((t) => ({ data: t.data, parentElement: { closest: () => (t.srOnly ? {} : null), checkVisibility: () => !t.hidden } }));
+    let i = -1;
+    return { nextNode: () => nodes[++i] ?? null };
+  },
+};
+
 function page(env: Env = {}) {
   const globals = {
+    Element: Control,
+    document: fakeDocument,
+    NodeFilter: { SHOW_TEXT: 4 },
     liveSync: env.liveSync ?? "saved",
     liveSyncError: env.liveSyncError ?? "",
     esc: (s: unknown) => String(s).replace(/[&<>"]/g, (c) => `&#${c.charCodeAt(0)};`),
@@ -42,7 +72,7 @@ function page(env: Env = {}) {
     SEV: { high: "High", medium: "Medium", low: "Low" },
     S: env.S ?? {},
   };
-  return new Function(...Object.keys(globals), `${chromeSource()}; return { syncHTML, ribbonHTML, miniLabel, reviewedShare, progressLineHTML, briefItemsHTML };`)(...Object.values(globals));
+  return new Function(...Object.keys(globals), `${chromeSource()}; return { syncHTML, ribbonHTML, miniLabel, reviewedShare, progressLineHTML, briefItemsHTML, tipOnHover };`)(...Object.values(globals));
 }
 
 const finding = (id: number, severity: Finding["severity"], state: Finding["state"] = "open"): Finding => ({ id: `x${id}`, severity, title: `Finding ${id}`, f: 0, k: `n${id + 10}`, state });
@@ -78,8 +108,8 @@ describe("review page chrome", () => {
     const html = page({ FIND: [finding(1, "low"), finding(2, "high"), finding(3, "medium", "accepted"), finding(4, "medium")] }).briefItemsHTML();
     const order = [...html.matchAll(/class="bi-group bi-(\w+)"/g)].map((m) => m[1]);
     assert.deepEqual(order, ["high", "medium", "low"]);
-    assert.match(html, /Medium<span class="bi-count">1 of 2 open<\/span>/);
-    assert.match(html, /High<span class="bi-count">1<\/span>/);
+    assert.match(html, /Medium<\/span><span class="bi-count">1 of 2 open<\/span>/);
+    assert.match(html, /High<\/span><span class="bi-count">1<\/span>/);
     assert.match(html, /data-icon="check-circle"><\/i><span class="sr-only">In your review<\/span>/);
     assert.equal(html.includes(">In your review</span></button>"), false, "the decision is an icon, not a repeated word");
   });
@@ -93,5 +123,28 @@ describe("review page chrome", () => {
     assert.equal((opened.match(/sev-row-low/g) || []).length, 9);
     const onlyLow = page({ FIND: lows }).briefItemsHTML();
     assert.equal(onlyLow.includes("brief-low"), false, "nothing is hidden when low findings are all there is");
+  });
+
+  test("an icon-only button shows its accessible name on hover", () => {
+    const { tipOnHover } = page();
+    const hover = (el: Control) => { tipOnHover({ target: el }); return el.title; };
+    assert.equal(hover(new Control({ "aria-label": "Stop following the flow" })), "Stop following the flow");
+    assert.equal(hover(new Control({ "aria-label": "Collapse" }, [{ data: "X-RayViewer", hidden: true }, { data: "Collapse", srOnly: true }])), "Collapse", "hidden and screen-reader-only words aren't a visible label");
+    assert.equal(hover(new Control({ "aria-label": "Step 2: Passed" }, [{ data: "Build" }])), "", "a button with words on it needs no tooltip");
+    assert.equal(hover(new Control({})), "", "nothing to show without a name");
+  });
+
+  test("a tooltip the page wrote stays, and one this added follows a renamed button", () => {
+    const { tipOnHover } = page();
+    const own = new Control({ "aria-label": "Theme: Dark" });
+    own.title = "Choose a theme";
+    tipOnHover({ target: own });
+    assert.equal(own.title, "Choose a theme");
+
+    const toggle = new Control({ "aria-label": "Collapse the agent briefing" });
+    tipOnHover({ target: toggle });
+    toggle.attrs["aria-label"] = "Expand the agent briefing";
+    tipOnHover({ target: toggle });
+    assert.equal(toggle.title, "Expand the agent briefing");
   });
 });
