@@ -16,6 +16,13 @@
   --on-blue: #ffffff;
   --blue-soft: rgb(0 104 214 / 0.1);
   --blue-line: rgb(0 104 214 / 0.34);
+  /* The agent's mint stays clear of blue actions, green and red states, and purple merged.
+     Text on the sheet: 5.4:1. White on --agent-fill: 5.4:1. */
+  --agent: #00776d;
+  --agent-fill: #00776d;
+  --on-agent: #ffffff;
+  --agent-soft: rgb(0 119 109 / 0.1);
+  --agent-line: rgb(0 119 109 / 0.34);
   --glass: rgb(242 244 247 / 0.8);
   --glass-2: rgb(255 255 255 / 0.86);
   --glass-edge: rgb(0 0 0 / 0.1);
@@ -41,6 +48,11 @@
   --on-blue: #ffffff;
   --blue-soft: rgb(64 156 255 / 0.16);
   --blue-line: rgb(64 156 255 / 0.45);
+  /* Agent text on the dark sheet: 9.6:1. White on --agent-fill: 5.2:1. */
+  --agent: #4fd1c1;
+  --agent-fill: #0a7a6f;
+  --agent-soft: rgb(79 209 193 / 0.14);
+  --agent-line: rgb(79 209 193 / 0.4);
   --glass: rgb(13 15 19 / 0.78);
   --glass-2: rgb(36 38 44 / 0.86);
   --glass-edge: rgb(255 255 255 / 0.12);
@@ -63,6 +75,10 @@
   --blue-fill-2: #00337f;
   --blue-soft: rgb(0 66 168 / 0.12);
   --blue-line: #0042a8;
+  --agent: #00564f;
+  --agent-fill: #00564f;
+  --agent-soft: rgb(0 86 79 / 0.1);
+  --agent-line: #00564f;
   --glass: #ffffff;
   --glass-2: #ffffff;
   --glass-edge: var(--line);
@@ -87,9 +103,20 @@
   --blue-fill-2: #094c8f;
   --blue-soft: rgb(108 182 255 / 0.18);
   --blue-line: #6cb6ff;
+  --agent: #5fe3d3;
+  --agent-fill: #00665d;
+  --agent-soft: rgb(95 227 211 / 0.16);
+  --agent-line: #5fe3d3;
   --glass: #000000;
   --glass-2: #000000;
   --focus: var(--vscode-contrastActiveBorder, #f38518);
+}
+
+/* The vendor stylesheet names the agent color violet. The doubled :root outranks its dark-mode blocks. */
+:root:root {
+  --violet: var(--agent);
+  --violet-bg: var(--agent-soft);
+  --violet-line: var(--agent-line);
 }
 
 :root[data-contrast="more"] :focus-visible {
@@ -340,6 +367,18 @@ body {
 
 .btn.primary .badge {
   color: var(--blue-fill);
+}
+
+/* Solid agent surfaces carry white in every theme, like --blue-fill. */
+.agent-av,
+.btn.agent,
+.btn.agent:hover,
+.flow-card.is-on .flow-card-n,
+.tour .btn.primary,
+.tour .btn.primary:hover {
+  background: var(--agent-fill);
+  border-color: var(--agent-fill);
+  color: var(--on-agent);
 }
 
 .icon-btn,
