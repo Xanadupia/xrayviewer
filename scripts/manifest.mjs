@@ -1,4 +1,4 @@
-export const VERSION = "0.5.0";
+export const VERSION = "0.5.1";
 
 const CURSOR_SETTINGS = {
   "xrayviewer.cursor.path": {
