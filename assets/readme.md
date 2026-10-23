@@ -15,7 +15,7 @@ You need:
 - **git**
 - One program to run the agents, signed in: **Claude Code**, **Codex**, or **Cursor Agent** (`cursor-agent login`)
 
-In VS Code, search for **X-RayViewer** in the Extensions view and install it. The id is `aliqaryan.xrayviewer`. Cursor installs extensions from Open VSX, where X-RayViewer isn't listed yet. Until it is, build the `.vsix` from the [repository](https://github.com/Xanadupia/xrayviewer) and run **Extensions: Install from VSIX…** in Cursor.
+In VS Code, search for **X-RayViewer** in the Extensions view and install it. The id is `aliqaryan.xrayviewer`. Cursor installs extensions from Open VSX, where X-RayViewer isn't listed yet. Until it is, download the `.vsix` from the [latest release](https://github.com/Xanadupia/xrayviewer/releases/latest) and run **Extensions: Install from VSIX…** in Cursor.
 
 Click the X-RayViewer icon in the activity bar. Your pull requests load in a few seconds. If the list stays empty, run `gh auth login` in a terminal, then **X-RayViewer: Refresh**.
 

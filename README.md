@@ -12,7 +12,7 @@ The user guide walks through a first review with screenshots, then covers automa
 
 You need VS Code 1.95 or later, or Cursor, plus `gh auth login`, `git`, and one of Claude Code, Codex, or Cursor Agent.
 
-In VS Code, search for **X-RayViewer** by Ali Qaryan in the Extensions view. The id is `aliqaryan.xrayviewer`. Cursor installs extensions from Open VSX, where it isn't listed yet, so build the `.vsix` below and run **Extensions: Install from VSIX…**.
+In VS Code, search for **X-RayViewer** by Ali Qaryan in the Extensions view. The id is `aliqaryan.xrayviewer`. Cursor installs extensions from Open VSX, where it isn't listed yet, so download the `.vsix` from the [latest release](https://github.com/Xanadupia/xrayviewer/releases/latest), or build it below, and run **Extensions: Install from VSIX…**.
 
 Building needs Node 26 or later: Volta picks it up from `package.json`, nvm from `.nvmrc`, and npm refuses older versions.
 
@@ -38,6 +38,8 @@ cursor --install-extension build/xrayviewer-0.5.0.vsix --force
 | `assets/` | The user guide, changelog, license, and icons. |
 | `docs/` | The screenshots, the diagram (`how-it-works.svg` and its PNG), and the user guide website GitHub Pages serves. |
 | `test/` | Unit tests, build checks, and a wiring test against a fake Cursor CLI. |
+| `scripts/release.mjs` | Checks a release tag against `VERSION` and the changelog, and writes the release notes. |
+| `.github/` | CI on Linux and macOS for every pull request and push to `main`, the release workflow a `v*` tag starts, and Dependabot. |
 
 ```sh
 npm test
@@ -48,7 +50,7 @@ npm run package          # build/xrayviewer-0.5.0.vsix
 
 `node test/live/review-e2e.ts [model] [report.json]` runs a real review with the signed-in Cursor Agent CLI. It uses account usage, so it is not part of `npm test`.
 
-Publishing steps are in [PUBLISHING.md](PUBLISHING.md). Building and sending a change are in [CONTRIBUTING.md](CONTRIBUTING.md).
+Each release on [GitHub](https://github.com/Xanadupia/xrayviewer/releases) has the `.vsix`, and pushing a `v*` tag cuts one. The steps are in [PUBLISHING.md](PUBLISHING.md). Building and sending a change are in [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## License
 
