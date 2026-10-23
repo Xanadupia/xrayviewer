@@ -11,7 +11,7 @@ The listing stays marked **Preview** while `preview` is true in `scripts/manifes
 ## Cut a release
 
 1. Raise `VERSION` in `scripts/manifest.mjs`.
-2. Add a `## 0.5.1` section at the top of `assets/CHANGELOG.md`. It becomes the release notes.
+2. Add a `## 0.5.1` section at the top of `assets/changelog.md`. It becomes the release notes.
 3. Commit to `main`, and wait for CI to pass.
 4. Tag that commit and push the tag:
 

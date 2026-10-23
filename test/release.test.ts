@@ -7,7 +7,7 @@ import { VERSION } from "../scripts/manifest.mjs";
 import { releaseNotes } from "../scripts/release.mjs";
 
 const script = fileURLToPath(new URL("../scripts/release.mjs", import.meta.url));
-const changelog = () => readFile(new URL("../assets/CHANGELOG.md", import.meta.url), "utf8");
+const changelog = () => readFile(new URL("../assets/changelog.md", import.meta.url), "utf8");
 
 const CHANGELOG = "# Changelog\n\n## 0.6.0\n\n- **New.** It works.\n\n## 0.5.0\n\n- **Old.** It worked.\n";
 
@@ -37,7 +37,7 @@ describe("release notes", () => {
 
   test("refuse a version the changelog doesn't describe", () => {
     assert.throws(() => releaseNotes("v0.7.0", CHANGELOG, "0.7.0"), /has no "## 0\.7\.0" section/);
-    assert.throws(() => releaseNotes("v0.7.0", "## 0.7.0\n\n## 0.6.0\n\n- x\n", "0.7.0"), /section of assets\/CHANGELOG\.md is empty/);
+    assert.throws(() => releaseNotes("v0.7.0", "## 0.7.0\n\n## 0.6.0\n\n- x\n", "0.7.0"), /section of assets\/changelog\.md is empty/);
   });
 
   test("the command prints the notes, and fails a tag the workflow must not release", () => {

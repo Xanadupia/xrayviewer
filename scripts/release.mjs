@@ -1,6 +1,6 @@
 /**
  * The release workflow's check and notes: a tag such as v0.5.1 must name the VERSION that scripts/manifest.mjs
- * packages, and the release notes are that version's section of assets/CHANGELOG.md.
+ * packages, and the release notes are that version's section of assets/changelog.md.
  * `node scripts/release.mjs v0.5.1` prints the notes, or fails with what to fix.
  */
 import { readFile } from "node:fs/promises";
@@ -29,10 +29,10 @@ export function tagVersion(tag) {
 export function changelogSection(changelog, version) {
   const lines = changelog.replace(/\r\n/g, "\n").split("\n");
   const start = lines.findIndex((line) => line.trim() === `## ${version}`);
-  if (start < 0) throw new Error(`assets/CHANGELOG.md has no "## ${version}" section.`);
+  if (start < 0) throw new Error(`assets/changelog.md has no "## ${version}" section.`);
   const next = lines.findIndex((line, i) => i > start && line.startsWith("## "));
   const section = lines.slice(start + 1, next < 0 ? undefined : next).join("\n").trim();
-  if (!section) throw new Error(`The "## ${version}" section of assets/CHANGELOG.md is empty.`);
+  if (!section) throw new Error(`The "## ${version}" section of assets/changelog.md is empty.`);
   return section;
 }
 
@@ -60,7 +60,7 @@ export function releaseNotes(tag, changelog, version = VERSION) {
 async function main() {
   const tag = process.argv[2];
   if (!tag) throw new Error("Usage: node scripts/release.mjs <tag>, such as v0.5.1");
-  const changelog = await readFile(path.join(root, "assets", "CHANGELOG.md"), "utf8");
+  const changelog = await readFile(path.join(root, "assets", "changelog.md"), "utf8");
   process.stdout.write(releaseNotes(tag, changelog));
 }
 
