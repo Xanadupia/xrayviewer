@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import { agentUnavailable, comparePullRequests } from "../src/agent-pool.ts";
-import { armAutoPost, chosenPullRequests, clearAutoPost, clearChecked, isChecked, selectionBarHTML, setChecked, wantsAutoPost } from "../src/sidebar-batch.ts";
+import { armAutoPost, bindSelectionBar, chosenPullRequests, clearAutoPost, clearChecked, isChecked, selectionBarHTML, setChecked, sidebarBadge, wantsAutoPost } from "../src/sidebar-batch.ts";
 
 const row = (title: string, extra: Record<string, unknown> = {}) => ({
   record: { key: { owner: "acme", name: "app", number: 1 }, summary: { title, updatedAt: "2026-10-01", createdAt: "2026-09-01", additions: 1, deletions: 1 }, ...((extra.record as object) || {}) },
@@ -71,16 +71,70 @@ describe("a busy agent", () => {
 
 describe("selection buttons", () => {
   test("uses the same filled, centered button as the empty pull-request view", () => {
-    const html = selectionBarHTML(`ab'c`);
-    assert.match(html, /Open selected PRs/);
-    assert.match(html, /Review all selected and post/);
+    const html = selectionBarHTML(`ab'c`, 2);
     assert.match(html, /--vscode-button-background/);
     assert.match(html, /border-radius: 4px/);
     assert.match(html, /padding: 0 20px 1em/);
     assert.equal(html.includes("'c"), false);
   });
 
+  test("says how many pull requests each button acts on", () => {
+    assert.match(selectionBarHTML("n", 1), /<a href="command:xrayviewer\.openSelected">Open 1 pull request<\/a>/);
+    assert.match(selectionBarHTML("n", 3), /<a href="command:xrayviewer\.openSelected">Open 3 pull requests<\/a>/);
+    assert.match(selectionBarHTML("n", 3), /<a href="command:xrayviewer\.runSelected">Review 3 and post<\/a>/);
+  });
+
+  test("dims both buttons and runs nothing while no pull request is checked", () => {
+    const html = selectionBarHTML("n");
+    assert.match(html, /<a role="link" aria-disabled="true">Open selected PRs<\/a>/);
+    assert.match(html, /<a role="link" aria-disabled="true">Review all selected and post<\/a>/);
+    assert.equal(html.includes("command:"), false);
+  });
+
   test("keeps the label readable on hover, over the webview's link colors", () => {
-    assert.match(selectionBarHTML("n"), /a:hover, a:focus, a:active \{ color: var\(--vscode-button-foreground\); \}/);
+    assert.match(selectionBarHTML("n", 1), /a:hover, a:focus, a:active \{ color: var\(--vscode-button-foreground\); \}/);
+  });
+
+  test("draws again with the count in the section title whenever a check changes, until the view goes away", () => {
+    clearChecked();
+    let dispose = () => {};
+    const view = { title: "", description: "", webview: { html: "" }, onDidDispose: (fn: () => void) => (dispose = fn) };
+    bindSelectionBar(view);
+    assert.deepEqual([view.title, view.description], ["Selection", "Check up to 5 pull requests"]);
+
+    setChecked("acme/app#1", true);
+    assert.deepEqual([view.title, view.description], ["1 selected", ""]);
+    assert.match(view.webview.html, /Review 1 and post/);
+    setChecked("acme/app#9", true);
+    setChecked("acme/app#1", false);
+    assert.match(view.webview.html, /Open 1 pull request</);
+    clearChecked();
+    assert.match(view.webview.html, /aria-disabled/);
+
+    dispose();
+    setChecked("acme/app#2", true);
+    assert.equal(view.title, "Selection", "a closed view is left alone");
+    clearChecked();
+  });
+});
+
+describe("the activity bar count", () => {
+  const pr = (summary: Record<string, unknown> | null) => ({ summary: summary as never });
+
+  test("counts open pull requests that request your review by name", () => {
+    const records = [
+      pr({ state: "OPEN", reasons: ["review-requested"] }),
+      pr({ reasons: ["review-requested", "assigned"] }),
+      pr({ state: "OPEN", reasons: ["team-requested"] }),
+      pr({ state: "OPEN", isDraft: true, reasons: ["review-requested"] }),
+      pr({ state: "MERGED", reasons: ["review-requested"] }),
+      pr(null),
+    ];
+    assert.deepEqual(sidebarBadge(records), { value: 2, tooltip: "2 pull requests waiting for your review" });
+    assert.equal(sidebarBadge(records, 1)?.tooltip, "2 pull requests waiting for your review · 1 agent run in progress");
+  });
+
+  test("shows no count when nothing waits for you, even while agents run", () => {
+    assert.equal(sidebarBadge([pr({ state: "OPEN", reasons: ["authored"] })], 3), undefined);
   });
 });

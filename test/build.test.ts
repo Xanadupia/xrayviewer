@@ -101,7 +101,7 @@ describe("the built extension", () => {
     assert.equal(manifest.contributes.configuration.properties["xrayviewer.sidebar.status"].items.enum.includes("merged"), true);
     assert.ok(bundle.includes('groupBy==="author"'));
     assert.equal(bundle.includes("circle-small-filled"), false);
-    await readFile(path.join(dir, "media", "risk", "open-low.svg"));
+    await assert.rejects(readFile(path.join(dir, "media", "risk", "open-low.svg")), "sidebar rows draw a codicon, not a risk image");
     assert.equal(manifest.contributes.configuration.properties["xrayviewer.sidebar.groupBy"].enum.includes("author"), true);
     assert.equal(manifest.contributes.configuration.properties["xrayviewer.sidebar.groupBy"].enum.includes("review"), true);
     assert.match(page, /M8\.5 8\.5l7 7/);
@@ -223,8 +223,10 @@ describe("the built extension", () => {
     assert.ok(bundle.includes("sf=n=>n?{commit:n.commit,ranAt:n.ranAt,postedAt:n.postedAt||null,"), "the sidebar keeps when the review was posted");
     assert.ok(bundle.includes("if(!r&&(c?.results||[]).some(x=>x&&x.ok)){let ag=await this.store.readAgent(e)"), "posting to GitHub marks the agent review as posted");
     assert.ok(bundle.includes('["posted","Reviewed & Posted PRs"]'), "posted reviews have their own group");
-    assert.ok(bundle.includes('f==="posted"?{badge:"\\u2713",color:new C.ThemeColor("charts.green")'), "a posted review is green");
-    assert.ok(bundle.includes('f==="reviewed"?{badge:"\\u2713",color:new C.ThemeColor("charts.yellow")'), "a review that is not posted yet is yellow");
+    assert.ok(
+      bundle.includes('return f==="ongoing"?{badge:"\\u25cf",tooltip:"Reviewing"}:f==="posted"?{badge:"\\u2713",tooltip:"Reviewed and posted by X-RayViewer"}:f==="reviewed"?{badge:"\\u2713",tooltip:"Reviewed by X-RayViewer, not posted yet"}:void 0}'),
+      "a dot while reviewing, a check once reviewed, nothing before; no color, because a decoration's color also paints the row's title",
+    );
     assert.equal(row({ state: "running", progress: { agents: { a: { state: "done" }, b: { state: "running" }, c: { state: "skipped" } } } }).short, "Reviewing 1/2");
     assert.equal(row({ state: "running" }).flag, "ongoing");
     assert.equal(row({ state: "queued" }).short, "Reviewing, queued");
@@ -233,7 +235,8 @@ describe("the built extension", () => {
     assert.ok(bundle.includes("r.checkboxState=xrvCursor().isChecked(i)?1:0"), "each pull request has a checkbox");
     assert.ok(bundle.includes("onDidChangeCheckboxState"), "checking a box selects that pull request");
     assert.equal(bundle.includes('"☑"'), false);
-    assert.ok(bundle.includes("xrayviewer.toggleCheck"), "each row can be selected");
+    assert.equal(bundle.includes("xrayviewer.toggleCheck"), false, "the row's checkbox is its only select control");
+    assert.equal(JSON.stringify(manifest).includes("xrayviewer.toggleCheck"), false);
     assert.equal(bundle.includes("n.xrvGo"), false, "selection commands do not add a property to the frozen extension context");
     assert.ok(bundle.includes("let xrvGo="), "the selection commands share one local function");
     assert.ok(bundle.includes("xrayviewer.openSelected"), "the selection opens in tabs");
@@ -243,10 +246,15 @@ describe("the built extension", () => {
     assert.ok(bundle.includes('executeCommand("xrayviewer.agentActivity.focus")'), "the review page opens the sidebar panel");
     assert.ok(bundle.includes('["never","Not Reviewed PRs"]'), "review groups say which pull requests they hold");
     assert.ok(bundle.includes('label:"Requested PRs"'), "relationship groups name the pull requests");
-    assert.equal(manifest.contributes.views.xrayviewer.find((view: { id: string; name: string }) => view.id === "xrayviewer.pullRequests").name, "X-RayViewer");
+    assert.equal(manifest.contributes.views.xrayviewer.find((view: { id: string; name: string }) => view.id === "xrayviewer.pullRequests").name, "Pull Requests");
     assert.equal(manifest.contributes.views.xrayviewer.find((view: { id: string; name: string }) => view.id === "xrayviewer.agentActivity").name, "Agent Activity");
     assert.ok(bundle.includes('setContext","xrayviewer.hasPullRequests"'), "the buttons stay hidden until the list has pull requests");
-    assert.ok(bundle.includes('{badge:"\\u2013",tooltip:"Not reviewed by X-RayViewer"}'), "a row that was never reviewed keeps the theme's text color");
+    assert.equal(bundle.includes('badge:"\\u2013"'), false, "a row that was never reviewed has no mark");
+    assert.ok(bundle.includes("r=new oe.TreeItem(s?.title??i,"), "the row leads with the title");
+    assert.ok(bundle.includes('r.iconPath=new oe.ThemeIcon(xrvIcon,e.risk?.level==="high"?new oe.ThemeColor("charts.red"):e.risk?.level==="medium"?new oe.ThemeColor("charts.yellow"):void 0)'), "one icon: its shape is the state, its color the risk");
+    assert.ok(bundle.includes('String(e.id).startsWith("repo:")&&(u.iconPath=new oe.ThemeIcon("repo"))'), "a repository heading has a repo icon");
+    assert.ok(bundle.includes("l.badge=xrvCursor().sidebarBadge(r.all(),m)"), "the activity bar icon counts review requests");
+    assert.ok(bundle.includes("xrvCursor().bindSelectionBar(view)"), "the buttons follow the checks");
     assert.equal(bundle.includes('action:"gap"'), false);
     assert.equal(bundle.includes('f==="action"'), false);
     assert.equal(bundle.includes("xrayviewer.selectionBar"), false);
@@ -258,7 +266,16 @@ describe("the built extension", () => {
     assert.deepEqual(row({ state: "failed" }, { agent }), { short: "Review failed", long: "The last review failed. The one before found 3 findings.", color: "#F85149", flag: "reviewed" });
     assert.equal(row({ state: "held", hold: "large" }).long, "Not reviewed yet. Large, so the agents wait for you to press Run.");
     assert.equal(row({ state: "held", hold: "large" }).flag, "never");
-    assert.ok(bundle.includes("return[state,xrvAgentState(n,t).short,"), "every row's description carries the state");
+    const rowSource = bundle.slice(bundle.indexOf("function xrvAgentState("), bundle.indexOf("function kf("));
+    const isOpen = (s: any) => !s?.state || s.state === "OPEN";
+    const conflicts = (s: any) => s?.mergeStateStatus === "DIRTY";
+    const grayText = new Function("jn", "fa", "ht", "Ai", "yf", "Fv", `${rowSource}; return bf;`)(jn, fa, ht, isOpen, conflicts, () => "");
+    const pr = (run: Record<string, unknown>, summary: Record<string, unknown> = {}, extra: Record<string, unknown> = {}) =>
+      grayText({ key: { owner: "acme", name: "app", number: 42 }, run, summary: { state: "OPEN", headRefOid: "a9dca66f00", ...summary }, ...extra }, { inRepoGroup: true });
+    assert.equal(pr({ state: "idle" }), "#42", "an open, unreviewed row says neither");
+    assert.equal(pr({ state: "idle" }, { isDraft: true, mergeStateStatus: "DIRTY" }), "#42 · draft · conflicts");
+    assert.equal(pr({ state: "done" }, {}, { agent }), "#42 · Reviewed, not posted, 3 findings");
+    assert.equal(pr({ state: "failed" }), "#42 · Review failed", "a failed first review still says so");
     assert.ok(bundle.includes('let xs=xrvAgentState(s);r.appendMarkdown("<b>X-RayViewer</b> \u00B7 "),paint(xs.color,xs.long)'), "the hover card says it in full");
   });
 
@@ -286,16 +303,20 @@ describe("the built extension", () => {
     const harness = createRequire(import.meta.url)(path.join(dir, "dist", "cursor-harness.cjs"));
 
     assert.equal(typeof harness.createCursorHarness, "function");
-    const html = harness.createCursorHarness({}).selectionBarHTML("nonce/../1");
-    assert.match(html, /Open selected PRs/);
-    assert.match(html, /Review all selected and post/);
-    assert.match(html, /command:xrayviewer\.openSelected/);
-    assert.match(html, /command:xrayviewer\.runSelected/);
-    assert.match(html, /--vscode-button-background/);
-    assert.match(html, /border-radius: 4px/);
-    assert.match(html, /max-width: 300px/);
-    assert.match(html, /padding: 0 20px 1em/);
-    assert.equal(html.includes("nonce/../1"), false);
+    const cursor = harness.createCursorHarness({});
+    const view = { title: "", description: "", webview: { html: "" }, onDidDispose() {} };
+    cursor.clearChecked();
+    cursor.bindSelectionBar(view);
+    assert.deepEqual([view.title, view.description], ["Selection", "Check up to 5 pull requests"]);
+    assert.match(view.webview.html, /<a role="link" aria-disabled="true">Open selected PRs<\/a>/);
+    cursor.setChecked("acme/app#1", true);
+    cursor.setChecked("acme/app#2", true);
+    assert.deepEqual([view.title, view.description], ["2 selected", ""]);
+    assert.match(view.webview.html, /<a href="command:xrayviewer\.openSelected">Open 2 pull requests<\/a>/);
+    assert.match(view.webview.html, /<a href="command:xrayviewer\.runSelected">Review 2 and post<\/a>/);
+    assert.match(view.webview.html, /--vscode-button-background/);
+    cursor.clearChecked();
+    assert.equal(view.title, "Selection");
     assert.ok(bundle.includes('require("./cursor-harness.cjs")'));
     assert.ok(bundle.includes("xrvClaude"));
     assert.ok(bundle.includes("xrvCodex"));

@@ -22,7 +22,7 @@ import { harnessPicker, type PickerAgent } from "./harness-picker.ts";
 import { agentUnavailable, comparePullRequests } from "./agent-pool.ts";
 import { activityBody, activityPanelHTML, bindActivity, onActivityMessage, publishActivity } from "./activity-panel.ts";
 import { answerNotice, bindNotice, cancelNotices, clearNotice, holdNotice, offerNotice } from "./page-notice.ts";
-import { armAutoPost, checkedKeys, chosenPullRequests, clearAutoPost, clearChecked, isChecked, selectionBarHTML, setChecked, wantsAutoPost } from "./sidebar-batch.ts";
+import { armAutoPost, bindSelectionBar, checkedKeys, chosenPullRequests, clearAutoPost, clearChecked, isChecked, setChecked, sidebarBadge, wantsAutoPost } from "./sidebar-batch.ts";
 import { announceChoice, plannedAgents, type AgentSetting, type HarnessId, type HarnessTable, type NoticeDeps, type RunChoice } from "./run-confirm.ts";
 import { chooseTheme, saveTheme, themeChoice, themeTag } from "./theme.ts";
 import { officialInstallCommand, pickCliVersion, runOfficialInstall, type CliId, type VersionPickerDeps } from "./version-picker.ts";
@@ -98,7 +98,8 @@ export function createCursorHarness(internals: BundleInternals) {
     armAutoPost,
     clearAutoPost,
     wantsAutoPost,
-    selectionBarHTML,
+    bindSelectionBar,
+    sidebarBadge,
     themeChoice,
     themeTag,
     saveTheme,

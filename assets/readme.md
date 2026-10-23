@@ -119,16 +119,22 @@ A pull request appears in the first group it fits.
 | Other PRs | Up to 10 more open pull requests in those repositories. |
 | Merged or Closed PRs | Ones you reviewed or wrote, for the last 3 days. |
 
-A colored bar at the left of each row is the risk: green is low, orange is medium, and red is high. The icon beside it is the pull request: green is open, a draft icon is a draft, purple is merged, and red is closed. The full score is in the row's tooltip. A mark at the end of the row is the X-RayViewer review: a green check when the review is posted to GitHub, a yellow check when it is reviewed but not posted yet, a blue dot while a review is running, and a dash when it has never been reviewed. The row's title takes the same color, and a row that has never been reviewed keeps the theme's normal text color.
+Each row starts with the pull request's title. The gray text after it starts with its number, then adds what is worth knowing: **draft**, **merged**, or **closed**, conflicts, and the X-RayViewer review. An open pull request that hasn't been reviewed says neither.
 
-Each row also says that review in words, right after the pull request's state. **Group Pull Requests…** can group the list into Reviewing PRs, Not Reviewed PRs, Reviewed PRs, and Reviewed & Posted PRs. A review counts as posted once you post it to GitHub from X-RayViewer, and a new review of the pull request starts over as not posted. The sidebar's **Agent Activity** panel shows what each agent read, ran and said for the pull request you are reviewing.
+The icon's shape is the pull request's state: open, draft, merged, or closed. Its color is the risk: red is high, orange is medium, and the theme's icon color is low. The full score is in the row's tooltip. A mark at the end of the row is the X-RayViewer review: a dot while a review is running, and a check once it is reviewed. The gray text says whether that review is posted to GitHub.
+
+The number on the X-RayViewer icon in the activity bar counts the open pull requests that request your review by name, even when the list's filter hides them.
+
+Check up to five rows, then use the buttons under the list. They say how many pull requests they act on, such as **Open 2 pull requests** and **Review 2 and post**, and they are dimmed until something is checked.
+
+Each row also says that review in words. **Group Pull Requests…** can group the list into Reviewing PRs, Not Reviewed PRs, Reviewed PRs, and Reviewed & Posted PRs. A review counts as posted once you post it to GitHub from X-RayViewer, and a new review of the pull request starts over as not posted. The sidebar's **Agent Activity** panel shows what each agent read, ran and said for the pull request you are reviewing.
 
 | Row says | What it means |
 |---|---|
 | Reviewed & posted, 13 findings | X-RayViewer reviewed the latest commit, and you posted the review to GitHub. |
 | Reviewed, not posted, 13 findings | X-RayViewer reviewed the latest commit, and the review is not on GitHub yet. |
 | Reviewed, new commits | X-RayViewer reviewed an older commit. Rerun reviews the latest. It says **Reviewed & posted, new commits** when that review was posted. |
-| Not reviewed | X-RayViewer has not reviewed it yet. |
+| Nothing | X-RayViewer has not reviewed it yet. |
 | Reviewing 2/5, Reviewing, queued | A review is running or waiting to start. |
 | Review failed | The last review failed. The tooltip has the error. |
 

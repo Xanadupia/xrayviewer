@@ -77,7 +77,7 @@ export function transformManifest(original) {
   if (!Array.isArray(views)) throw new Error("package.json has no X-RayViewer views.");
   const pullRequests = views.find((view) => view.id === "xrayviewer.pullRequests");
   if (!pullRequests) throw new Error("package.json has no pull request view.");
-  pullRequests.name = "X-RayViewer";
+  pullRequests.name = "Pull Requests";
   views.push(
     {
       id: "xrayviewer.agentActivity",
@@ -117,12 +117,6 @@ export function transformManifest(original) {
       category: "X-RayViewer",
     },
     {
-      command: "xrayviewer.toggleCheck",
-      title: "Select",
-      category: "X-RayViewer",
-      icon: "$(check)",
-    },
-    {
       command: "xrayviewer.chooseTheme",
       title: "Choose Theme…",
       category: "X-RayViewer",
@@ -136,15 +130,6 @@ export function transformManifest(original) {
       group: "navigation@31",
     },
   );
-  manifest.contributes.menus["view/item/context"].push({
-    command: "xrayviewer.toggleCheck",
-    when: "view == xrayviewer.pullRequests && viewItem =~ /^pr\\./",
-    group: "inline@0",
-  });
-  manifest.contributes.menus.commandPalette.push({
-    command: "xrayviewer.toggleCheck",
-    when: "false",
-  });
   const sortBy = manifest.contributes.configuration.properties["xrayviewer.sidebar.sortBy"];
   sortBy.enum = ["risk", "updated", "created", "title", "size", "number"];
   sortBy.enumDescriptions = [
