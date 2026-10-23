@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.5.0
+
+- **The review page is redesigned.** One compact bar holds the repository and pull request, the save state, Refresh, Open on GitHub, the theme button, and Post review. A thin line along its bottom fills as you review and turns green when every hunk is decided. The workflow steps moved to Workflow.
+- **Light, Dark, or System.** The theme button on a review page, **X-RayViewer: Choose Theme…**, and the new `xrayviewer.theme` setting change every open review at once. System follows the editor, including high contrast themes.
+- **Findings are grouped by High, Medium, and Low.** Each group's heading is a tinted chip with a count, such as "3 of 5 open". Long Low lists fold after four. Each finding shows its decision as an icon.
+- **The agent color is mint.** It no longer looks like the purple GitHub uses for merged.
+- **Next and previous keep their place.** After you add or dismiss a finding, **a** goes on to the next one instead of back to the first. **j**, **k**, **n**, **r**, and **c** start from the hunk on screen, not the last one you moved to with the keyboard.
+- **Buttons that only show an icon say their name on hover.**
+- **Motion follows the editor's Reduce Motion setting.** Buttons respond to a press, and menus ease in.
+- **Choose model is easier to scan.** Every row has an icon. The sections are **All agents** and **One agent**. A CLI row leads with its name, and its version and how many agents use it are in gray. Each row has one line of detail.
+- **The sidebar is easier to read.** Each row leads with the title, and the number moves to the gray text. One icon shows the state by its shape and the risk by its color. The review mark is a dot while reviewing and a check when done, and titles keep the theme's text color. The list is named **Pull Requests**.
+- **The activity bar icon counts review requests.** It shows how many open pull requests request your review by name.
+- **The buttons under the list say what they act on,** such as **Open 2 pull requests** and **Review 2 and post**. They are dimmed until you check a pull request.
+
 ## 0.4.10
 
 - **Install and Install update sit on the CLI row.** Choose model no longer has a separate update list. The control on the right says Install when that program is missing, and Install update when a newer version is published.
