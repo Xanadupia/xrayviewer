@@ -23,6 +23,7 @@ const state = {
   messages: [] as string[],
   script: [] as Chooser[],
   commands: new Map<string, (...args: unknown[]) => unknown>(),
+  trees: [] as string[],
 };
 
 class ThemeIcon {
@@ -81,7 +82,10 @@ const vscode = stubModule("vscode", {
       state.messages.push(message);
       return undefined;
     },
-    createTreeView: () => stub("tree", { selection: [] }),
+    createTreeView: (id: string) => {
+      state.trees.push(id);
+      return stub("tree", { selection: [] });
+    },
   }),
   workspace: stub("vscode.workspace", {
     workspaceFolders: [],
@@ -206,6 +210,13 @@ describe("the patched extension", () => {
     const contributed = manifest.contributes.commands.map((command: { command: string }) => command.command).sort();
 
     assert.deepEqual([...state.commands.keys()].sort(), contributed);
+  });
+
+  test("draws every tree view its package.json contributes", async () => {
+    const manifest = JSON.parse(await readFile(path.join(extensionDir, "package.json"), "utf8"));
+    const trees = manifest.contributes.views.xrayviewer.filter((view: { type?: string }) => view.type !== "webview").map((view: { id: string }) => view.id);
+
+    assert.deepEqual([...state.trees].sort(), trees.sort());
   });
 
   test("opening or reviewing with nothing checked asks for a selection", async () => {

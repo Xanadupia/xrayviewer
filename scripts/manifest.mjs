@@ -80,6 +80,11 @@ export function transformManifest(original) {
   pullRequests.name = "Pull Requests";
   views.push(
     {
+      id: "xrayviewer.running",
+      name: "Running Reviews",
+      initialSize: 2,
+    },
+    {
       id: "xrayviewer.agentActivity",
       name: "Agent Activity",
       type: "webview",
@@ -98,6 +103,10 @@ export function transformManifest(original) {
   if (!welcome) throw new Error("package.json has no pull request welcome.");
   welcome.contents =
     "Pull requests that need your review, and the ones you opened, show up here.\n[Refresh](command:xrayviewer.refresh)\n[Open a pull request](command:xrayviewer.openPullRequest)\nIf the list is empty, run `gh auth login` in a terminal, then Refresh.";
+  manifest.contributes.viewsWelcome.push({
+    view: "xrayviewer.running",
+    contents: "No reviews are running. A pull request shows here while its agents review it.",
+  });
 
   manifest.contributes.commands.push(
     {

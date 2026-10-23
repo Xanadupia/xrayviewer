@@ -132,6 +132,8 @@ The icon's shape is the pull request's state: open, draft, merged, or closed. It
 
 The number on the X-RayViewer icon in the activity bar counts the open pull requests that request your review by name, even when the list's filter hides them.
 
+**Running Reviews**, under the list, shows only the pull requests the agents are reviewing now or about to. Each row has the title, then the number, repository, progress, and how long it has run, such as "#10137 · mondrian · 2 of 6 agents done · 4 min". It also says **Queued**, **Starting soon**, **Waiting for a free agent**, or **In another window**. Click a row to open its review, and **Agent Activity** follows it.
+
 Check up to five rows, then use the buttons under the list. They say how many pull requests they act on, such as **Open 2 pull requests** and **Review 2 and post**, and they are dimmed until something is checked.
 
 Each row also says that review in words. **Group Pull Requests…** can group the list into Reviewing PRs, Not Reviewed PRs, Reviewed PRs, and Reviewed & Posted PRs. A review counts as posted once you post it to GitHub from X-RayViewer, and a new review of the pull request starts over as not posted. The sidebar's **Agent Activity** panel shows what each agent read, ran and said for the pull request you are reviewing.

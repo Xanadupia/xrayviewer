@@ -23,6 +23,7 @@ import { agentUnavailable, comparePullRequests } from "./agent-pool.ts";
 import { activityBody, activityPanelHTML, bindActivity, onActivityMessage, publishActivity } from "./activity-panel.ts";
 import { answerNotice, bindNotice, cancelNotices, clearNotice, holdNotice, offerNotice } from "./page-notice.ts";
 import { bindModelStore, modelScope, withModelChoice } from "./pr-models.ts";
+import { bindRunningView } from "./running-view.ts";
 import { armAutoPost, bindSelectionBar, checkedKeys, chosenPullRequests, clearAutoPost, clearChecked, isChecked, setChecked, sidebarBadge, wantsAutoPost } from "./sidebar-batch.ts";
 import { announceChoice, plannedAgents, type AgentSetting, type HarnessId, type HarnessTable, type NoticeDeps, type RunChoice } from "./run-confirm.ts";
 import { chooseTheme, saveTheme, themeChoice, themeTag } from "./theme.ts";
@@ -106,6 +107,7 @@ export function createCursorHarness(internals: BundleInternals) {
     wantsAutoPost,
     bindSelectionBar,
     sidebarBadge,
+    bindRunningView,
     themeChoice,
     themeTag,
     saveTheme,

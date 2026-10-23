@@ -251,6 +251,13 @@ describe("the built extension", () => {
     assert.ok(bundle.includes('label:"Requested PRs"'), "relationship groups name the pull requests");
     assert.equal(manifest.contributes.views.xrayviewer.find((view: { id: string; name: string }) => view.id === "xrayviewer.pullRequests").name, "Pull Requests");
     assert.equal(manifest.contributes.views.xrayviewer.find((view: { id: string; name: string }) => view.id === "xrayviewer.agentActivity").name, "Agent Activity");
+    assert.deepEqual(
+      manifest.contributes.views.xrayviewer.map((view: { id: string; name: string }) => view.name),
+      ["Pull Requests", "Running Reviews", "Agent Activity", "Selection"],
+      "Running Reviews sits between the list and Agent Activity",
+    );
+    assert.ok(manifest.contributes.viewsWelcome.some((item: { view: string }) => item.view === "xrayviewer.running"), "an empty Running Reviews says what shows there");
+    assert.ok(bundle.includes("xrvCursor().bindRunningView({vscode:C,records:()=>r.all(),"), "Running Reviews reads every pull request's run");
     assert.ok(bundle.includes('setContext","xrayviewer.hasPullRequests"'), "the buttons stay hidden until the list has pull requests");
     assert.equal(bundle.includes('badge:"\\u2013"'), false, "a row that was never reviewed has no mark");
     assert.ok(bundle.includes("r=new oe.TreeItem(s?.title??i,"), "the row leads with the title");
