@@ -1,0 +1,156 @@
+name: Release
+
+on:
+  push:
+    tags: ["v*.*.*"]
+
+permissions: {}
+
+concurrency:
+  group: release-${{ github.ref_name }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Build ${{ github.ref_name }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      id-token: write # signs the build provenance attestation
+      attestations: write # stores it with the repository
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+          package-manager-cache: false
+      - run: npm ci --no-audit --no-fund
+      - name: Check the tag against VERSION and the changelog
+        run: |
+          mkdir release
+          node scripts/release.mjs "$GITHUB_REF_NAME" > release/release-notes.md
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run package
+      - name: Gather the package and its checksum
+        run: |
+          cp build/xrayviewer-*.vsix release/
+          cd release && sha256sum xrayviewer-*.vsix > SHA256SUMS
+      - uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
+        with:
+          subject-path: release/xrayviewer-*.vsix
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: release
+          path: release/
+          if-no-files-found: error
+
+  github-release:
+    name: GitHub release
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write # creates the release and uploads its files
+    steps:
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: release
+          path: release
+      - name: Create the release, or refresh its files on a rerun
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" > /dev/null 2>&1; then
+            gh release upload "$TAG" release/xrayviewer-*.vsix release/SHA256SUMS --clobber --repo "$GITHUB_REPOSITORY"
+          else
+            gh release create "$TAG" release/xrayviewer-*.vsix release/SHA256SUMS --verify-tag \
+              --title "X-RayViewer ${TAG#v}" --notes-file release/release-notes.md --repo "$GITHUB_REPOSITORY"
+          fi
+
+  marketplace:
+    name: Visual Studio Marketplace
+    needs: github-release
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment:
+      name: marketplace
+      url: https://marketplace.visualstudio.com/items?itemName=aliqaryan.xrayviewer
+    permissions:
+      contents: read
+      id-token: write # Microsoft Entra ID sign-in, when AZURE_CLIENT_ID is set
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+          package-manager-cache: false
+      - run: npm ci --no-audit --no-fund
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: release
+          path: release
+      - name: Sign in with Microsoft Entra ID
+        if: vars.AZURE_CLIENT_ID != ''
+        uses: azure/login@a641126d1b8aa4d1fa005f4f92df94a3a4c4c906 # v3.1.0
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          allow-no-subscriptions: true
+      - name: Publish
+        env:
+          AZURE_CLIENT_ID: ${{ vars.AZURE_CLIENT_ID }}
+          VSCE_PAT: ${{ secrets.VSCE_PAT }}
+        run: |
+          vsix=$(ls release/xrayviewer-*.vsix)
+          if [ -n "$AZURE_CLIENT_ID" ]; then
+            unset VSCE_PAT
+            npx vsce publish --packagePath "$vsix" --skip-duplicate --azure-credential
+          elif [ -n "$VSCE_PAT" ]; then
+            npx vsce publish --packagePath "$vsix" --skip-duplicate
+          else
+            echo "::warning title=Not published to the Visual Studio Marketplace::Add AZURE_CLIENT_ID and AZURE_TENANT_ID, or the VSCE_PAT secret, to the marketplace environment. Until then, upload $(basename "$vsix") from the GitHub release at https://marketplace.visualstudio.com/manage/publishers/aliqaryan."
+          fi
+
+  open-vsx:
+    name: Open VSX
+    needs: github-release
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment:
+      name: marketplace
+      url: https://open-vsx.org/extension/aliqaryan/xrayviewer
+    permissions:
+      contents: read
+      id-token: write # Open VSX trusted publishing, when OPEN_VSX_TRUSTED_PUBLISHING is true
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+          package-manager-cache: false
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: release
+          path: release
+      - name: Publish
+        env:
+          OVSX_PAT: ${{ secrets.OVSX_PAT }}
+          TRUSTED_PUBLISHING: ${{ vars.OPEN_VSX_TRUSTED_PUBLISHING }}
+        run: |
+          vsix=$(ls release/xrayviewer-*.vsix)
+          if [ -n "$OVSX_PAT" ]; then
+            npx --yes ovsx@1.3.0 publish "$vsix" --skip-duplicate
+          elif [ "$TRUSTED_PUBLISHING" = "true" ]; then
+            npx --yes ovsx@1.3.0 publish "$vsix" --skip-duplicate --trusted-publishing
+          else
+            echo "::warning title=Not published to Open VSX::Add the OVSX_PAT secret to the marketplace environment, or set OPEN_VSX_TRUSTED_PUBLISHING to true once open-vsx.org trusts this workflow. Cursor users can install $(basename "$vsix") from the GitHub release meanwhile."
+          fi
