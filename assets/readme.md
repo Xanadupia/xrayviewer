@@ -106,6 +106,7 @@ With several windows open, one window starts the automatic runs. A pull request'
 - **An agent program is not found.** **Choose Agent Harnesses…** says so, and can install Codex or Claude Code. A run uses the newest version installed. Set `xrayviewer.cursor.path`, `xrayviewer.claude.path`, or `xrayviewer.codex.path` only when that program lives somewhere else. Sign in by running that program once. For Cursor: `cursor-agent login`.
 - **Cursor cannot use a model.** Open **Choose model…** beside **Run agents**, or **Choose Agent Harnesses…**, and pick a model from the list.
 - **Agents fail or find nothing.** **X-RayViewer: Show Agent Log** lists the agents, errors, tokens, and cost.
+- **An agent didn't return JSON or structured output.** X-RayViewer already sent its reply back once and asked for it fixed. If the error says **even when asked to fix it**, run the agents again, or pick a specific model instead of auto in **Choose model…**.
 - **Agents are running in another window.** Stop them there, or wait.
 - **A link does nothing.** Use `cursor://aliqaryan.xrayviewer/...` in Cursor and `vscode://aliqaryan.xrayviewer/...` in VS Code. Pasting the GitHub URL into **Open a Pull Request…** works in either editor.
 

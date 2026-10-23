@@ -3,6 +3,7 @@ import { homedir } from "node:os";
 import path from "node:path";
 import { claudeEffort } from "./claude-models.ts";
 import type { AgentRequest, AgentResult, BundleInternals, Tokens } from "./cursor-harness.ts";
+import { addTokens, withEarlierUsage } from "./reply-fix.ts";
 import type { PlannedAgent } from "./run-confirm.ts";
 
 /** The agent that runs Claude Code's /code-review once in place of the reviewer agents on Claude Code. */
@@ -356,11 +357,6 @@ export function withReport(prompt: string, report: string): string {
   return `${prompt}\n\n## What Claude Code's /code-review reported\n\n${report}\n`;
 }
 
-function addTokens(a: Tokens | null, b: Tokens | null): Tokens | null {
-  if (!a || !b) return a ?? b;
-  return { input: a.input + b.input, cachedInput: a.cachedInput + b.cachedInput, output: a.output + b.output };
-}
-
 /**
  * Runs /code-review, then hands its report to the bundle's own Claude Code runner, which turns it into X-RayViewer's
  * findings with its usual read-only tools and JSON schema. Cost, tokens and time cover both runs.
@@ -398,7 +394,9 @@ export async function runCodeReview(
   request.onLog?.(`Claude Code's /code-review reported:\n${review.report}`);
 
   const remaining = request.timeoutMs === undefined ? undefined : Math.max(1, request.timeoutMs - (Date.now() - started));
-  const converted = await runClaude(config, { ...request, prompt: withReport(request.prompt, review.report), timeoutMs: remaining });
+  const converted = await runClaude(config, { ...request, prompt: withReport(request.prompt, review.report), timeoutMs: remaining }).catch((error: unknown) => {
+    throw withEarlierUsage(error, review);
+  });
   return {
     output: converted.output,
     costUsd: review.costUsd === null && converted.costUsd === null ? null : (review.costUsd ?? 0) + (converted.costUsd ?? 0),
