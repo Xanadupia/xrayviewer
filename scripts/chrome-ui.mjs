@@ -65,7 +65,7 @@ function briefItemHTML(x) {
 
 /** High first. Low findings past the first few fold behind a button when there are others to read first. */
 function briefItemsHTML() {
-  const groups = ["high", "medium", "low"].map((sev) => [sev, FIND.filter((x) => x.severity === sev)]).filter(([, xs]) => xs.length);
+  const groups = Object.keys(SEV).map((sev) => [sev, FIND.filter((x) => x.severity === sev)]).filter(([, xs]) => xs.length);
   return groups.map(([sev, xs]) => {
     const open = xs.filter((x) => findingState(x) === "open").length;
     const fold = groups.length > 1 && sev === "low" && xs.length > LOW_SHOWN + 2 && !S.lowOpen;

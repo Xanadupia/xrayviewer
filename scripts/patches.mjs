@@ -11,6 +11,7 @@ import { activityGroups, activityHTML, activitySummary, activityTime } from "./a
 import { CHROME_NAMES, CHROME_PATCHES } from "./chrome-ui.mjs";
 import { commentLevel, findingDrafts, readTag, tagBadge, withTag } from "./comment-tags.mjs";
 import { modelSummary } from "./model-line.mjs";
+import { NAV_NAMES, NAV_PATCHES } from "./nav-ui.mjs";
 import { noticeFind, noticeReplace, noticeSource, toastFind } from "./notice-ui.mjs";
 import { THEME_NAMES, THEME_PATCHES } from "./theme-ui.mjs";
 
@@ -1127,6 +1128,7 @@ function statusLineHTML() {
   },
   ...THEME_PATCHES,
   ...CHROME_PATCHES,
+  ...NAV_PATCHES,
 ];
 
 export const UI_ADDED_NAMES = [
@@ -1139,6 +1141,7 @@ export const UI_ADDED_NAMES = [
   "TONE_ICONS", "toneOf", "toneHTML", "notePosted", "showPostedNotice", "bannerTimer", "bannerPin", "bannerNow", "bannerStay", "bannerHost", "bannerHTML", "paintBanner", "dropBanner", "releaseBanner", "showPinnedNotice", "showHostNotice",
   ...THEME_NAMES,
   ...CHROME_NAMES,
+  ...NAV_NAMES,
 ];
 
 export function countOccurrences(text, needle) {
