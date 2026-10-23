@@ -11,6 +11,7 @@ import {
   type AgentRequest,
   type CursorConfig,
 } from "../src/cursor-harness.ts";
+import { fixReply } from "../src/reply-fix.ts";
 import { assistant, fakeInternals, HarnessError, ok, streamOf } from "./support/fake-internals.ts";
 
 const fixture = (name: string) => readFile(new URL(`./fixtures/${name}`, import.meta.url), "utf8");
@@ -148,6 +149,22 @@ describe("runCursorAgent", () => {
 
     await assert.rejects(runCursorAgent(internals, config, { ...request, onLog: (line) => logs.push(line) }), { kind: "badOutput" });
     assert.deepEqual(logs, ["Cursor Agent's reply, which isn't a JSON object:\nNo JSON here."]);
+  });
+
+  test("a reply that doesn't parse goes back to Cursor once to be fixed, and the tokens cover both runs", async () => {
+    const { request } = await setup();
+    const reply = '{"findings":[{"path":"a.ts"]}';
+    const usage = { inputTokens: 10, outputTokens: 5, cacheReadTokens: 20, cacheWriteTokens: 1 };
+    const { internals, runs } = fakeInternals((run) =>
+      ok(run.options.input!.includes(reply) ? success : streamOf(assistant(reply), { type: "result", is_error: false, result: reply, usage })),
+    );
+
+    const result = await fixReply(internals, (c: CursorConfig, r: AgentRequest) => runCursorAgent(internals, c, r), () => {}, config, request);
+
+    assert.equal(runs.length, 2);
+    assert.deepEqual(result.output, { findings: [] });
+    assert.deepEqual(result.tokens, { input: 62, cachedInput: 40, output: 10 });
+    assert.equal(result.model, "Composer 2.5 Fast");
   });
 
   const failures: Array<{ name: string; respond: () => Promise<{ code: number; stdout: string; stderr: string; killed: boolean }>; kind: string; message: RegExp; abort?: boolean }> = [

@@ -23,6 +23,7 @@ import { agentUnavailable, comparePullRequests } from "./agent-pool.ts";
 import { activityBody, activityPanelHTML, bindActivity, onActivityMessage, publishActivity } from "./activity-panel.ts";
 import { answerNotice, bindNotice, cancelNotices, clearNotice, holdNotice, offerNotice } from "./page-notice.ts";
 import { bindModelStore, modelScope, withModelChoice } from "./pr-models.ts";
+import { fixReply, unreadable } from "./reply-fix.ts";
 import { bindRunningView } from "./running-view.ts";
 import { armAutoPost, bindSelectionBar, checkedKeys, chosenPullRequests, clearAutoPost, clearChecked, isChecked, setChecked, sidebarBadge, wantsAutoPost } from "./sidebar-batch.ts";
 import { announceChoice, plannedAgents, type AgentSetting, type HarnessId, type HarnessTable, type NoticeDeps, type RunChoice } from "./run-confirm.ts";
@@ -55,6 +56,9 @@ function cliCatalog(id: CliId) {
 export function createCursorHarness(internals: BundleInternals) {
   return {
     run: (config: CursorConfig, request: AgentRequest) => runCursorAgent(internals, config, request),
+    unreadable,
+    fixReply: <H, R extends AgentRequest>(run: (harness: H, request: R) => Promise<AgentResult>, log: (line: string) => void, harness: H, request: R) =>
+      fixReply(internals, run, log, harness, request),
     planCodeReview,
     findingSchema,
     codeReviewResults,

@@ -4,8 +4,9 @@
  * The minified names are the base bundle's: Q runs a process, F is the harness error, Yn the base environment, Bi the
  * failure classifier, Qn the JSON parser, Fi the path relativizer, ve the log tail, Cu writes an agent's model to
  * agents.yml, C is the vscode module, t the log, and Yt reads the settings. _w picks the agents
- * a review runs, Qu gives an agent's harness, z is the guide's id and Jf runs Claude Code. In the review run, _u is the
- * reviewer schema, Hu turns a reviewer's output into findings, x is the diff index and xn matches skip patterns.
+ * a review runs, Qu gives an agent's harness, z is the guide's id and Jf runs Claude Code. Na sends a request to its
+ * harness, _f reads Claude Code's usage and Ff Codex's tokens. In the review run, _u is the reviewer schema, Hu turns a
+ * reviewer's output into findings, x is the diff index, xn matches skip patterns, t writes run.log and $ is the agent.
  */
 import { activityGroups, activityHTML, activitySummary, activityTime } from "./activity-ui.mjs";
 import { CHROME_NAMES, CHROME_PATCHES } from "./chrome-ui.mjs";
@@ -119,6 +120,22 @@ export const PATCHES = [
     id: "dispatcher-cursor",
     find: 'case"pi":return await Qf(n,e)}',
     replace: 'case"cursor":return await xrvCursor().run(n,e)}',
+  },
+  {
+    id: "fix-reply",
+    find: "let q=await Na(j,{prompt:L,schema:B,",
+    replace: "let q=await xrvCursor().fixReply(Na,xrvLine=>t(`${$} ${xrvLine}`),j,{prompt:L,schema:B,",
+  },
+  {
+    id: "fix-reply-claude",
+    find: 'new F("badOutput","Claude Code didn\'t return structured output.",ve(String(r.result)))',
+    replace:
+      'xrvCursor().unreadable(new F("badOutput","Claude Code didn\'t return structured output.",ve(String(r.result))),String(r.result),{costUsd:typeof r.total_cost_usd=="number"?r.total_cost_usd:null,..._f(r)})',
+  },
+  {
+    id: "fix-reply-codex",
+    find: 'new F("badOutput","Codex didn\'t return JSON.",ve(l||a.stdout))',
+    replace: 'xrvCursor().unreadable(new F("badOutput","Codex didn\'t return JSON.",ve(l||a.stdout)),l,{costUsd:null,tokens:Ff(a.stdout),model:e.model||n.model||null})',
   },
   {
     id: "settings",
@@ -548,7 +565,7 @@ export const PATCHES = [
 ];
 
 /** Names the patches add; the original bundle must not use them already. */
-export const ADDED_NAMES = ["xrvCursorHarness", "xrvCursor", "xrvReview", "xrvA", "xrvPick", "xrvClaude", "xrvCodex", "xrvModel", "xrvDone", "xrvRows", "xrvMove", "xrvSt", "xrvIcon", "xrvStatus", "xrvAgentState", "xrvTabs", "xrvSlot", "xrvHold", "xrvInstallNotices", "xrvScope", "xrvSc", "xrvKey"];
+export const ADDED_NAMES = ["xrvCursorHarness", "xrvCursor", "xrvReview", "xrvA", "xrvPick", "xrvClaude", "xrvCodex", "xrvModel", "xrvDone", "xrvRows", "xrvMove", "xrvSt", "xrvIcon", "xrvStatus", "xrvAgentState", "xrvTabs", "xrvSlot", "xrvHold", "xrvInstallNotices", "xrvScope", "xrvSc", "xrvKey", "xrvLine"];
 
 const modelBit = '${modelSummary(AGENTS).line ? ` · ${esc(modelSummary(AGENTS).line)} <button type="button" class="link" data-act="choose-model">Change</button>` : ""}';
 

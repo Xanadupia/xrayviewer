@@ -3,6 +3,7 @@ import { mkdir, mkdtemp, realpath, rm, writeFile } from "node:fs/promises";
 import { homedir, tmpdir } from "node:os";
 import path from "node:path";
 import type { AgentHandle } from "./activity.ts";
+import { unreadable } from "./reply-fix.ts";
 
 export type ErrorKind = "missing" | "auth" | "failed" | "timeout" | "cancelled" | "badOutput";
 
@@ -254,7 +255,11 @@ export async function runCursorAgent(
     const output = extractJson(internals.parseJson, reply) ?? extractJson(internals.parseJson, stream.result?.text ?? "");
     if (output === undefined) {
       request.onLog?.(`Cursor Agent's reply, which isn't a JSON object:\n${reply}`);
-      throw new HarnessError("badOutput", "Cursor Agent didn't return JSON.", internals.tail(reply));
+      throw unreadable(new HarnessError("badOutput", "Cursor Agent didn't return JSON.", internals.tail(reply)), reply, {
+        costUsd: null,
+        tokens: stream.tokens,
+        model: model || stream.model || null,
+      });
     }
     const resolved = path.resolve(request.cwd);
     const roots = [...new Set([resolved, await realpath(request.cwd).catch(() => resolved)])];

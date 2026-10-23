@@ -21,7 +21,8 @@ import {
   type ReviewAgent,
   type ReviewSettings,
 } from "../src/claude-review.ts";
-import type { AgentRequest } from "../src/cursor-harness.ts";
+import type { AgentRequest, AgentResult } from "../src/cursor-harness.ts";
+import { fixReply, unreadable } from "../src/reply-fix.ts";
 import type { PlannedAgent } from "../src/run-confirm.ts";
 import { fakeInternals, HarnessError, ok, streamOf } from "./support/fake-internals.ts";
 
@@ -310,6 +311,27 @@ describe("runCodeReview", () => {
     assert.equal(result.costUsd, 0.03);
     assert.deepEqual(result.tokens, { input: 21, cachedInput: 6, output: 5 });
     assert.equal(result.model, "claude-opus-5-5");
+  });
+
+  test("a shaped reply that doesn't parse is fixed without running /code-review again, and the total counts all three runs", async () => {
+    const { internals, runs } = fakeInternals(() => ok(reviewStream));
+    const shaped: AgentRequest[] = [];
+    const used = { costUsd: 0.01, tokens: { input: 5, cachedInput: 0, output: 1 }, model: "claude-opus-5-5" };
+    const runClaude = async (_config: ClaudeConfig, next: AgentRequest): Promise<AgentResult> => {
+      shaped.push(next);
+      if (shaped.length === 1) throw unreadable(new HarnessError("badOutput", "Claude Code didn't return structured output."), '{"findings":[}', used);
+      return { output: { findings: [] }, ...used, durationMs: 1 };
+    };
+    const dispatch = (config: ClaudeConfig, next: CodeReviewRequest) => (next.codeReview ? runCodeReview(internals, config, next, runClaude) : runClaude(config, next));
+
+    const result = await fixReply(internals, dispatch, () => {}, claude, request);
+
+    assert.equal(runs.length, 1, "/code-review runs once");
+    assert.equal(shaped.length, 2);
+    assert.match(shaped[1].prompt, /doesn't parse/);
+    assert.deepEqual(result.output, { findings: [] });
+    assert.equal(result.costUsd?.toFixed(2), "0.04");
+    assert.deepEqual(result.tokens, { input: 26, cachedInput: 6, output: 6 });
   });
 
   test("reports a failed, signed-out, stopped or silent /code-review in X-RayViewer's words", async () => {

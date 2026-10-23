@@ -16,6 +16,7 @@
 - **Running Reviews lists the pull requests under review.** The new sidebar section shows each one's progress and how long it has run. Click one to open it.
 - **The activity bar icon counts review requests.** It shows how many open pull requests request your review by name.
 - **The buttons under the list say what they act on,** such as **Open 2 pull requests** and **Review 2 and post**. They are dimmed until you check a pull request.
+- **An agent whose reply isn't valid JSON gets one chance to fix it.** X-RayViewer sends the reply back to the same CLI and model with the parser's error, and uses the fixed reply. This works the same on Cursor, Claude Code, and Codex. The agent's cost, tokens, and time include both requests.
 
 ## 0.4.10
 

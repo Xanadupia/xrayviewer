@@ -173,8 +173,85 @@ process.stdin.on("data", (chunk) => (input += chunk)).on("end", () => {
   return { file, calls };
 }
 
+/**
+ * A Claude Code, Codex or Cursor Agent stand-in that answers a review with `broken` until a request carries that
+ * reply back, then with `fixed`. The summary line gets `lede`, and Claude Code's /code-review a one-line report.
+ */
+async function fakeAgentCli(name: string, harness: "claude" | "codex" | "cursor", replies: { broken: string; fixed: object; lede: object }) {
+  const file = path.join(root, "bin", name);
+  const record = `${file}.calls.jsonl`;
+  await writeFile(
+    file,
+    `#!${process.execPath}
+const fs = require("node:fs");
+const args = process.argv.slice(2);
+let input = "";
+process.stdin.on("data", (chunk) => (input += chunk)).on("end", () => {
+  fs.appendFileSync(${JSON.stringify(record)}, JSON.stringify({ args, input }) + "\\n");
+  const say = (event) => console.log(JSON.stringify(event));
+  if (args[1].startsWith("/code-review ")) {
+    say({ type: "result", subtype: "success", is_error: false, result: "src/cart.js:3 divides by ten",
+      total_cost_usd: 0.02, modelUsage: { "claude-fake": { inputTokens: 7, outputTokens: 3 } } });
+    return;
+  }
+  const broken = ${JSON.stringify(replies.broken)};
+  const reply = input.includes(broken) ? ${JSON.stringify(JSON.stringify(replies.fixed))}
+    : input.startsWith("Write the opening line") ? ${JSON.stringify(JSON.stringify(replies.lede))} : broken;
+  switch (${JSON.stringify(harness)}) {
+    case "claude": {
+      let parsed;
+      try { parsed = JSON.parse(reply); } catch {}
+      say({ type: "result", subtype: "success", is_error: false, result: reply, ...(parsed ? { structured_output: parsed } : {}),
+        total_cost_usd: 0.01, usage: { input_tokens: 5, output_tokens: 2 }, modelUsage: { "claude-fake": {} } });
+      break;
+    }
+    case "codex":
+      fs.writeFileSync(args[args.indexOf("--output-last-message") + 1], reply);
+      say({ type: "turn.completed", usage: { input_tokens: 5, cached_input_tokens: 1, output_tokens: 2 } });
+      break;
+    default:
+      say({ type: "assistant", message: { content: [{ type: "text", text: reply }] } });
+      say({ type: "result", is_error: false, result: "", usage: { inputTokens: 5, outputTokens: 2, cacheReadTokens: 1, cacheWriteTokens: 0 } });
+  }
+});
+`,
+  );
+  await chmod(file, 0o755);
+  const calls = async () =>
+    (await readFile(record, "utf8")).trim().split("\n").map((line) => JSON.parse(line) as { args: string[]; input: string });
+  return { file, calls };
+}
+
 const systemPath = process.env.PATH ?? "";
 const previousHome = process.env.HOME;
+
+const changed = "  return sum - sum * discount / 10;";
+const discountDetail = {
+  pr: { title: "Discount", body: "", author: { login: "t" }, isDraft: false, headRefName: "d", baseRefName: "main", labels: [], checks: [] },
+  threads: [],
+};
+
+/** A checkout whose last commit adds a discount to src/cart.js, with the bundle's data for that commit. */
+async function cartCheckout(name: string) {
+  const repo = path.join(root, name);
+  const git = (...args: string[]) => execFileSync("git", ["-C", repo, ...args], { encoding: "utf8", env: { ...process.env, PATH: systemPath } }).trim();
+  await mkdir(path.join(repo, "src"), { recursive: true });
+  git("init", "-q", "-b", "main");
+  await writeFile(path.join(repo, "src", "cart.js"), "export function total(items) {\n  return items.reduce((sum, item) => sum + item.price, 0);\n}\n");
+  git("add", "-A");
+  git("-c", "user.email=t@example.com", "-c", "user.name=t", "commit", "-qm", "Cart total");
+  const base = git("rev-parse", "HEAD");
+  await writeFile(
+    path.join(repo, "src", "cart.js"),
+    "export function total(items, discount) {\n  const sum = items.reduce((sum, item) => sum + item.price, 0);\n  return sum - sum * discount / 10;\n}\n",
+  );
+  git("-c", "user.email=t@example.com", "-c", "user.name=t", "commit", "-qam", "Discount");
+  const head = git("rev-parse", "HEAD");
+  const realGit = execFileSync("/usr/bin/which", ["git"], { encoding: "utf8", env: { PATH: systemPath } }).trim();
+  await writeFile(path.join(root, "bin", "git"), `#!/bin/sh\nexec ${JSON.stringify(realGit)} "$@"\n`);
+  await chmod(path.join(root, "bin", "git"), 0o755);
+  return { repo, head, data: await ext.__xrayviewer.Mo(repo, base, head) };
+}
 
 before(async () => {
   root = await mkdtemp(path.join(tmpdir(), "xrayviewer-wiring-"));
@@ -421,22 +498,8 @@ describe("the patched extension", () => {
   });
 
   test("a review runs Claude Code's /code-review once in place of the reviewer agents on Claude Code, with their instructions", async () => {
-    const { zu, Mo, $t, ui, Yt } = ext.__xrayviewer;
-    const repo = path.join(root, "review-checkout");
-    const git = (...args: string[]) => execFileSync("git", ["-C", repo, ...args], { encoding: "utf8", env: { ...process.env, PATH: systemPath } }).trim();
-    await mkdir(path.join(repo, "src"), { recursive: true });
-    git("init", "-q", "-b", "main");
-    await writeFile(path.join(repo, "src", "cart.js"), "export function total(items) {\n  return items.reduce((sum, item) => sum + item.price, 0);\n}\n");
-    git("add", "-A");
-    git("-c", "user.email=t@example.com", "-c", "user.name=t", "commit", "-qm", "Cart total");
-    const base = git("rev-parse", "HEAD");
-    await writeFile(
-      path.join(repo, "src", "cart.js"),
-      "export function total(items, discount) {\n  const sum = items.reduce((sum, item) => sum + item.price, 0);\n  return sum - sum * discount / 10;\n}\n",
-    );
-    git("-c", "user.email=t@example.com", "-c", "user.name=t", "commit", "-qam", "Discount");
-    const head = git("rev-parse", "HEAD");
-    const changed = "  return sum - sum * discount / 10;";
+    const { zu, $t, ui, Yt } = ext.__xrayviewer;
+    const { repo, head, data } = await cartCheckout("review-checkout");
     const finding = {
       agent: "claude-code-review",
       severity: "high",
@@ -468,10 +531,6 @@ describe("the patched extension", () => {
       lede: { lede: "One high finding." },
     });
 
-    const realGit = execFileSync("/usr/bin/which", ["git"], { encoding: "utf8", env: { PATH: systemPath } }).trim();
-    await writeFile(path.join(root, "bin", "git"), `#!/bin/sh\nexec ${JSON.stringify(realGit)} "$@"\n`);
-    await chmod(path.join(root, "bin", "git"), 0o755);
-    const data = await Mo(repo, base, head);
     const { settings } = await $t();
     const harnesses = { ...Yt().harnesses, default: "claude" };
     harnesses.claude = { ...harnesses.claude, command: cli.file, model: "", extraArgs: ["--effort", "high"] };
@@ -483,7 +542,7 @@ describe("the patched extension", () => {
       repoPath: repo,
       baseDir: null,
       data,
-      detail: { pr: { title: "Discount", body: "", author: { login: "t" }, isDraft: false, headRefName: "d", baseRefName: "main", labels: [], checks: [] }, threads: [] },
+      detail: discountDetail,
       harnesses,
       settings,
       enabled: ["correctness", "tests"],
@@ -547,6 +606,73 @@ describe("the patched extension", () => {
     ]);
     assert.equal(settings.agents["claude-code-review"], undefined, "agents.yml's settings are left as they were");
   });
+
+  const schemaOn = { claude: "--json-schema", codex: "--output-schema", cursor: "Reply with only a JSON object matching this JSON Schema" };
+  const tokensOn = {
+    claude: { input: 17, cachedInput: 0, output: 7 },
+    codex: { input: 10, cachedInput: 2, output: 4 },
+    cursor: { input: 12, cachedInput: 2, output: 4 },
+  };
+  for (const harness of ["claude", "codex", "cursor"] as const) {
+    test(`a review on ${harness} asks an agent whose JSON doesn't parse to fix it once, and uses the fixed reply`, async () => {
+      const { zu, $t, ui, Yt } = ext.__xrayviewer;
+      const { repo, data } = await cartCheckout(`fix-reply-checkout-${harness}`);
+      const agent = harness === "claude" ? "claude-code-review" : "correctness";
+      const finding = {
+        agent,
+        severity: "high",
+        confidence: "High confidence",
+        label: "blocking",
+        path: "src/cart.js",
+        match: changed,
+        title: "Discount divides by ten, not a hundred",
+        body: "A 10% discount takes the whole total off.",
+        steps: [{ path: null, match: changed, text: "Divides by 10." }],
+        fix: "Divide by 100.",
+        comment: "Should this divide by 100?",
+      };
+      const fixed = { findings: [finding], checked: [] };
+      const broken = JSON.stringify(fixed).replace("]", "]}");
+      const cli = await fakeAgentCli(`${harness}-fix-reply`, harness, { broken, fixed, lede: { lede: "One high finding." } });
+      const { settings } = await $t();
+      settings.agents.correctness = { ...settings.agents.correctness, harness: "", model: "" };
+      const harnesses = { ...Yt().harnesses, default: harness };
+      harnesses[harness] = { ...harnesses[harness], command: cli.file, model: "", extraArgs: [] };
+      const runDir = path.join(root, `fix-reply-run-${harness}`);
+      const agentRuns: Array<Record<string, unknown>> = [];
+
+      const result = await zu({
+        key: { owner: "acme", name: "shop", number: 2 },
+        repoPath: repo,
+        baseDir: null,
+        data,
+        detail: discountDetail,
+        harnesses,
+        settings,
+        enabled: ["correctness"],
+        runDir,
+        timeoutMs: 30_000,
+        limiter: new ui(3),
+        signal: new AbortController().signal,
+        agentRuns,
+      });
+
+      const calls = await cli.calls();
+      const asked = calls.filter((call) => call.input.includes(broken));
+      assert.equal(asked.length, 1, "asked once, with the whole reply");
+      assert.equal(calls.length, harness === "claude" ? 4 : 3, "the review, the request to fix it and the summary line, after Claude Code's /code-review");
+      assert.match(asked[0].input, /doesn't parse: \S/);
+      assert.ok(asked[0].args.concat(asked[0].input).some((part) => part.includes(schemaOn[harness])), "the same schema");
+      assert.ok(!asked[0].args.some((arg) => arg.startsWith("/code-review")), "/code-review doesn't run again");
+      assert.deepEqual(result.file.findings.map((f: { agent: string; title: string }) => [f.agent, f.title]), [[agent, finding.title]]);
+      const run = agentRuns.find((entry) => entry.id === agent);
+      assert.deepEqual(run?.tokens, tokensOn[harness], "the tokens cover every run of the agent");
+      if (harness === "claude") assert.equal((run?.costUsd as number).toFixed(2), "0.04");
+      const log = await readFile(path.join(runDir, "run.log"), "utf8");
+      assert.match(log, new RegExp(`${agent} sent JSON that doesn't parse, asking it to fix it: \\S`));
+      assert.match(log, new RegExp(`${agent} done on ${harness}`));
+    });
+  }
 
   test("the dispatcher reports a missing CLI and Cursor's own errors in X-RayViewer's words", async () => {
     const { Na } = ext.__xrayviewer;
