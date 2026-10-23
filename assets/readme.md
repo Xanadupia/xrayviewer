@@ -70,10 +70,10 @@ Replies post as written, since the thread's first comment has the level. When X-
 
 | Part | What it does |
 |---|---|
-| **Change all agents** | **Cursor Agent**, **Codex**, and **Claude Code**. Each says how many agents use it. Pick one, then a model, and every agent moves to it. |
-| **Change one agent** | **Guide**, **Architecture**, **Correctness**, **Test**, and **Security**, each with its CLI, model, and what it looks at. Pick one to move only that agent. |
+| **All agents** | **Cursor Agent**, **Codex**, and **Claude Code**. Each shows how many agents use it and its version, with a filled check on the one every agent uses. Pick one, then a model, and every agent moves to it. |
+| **One agent** | **Guide**, **Architecture**, **Correctness**, **Test**, and **Security**, each with its icon, CLI, model, and what it looks at. Pick one to move only that agent. |
 
-Each CLI has a control on the right. It says **Install** when that program is missing, and **Install update** when a newer version is published. It downloads that program, then the list shows the version that is on the machine. Picking the CLI name still chooses its model.
+A CLI that is missing says **Not installed**, and one with a newer version says **Update available**. The download button on its right installs it or the update, then the list shows the version that is on the machine. Picking the CLI name still chooses its model.
 
 - **Cursor** lists the models on your Cursor account. The first row keeps whatever `cursor-agent` used last. Pick a model by name if you care which one reviews.
 - **Codex** lists the models that CLI provides, then a reasoning level such as medium or high.

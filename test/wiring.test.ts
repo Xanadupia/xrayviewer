@@ -24,7 +24,15 @@ const state = {
   commands: new Map<string, (...args: unknown[]) => unknown>(),
 };
 
+class ThemeIcon {
+  id: string;
+  constructor(id: string) {
+    this.id = id;
+  }
+}
+
 const vscode = stubModule("vscode", {
+  ThemeIcon,
   window: stub("vscode.window", {
     createOutputChannel: () => stub("output", { info: (line: string) => state.logs.push(line) }),
     createQuickPick() {
@@ -225,14 +233,15 @@ describe("the patched extension", () => {
     await state.commands.get("xrayviewer.selectHarness")!();
 
     const [pick] = state.picks;
-    assert.equal(pick.title, "Choose model");
-    assert.equal(pick.placeHolder, `Run agents runs all ${ids.length} agents together. A change here is saved for the next run.`);
-    assert.deepEqual(pick.items.filter((item) => "kind" in item).map((item) => item.label), ["—  Change all agents  —", "—  Change one agent  —"]);
+    assert.equal(pick.title, "What the agents run on");
+    assert.equal(pick.placeHolder, `All ${ids.length} agents run together. Changes apply to the next run.`);
+    assert.deepEqual(pick.items.filter((item) => "kind" in item).map((item) => item.label), ["All agents", "One agent"]);
     assert.deepEqual(pick.items.filter((item) => item.agent).map((item) => item.agent), ["pick-cursor", "install-codex", "install-claude", ...ids]);
-    assert.equal(pick.items[1].detail, `Move all ${ids.length} agents to Cursor, then pick a model on your Cursor account.`);
+    assert.ok(pick.items.filter((item) => item.agent).every((item) => item.iconPath instanceof ThemeIcon && item.iconPath.id === item.icon), "every row draws its icon");
     const guide = pick.items.find((item) => item.agent === "guide")!;
     assert.equal(guide.label, "Guide");
-    assert.equal(guide.detail, `${agents.guide.focus}. Also writes the briefing's opening line.`);
+    assert.equal(guide.detail, `${agents.guide.focus}.`);
+    assert.equal(guide.iconPath.id, "compass");
     assert.ok(!pick.items.some((item) => item.agent === "run" || item.agent === "default"), "the picker only saves; Run agents runs");
   });
 
@@ -295,9 +304,11 @@ describe("the patched extension", () => {
 
     const count = Object.keys((await $t()).settings.agents).length;
     assert.deepEqual(state.picks[0].items.find((item) => item.agent === "pick-cursor"), {
-      label: "Cursor Agent 2026.0.0-fake",
-      description: "used by 1 of 5 agents",
-      detail: `Move all ${count} agents to Cursor, then pick a model on your Cursor account.`,
+      label: "Cursor Agent",
+      description: `1 of ${count} agents · 2026.0.0-fake`,
+      detail: "Pick a model on your Cursor account.",
+      icon: "pass",
+      iconPath: new ThemeIcon("pass"),
       agent: "pick-cursor",
       harness: "cursor",
     });
