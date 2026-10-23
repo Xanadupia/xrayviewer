@@ -28,11 +28,11 @@ describe("harnessPicker", () => {
     assert.equal(picker.title, "Choose model");
     assert.equal(picker.placeHolder, "Run agents runs all 3 agents together. A change here is saved for the next run.");
     assert.deepEqual(rows(picker), [
-      "-- Change all agents",
+      "-- —  Change all agents  —",
       "pick-cursor",
       "install-codex",
       "install-claude",
-      "-- Change one agent",
+      "-- —  Change one agent  —",
       "guide",
       "architecture",
       "correctness",
@@ -42,7 +42,13 @@ describe("harnessPicker", () => {
 
   test("each CLI says how many of the agents that run use it, and that picking it moves every agent", () => {
     const [, cursor, codex, claude] = harnessPicker(input).rows;
-    assert.deepEqual(cursor, { label: "Cursor Agent 2026.10.19", description: "", detail: "Move all 4 agents to Cursor, then pick a model on your Cursor account.", agent: "pick-cursor" });
+    assert.deepEqual(cursor, {
+      label: "Cursor Agent 2026.10.19",
+      description: "",
+      detail: "Move all 4 agents to Cursor, then pick a model on your Cursor account.",
+      agent: "pick-cursor",
+      harness: "cursor",
+    });
     assert.equal(codex.description, "used by 1 of 3 agents");
     assert.equal(claude.description, "used by 2 of 3 agents");
     assert.equal(claude.detail, "Move all 4 agents to Claude Code, then pick a model and effort level. The run uses the newest Claude Code on this machine.");
@@ -71,28 +77,27 @@ describe("harnessPicker", () => {
     assert.equal(picker.placeHolder, "A change here is saved for the next run.");
   });
 
-  test("offers an update for each CLI that has a newer version, then shows that version when it is picked", () => {
+  test("puts Install update on a CLI that has a newer version, and Install when it is missing", () => {
     const picker = harnessPicker({
       ...input,
       updates: { claude: "2.1.308", codex: "0.163.0", cursor: "2026.10.22-27dcf5f" },
     });
     const byAgent = Object.fromEntries(picker.rows.map((row) => [row.agent, row]));
 
-    assert.equal(byAgent["pick-cursor"].description, "update to 2026.10.22-27dcf5f");
-    assert.equal(byAgent["update-claude"].label, "Update Claude Code to 2.1.308…");
-    assert.equal(byAgent["update-claude"].description, "2.1.294 installed");
-    assert.equal(byAgent["update-codex"].label, "Update Codex to 0.163.0…");
-    assert.equal(byAgent["update-cursor"].label, "Update Cursor Agent to 2026.10.22-27dcf5f…");
+    assert.equal(byAgent["pick-cursor"].action, "update");
+    assert.equal(byAgent["pick-cursor"].description, "Install update");
+    assert.equal(byAgent["install-codex"].description, "used by 1 of 3 agents · Install update");
+    assert.equal(byAgent["install-claude"].action, "update");
+    assert.equal(picker.rows.some((row) => row.agent?.startsWith("update-")), false);
     assert.deepEqual(
       picker.rows.filter((row) => row.separator).map((row) => row.label),
-      ["Change all agents", "Updates", "Change one agent"],
+      ["—  Change all agents  —", "—  Change one agent  —"],
     );
-  });
 
-  test("says when a CLI is missing", () => {
-    const picker = harnessPicker({ ...input, installed: { cursor: "", codex: "", claude: "2.1.294" } });
-    const byAgent = Object.fromEntries(picker.rows.map((row) => [row.agent, row]));
-    assert.deepEqual([byAgent["pick-cursor"].label, byAgent["pick-cursor"].description], ["Cursor Agent CLI", "Not found"]);
-    assert.deepEqual([byAgent["install-codex"].label, byAgent["install-codex"].description], ["Install Codex…", "Not installed"]);
+    const missing = harnessPicker({ ...input, installed: { cursor: "", codex: "", claude: "2.1.294" } });
+    const missingByAgent = Object.fromEntries(missing.rows.map((row) => [row.agent, row]));
+    assert.deepEqual([missingByAgent["pick-cursor"].label, missingByAgent["pick-cursor"].description, missingByAgent["pick-cursor"].action], ["Cursor Agent", "Install", "install"]);
+    assert.deepEqual([missingByAgent["install-codex"].label, missingByAgent["install-codex"].description, missingByAgent["install-codex"].action], ["Codex", "Install", "install"]);
+    assert.equal(missingByAgent["install-claude"].action, undefined);
   });
 });

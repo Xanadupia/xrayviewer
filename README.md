@@ -18,8 +18,8 @@ From a checkout, before or after that listing. Building needs Node 26 or later: 
 npm install
 npm test
 npm run package
-cursor --install-extension build/xrayviewer-0.4.8.vsix --force
-# or: code --install-extension build/xrayviewer-0.4.8.vsix --force
+cursor --install-extension build/xrayviewer-0.4.10.vsix --force
+# or: code --install-extension build/xrayviewer-0.4.10.vsix --force
 ```
 
 ## Develop
@@ -41,7 +41,7 @@ cursor --install-extension build/xrayviewer-0.4.8.vsix --force
 npm test
 npm run typecheck
 npm run site             # rewrite docs/index.html after a guide edit
-npm run package          # build/xrayviewer-0.4.8.vsix
+npm run package          # build/xrayviewer-0.4.10.vsix
 ```
 
 `node test/live/review-e2e.ts [model] [report.json]` runs a real review with the signed-in Cursor Agent CLI. It uses account usage, so it is not part of `npm test`.

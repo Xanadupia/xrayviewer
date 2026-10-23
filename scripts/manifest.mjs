@@ -1,4 +1,4 @@
-export const VERSION = "0.4.8";
+export const VERSION = "0.4.10";
 
 const CURSOR_SETTINGS = {
   "xrayviewer.cursor.path": {
@@ -73,22 +73,83 @@ export function transformManifest(original) {
     "xrayviewer.cursor.extraArgs",
   ];
 
+  const views = manifest.contributes.views.xrayviewer;
+  if (!Array.isArray(views)) throw new Error("package.json has no X-RayViewer views.");
+  const pullRequests = views.find((view) => view.id === "xrayviewer.pullRequests");
+  if (!pullRequests) throw new Error("package.json has no pull request view.");
+  pullRequests.name = "X-RayViewer";
+  views.push(
+    {
+      id: "xrayviewer.agentActivity",
+      name: "Agent Activity",
+      type: "webview",
+      initialSize: 8,
+    },
+    {
+      id: "xrayviewer.selectionButtons",
+      name: "Selection",
+      type: "webview",
+      when: "xrayviewer.hasPullRequests",
+      initialSize: 1,
+    },
+  );
+
   const welcome = manifest.contributes.viewsWelcome.find((item) => item.view === "xrayviewer.pullRequests");
   if (!welcome) throw new Error("package.json has no pull request welcome.");
   welcome.contents =
     "Pull requests that need your review, and the ones you opened, show up here.\n[Refresh](command:xrayviewer.refresh)\n[Open a pull request](command:xrayviewer.openPullRequest)\nIf the list is empty, run `gh auth login` in a terminal, then Refresh.";
 
-  manifest.contributes.commands.push({
-    command: "xrayviewer.filter",
-    title: "Filter…",
-    category: "X-RayViewer",
-    icon: "$(filter)",
+  manifest.contributes.commands.push(
+    {
+      command: "xrayviewer.filter",
+      title: "Filter…",
+      category: "X-RayViewer",
+      icon: "$(filter)",
+    },
+    {
+      command: "xrayviewer.openSelected",
+      title: "Open selected PRs",
+      category: "X-RayViewer",
+    },
+    {
+      command: "xrayviewer.runSelected",
+      title: "Review all selected and post",
+      category: "X-RayViewer",
+    },
+    {
+      command: "xrayviewer.toggleCheck",
+      title: "Select",
+      category: "X-RayViewer",
+      icon: "$(check)",
+    },
+  );
+  manifest.contributes.menus["view/title"].push(
+    {
+      command: "xrayviewer.filter",
+      when: "view == xrayviewer.pullRequests",
+      group: "navigation@31",
+    },
+  );
+  manifest.contributes.menus["view/item/context"].push({
+    command: "xrayviewer.toggleCheck",
+    when: "view == xrayviewer.pullRequests && viewItem =~ /^pr\\./",
+    group: "inline@0",
   });
-  manifest.contributes.menus["view/title"].push({
-    command: "xrayviewer.filter",
-    when: "view == xrayviewer.pullRequests",
-    group: "navigation@31",
+  manifest.contributes.menus.commandPalette.push({
+    command: "xrayviewer.toggleCheck",
+    when: "false",
   });
+  const sortBy = manifest.contributes.configuration.properties["xrayviewer.sidebar.sortBy"];
+  sortBy.enum = ["risk", "updated", "created", "title", "size", "number"];
+  sortBy.enumDescriptions = [
+    "Riskiest first, inside every group",
+    "Most recent activity first, inside every group",
+    "Most recently created first, inside every group",
+    "A to Z, inside every group",
+    "Largest diff first, inside every group",
+    "Highest pull request number first, inside every group",
+  ];
+  sortBy.markdownDescription = "How pull requests are ordered inside every group, including Not Reviewed PRs and Reviewed PRs.";
 
   const configuration = manifest.contributes.configuration;
   const pathFallback = (program, command) =>
@@ -109,7 +170,7 @@ export function transformManifest(original) {
     "Requested from you, assigned, code owner, your teams, yours, watched, opened here",
     "One group per repository",
     "One group per author",
-    "Reviewing, not reviewed, or reviewed by X-RayViewer",
+    "Reviewing PRs, Not Reviewed PRs, Reviewed PRs, or Reviewed & Posted PRs",
   ];
   configuration.properties = insertAfter(configuration.properties, "xrayviewer.sidebar.groupBy", {
     "xrayviewer.sidebar.mine": {

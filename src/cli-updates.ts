@@ -172,16 +172,48 @@ const defaultCommand = (id: InstalledCli) => {
   }
 };
 
-/**
- * Downloads the latest version with that CLI's own update command, then forgets the last check so the next look
- * sees what is installed now.
- */
+/** The official installer for a CLI that is not on this machine yet. */
+export function cliInstallCommand(id: InstalledCli): string {
+  switch (id) {
+    case "claude":
+      return "curl -fsSL https://claude.ai/install.sh | bash";
+    case "codex":
+      return "curl -fsSL https://chatgpt.com/codex/install.sh | sh";
+    case "cursor":
+      return "curl -fsSL https://cursor.com/install | bash";
+    default: {
+      const never: never = id;
+      return never;
+    }
+  }
+}
+
+/** Downloads a CLI that is not installed yet, then forgets the last update check. */
+export async function installCli(deps: UpdateRunnerDeps, id: InstalledCli, home = homedir()): Promise<boolean> {
+  const { window, ProgressLocation } = deps.vscode;
+  const title = cliTitle(id);
+  const agreed = await window.showInformationMessage(`Install ${title}? X-RayViewer will download it.`, { modal: true }, "Install");
+  if (agreed !== "Install") return false;
+  const script = cliInstallCommand(id);
+  const result = await window.withProgress({ location: ProgressLocation.Notification, title: `Installing ${title}…` }, () =>
+    (deps.run ?? ((file, args) => commandOutput(file, args, UPDATE_MS)))("bash", ["-lc", script]),
+  );
+  forgetCliUpdates();
+  if (!result.ok) {
+    await window.showWarningMessage(`${title} did not install. ${result.output.trim().split("\n").at(-1) ?? "The installer failed."}`);
+    return false;
+  }
+  const version = installedVersion(id, home);
+  deps.log(version ? `${title} is now ${version}.` : `${title} installed.`);
+  return true;
+}
+
 export async function updateInstalledCli(deps: UpdateRunnerDeps, id: InstalledCli, home = homedir()): Promise<boolean> {
   const { window, ProgressLocation } = deps.vscode;
   const title = cliTitle(id);
   const command = latestCommand(id, defaultCommand(id), home);
-  const agreed = await window.showInformationMessage(`Update ${title}? X-RayViewer will download the latest version.`, { modal: true }, "Update");
-  if (agreed !== "Update") return false;
+  const agreed = await window.showInformationMessage(`Install the update for ${title}? X-RayViewer will download the latest version.`, { modal: true }, "Install update");
+  if (agreed !== "Install update") return false;
   const result = await window.withProgress({ location: ProgressLocation.Notification, title: `Updating ${title}…` }, () =>
     (deps.run ?? ((file, args) => commandOutput(file, args, UPDATE_MS)))(command, ["update"]),
   );

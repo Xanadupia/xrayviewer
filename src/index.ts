@@ -15,10 +15,14 @@ import {
 import { resolveCommand, runCursorAgent, type AgentRequest, type AgentResult, type BundleInternals, type CursorConfig } from "./cursor-harness.ts";
 import { pickCursorModel, type AgentRef, type PickerDeps } from "./cursor-model-picker.ts";
 import { listCursorModels } from "./cursor-models.ts";
-import { availableUpdates, updateInstalledCli } from "./cli-updates.ts";
+import { availableUpdates, installCli, updateInstalledCli } from "./cli-updates.ts";
 import { installedSummary, latestCommand, listClaudeVersions, listCodexVersions, type InstalledCli } from "./installed-versions.ts";
 import { listCodexModels } from "./codex-models.ts";
 import { harnessPicker, type PickerAgent } from "./harness-picker.ts";
+import { agentUnavailable, comparePullRequests } from "./agent-pool.ts";
+import { activityBody, activityPanelHTML, bindActivity, onActivityMessage, publishActivity } from "./activity-panel.ts";
+import { answerNotice, bindNotice, cancelNotices, clearNotice, holdNotice, offerNotice } from "./page-notice.ts";
+import { armAutoPost, checkedKeys, chosenPullRequests, clearAutoPost, clearChecked, isChecked, selectionBarHTML, setChecked, wantsAutoPost } from "./sidebar-batch.ts";
 import { announceChoice, plannedAgents, type AgentSetting, type HarnessId, type HarnessTable, type NoticeDeps, type RunChoice } from "./run-confirm.ts";
 import { officialInstallCommand, pickCliVersion, runOfficialInstall, type CliId, type VersionPickerDeps } from "./version-picker.ts";
 
@@ -71,6 +75,29 @@ export function createCursorHarness(internals: BundleInternals) {
     harnessPicker: async (harnesses: HarnessTable, agents: Record<string, AgentSetting & PickerAgent>, installed: Record<HarnessId, string>, guideId: string) =>
       harnessPicker({ agents, plan: await namedPlan(harnesses, agents, true), installed, updates: await availableUpdates(installed), guideId }),
     updateCli: (deps: Parameters<typeof updateInstalledCli>[0], id: InstalledCli) => updateInstalledCli(deps, id, homedir()),
+    installCli: (deps: Parameters<typeof installCli>[0], id: InstalledCli) => installCli(deps, id, homedir()),
+    bindNotice,
+    answerNotice,
+    offerNotice,
+    holdNotice,
+    clearNotice,
+    cancelNotices,
+    comparePullRequests,
+    agentUnavailable,
+    activityPanelHTML,
+    activityBody,
+    bindActivity,
+    onActivityMessage,
+    publishActivity,
+    chosenPullRequests,
+    isChecked,
+    checkedKeys,
+    setChecked,
+    clearChecked,
+    armAutoPost,
+    clearAutoPost,
+    wantsAutoPost,
+    selectionBarHTML,
     modelPlan: async (harnesses: HarnessTable, agents: Record<string, AgentSetting>) =>
       plannedWithCodeReview(await namedPlan(harnesses, agents), "guide"),
   };

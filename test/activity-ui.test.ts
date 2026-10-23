@@ -88,13 +88,13 @@ describe("activityHTML: the agents, like GitHub's checks", () => {
     assert.equal(html.includes('class="checks-ring is-live"'), true, "the ring turns while agents run");
   });
 
-  test("gives every agent View details, in its ⋯ menu and on its name", () => {
+  test("opens an agent's log from its name or its ⋯ button, without a menu", () => {
     const html = activityHTML({ agents: { correctness: { state: "done", harness: "codex", ms: 1_000 } }, activity: {} }, plan, view());
 
     assert.match(html, /<button type="button" class="check-name" data-act="activity-detail" data-id="correctness">/);
-    assert.match(html, /<summary tabindex="0" aria-label="More for Correctness agent" title="More">[\s\S]*?<div class="check-menu" role="menu"><button type="button" role="menuitem" data-act="activity-detail" data-id="correctness"><i data-icon="arrow"><\/i>View details<\/button>/);
-    assert.deepEqual(openKeys(html), ["c:successful"], "the menu starts closed");
-    assert.deepEqual(openKeys(activityHTML({ agents: { correctness: { state: "done" } }, activity: {} }, plan, view(new Map([["m:correctness", true]])))), ["c:successful", "m:correctness"], "an open menu stays open as progress arrives");
+    assert.match(html, /<button type="button" class="check-more" data-act="activity-detail" data-id="correctness" aria-label="View details for Correctness agent" title="View details">/);
+    assert.equal(html.includes("check-menu"), false);
+    assert.equal(html.includes('role="menuitem"'), false);
   });
 
   test("says all agents have finished, or that some were not successful, once nothing runs", () => {

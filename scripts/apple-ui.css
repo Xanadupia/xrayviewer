@@ -262,8 +262,12 @@ body {
   color: var(--blue);
 }
 
-.xray-pill.is-current .i {
+.xray-pill.is-posted .i {
   color: var(--ok);
+}
+
+.xray-pill.is-current .i {
+  color: var(--warn);
 }
 
 .xray-pill.is-behind .i {
@@ -523,81 +527,34 @@ body {
 
 .check-more {
   flex: none;
-}
-
-.check-more > summary {
   display: flex;
   align-items: center;
   justify-content: center;
   width: 28px;
   height: 24px;
+  padding: 0;
+  border: 0;
   border-radius: 6px;
+  background: none;
   color: var(--ink-2);
   cursor: pointer;
-  list-style: none;
 }
 
-.check-more > summary::-webkit-details-marker {
-  display: none;
-}
-
-.check-more > summary:hover,
-.check-more[open] > summary {
+.check-more:hover {
   background: var(--sheet-2);
   color: var(--ink);
 }
 
-.check-more > summary:focus-visible,
+.check-more:focus-visible,
 .check-name:focus-visible,
 .act-back:focus-visible {
   outline: 2px solid var(--blue);
   outline-offset: 1px;
 }
 
-.check-more > summary .i {
+.check-more .i {
   width: 16px;
   height: 16px;
-}
-
-.check-menu {
-  position: absolute;
-  z-index: 5;
-  top: calc(100% - 2px);
-  right: 6px;
-  min-width: 170px;
-  padding: 4px;
-  border: 1px solid var(--line);
-  border-radius: 10px;
-  background: var(--sheet);
-  box-shadow: 0 8px 24px rgb(0 0 0 / 0.24);
-}
-
-.check-menu button {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  width: 100%;
-  padding: 7px 10px;
-  border: 0;
-  border-radius: 6px;
-  background: none;
-  color: var(--ink);
-  font: inherit;
-  font-size: 13px;
-  text-align: left;
-  cursor: pointer;
-}
-
-.check-menu button:hover,
-.check-menu button:focus-visible {
-  background: var(--sheet-3);
-  outline: none;
-}
-
-.check-menu .i {
-  width: 14px;
-  height: 14px;
-  color: var(--ink-2);
 }
 
 .act-back {
@@ -934,6 +891,84 @@ details.act-step[open] .act-title {
   .btn:active:not([disabled]) {
     transform: none;
   }
+}
+
+/* One banner for every notice: under the bar, with the X-RayViewer mark. */
+.notice {
+  width: max-content;
+  max-width: min(640px, calc(100vw - 32px));
+  align-items: flex-start;
+  padding: 8px 8px 8px 10px;
+}
+.notice-tone {
+  flex: none;
+  width: 20px;
+  height: 20px;
+  margin-top: 1px;
+}
+.notice-tone > svg {
+  display: block;
+  width: 20px;
+  height: 20px;
+}
+.notice-tone.t-success { color: #30d158; }
+.notice-tone.t-info { color: #0a84ff; }
+.notice-tone.t-ask { color: #5e5ce6; }
+.notice-tone.t-warning { color: #ffcc00; }
+.notice-tone.t-error { color: #ff453a; }
+.notice-tone.t-progress::before {
+  content: "";
+  display: block;
+  box-sizing: border-box;
+  width: 16px;
+  height: 16px;
+  margin: 2px;
+  border: 2px solid color-mix(in srgb, #0a84ff 25%, transparent);
+  border-top-color: #0a84ff;
+  border-radius: 50%;
+  animation: notice-spin .8s linear infinite;
+}
+@keyframes notice-spin {
+  to { transform: rotate(360deg); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .notice-tone.t-progress::before { animation-duration: 2.4s; }
+}
+.notice .link {
+  color: inherit;
+  text-decoration-color: currentColor;
+}
+.notice-body {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-top: 2px;
+  line-height: 18px;
+}
+.notice-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.notice .notice-x {
+  margin: -3px -3px 0 4px;
+}
+.notice.out {
+  opacity: 0;
+  transform: translateY(-6px);
+  transition: opacity .25s, transform .25s;
+}
+.toasts {
+  top: calc(var(--top) + 68px);
+  bottom: auto;
+  z-index: 80;
+}
+.is-pr .toasts,
+.has-tour .toasts,
+.is-pr.has-tour .toasts {
+  bottom: auto;
 }
 
 @media (prefers-contrast: more) {

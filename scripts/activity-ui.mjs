@@ -76,7 +76,7 @@ export function activitySummary(steps, live) {
 
 /**
  * The sheet's body. Without `view.detail` it lists the agents the way GitHub lists a pull request's checks: a header
- * that sums them up, then one row per agent under its status, each with View details in its ⋯ menu. With
+ * that sums them up, then one row per agent under its status, each with a ⋯ button that opens its log. With
  * `view.detail` set to an agent it shows that agent's steps, the way GitHub shows a job's log.
  * `view.open` remembers which rows the reader opened or closed, by `data-key`. An agent whose progress has `by` is
  * reviewed inside that agent, such as the Code review agent's /code-review: it sits under that agent's row, with its
@@ -248,8 +248,7 @@ export function activityHTML(progress, plan, view) {
   const rowHTML = (id, sub) => {
     const name = nameOf(id);
     const meta = metaOf(id).line;
-    const menuKey = `m:${id}`;
-    const more = `<details class="check-more" data-key="${esc(menuKey)}" data-was="${isOpen(menuKey, false) ? 1 : 0}"${isOpen(menuKey, false) ? " open" : ""}><summary tabindex="0" aria-label="More for ${esc(name)}" title="More"><svg class="i" viewBox="0 0 16 16" aria-hidden="true"><circle cx="3" cy="8" r="1.4" fill="currentColor"/><circle cx="8" cy="8" r="1.4" fill="currentColor"/><circle cx="13" cy="8" r="1.4" fill="currentColor"/></svg></summary><div class="check-menu" role="menu"><button type="button" role="menuitem" data-act="activity-detail" data-id="${esc(id)}">${icon("arrow")}View details</button></div></details>`;
+    const more = `<button type="button" class="check-more" data-act="activity-detail" data-id="${esc(id)}" aria-label="View details for ${esc(name)}" title="View details"><svg class="i" viewBox="0 0 16 16" aria-hidden="true"><circle cx="3" cy="8" r="1.4" fill="currentColor"/><circle cx="8" cy="8" r="1.4" fill="currentColor"/><circle cx="13" cy="8" r="1.4" fill="currentColor"/></svg></button>`;
     return `<li class="check is-${esc(stateOf(id))}${sub ? " is-sub" : ""}">${markHTML(stateOf(id))}${view.avatar || ""}<button type="button" class="check-name" data-act="activity-detail" data-id="${esc(id)}"><b>${esc(name)}</b>${meta ? ` / ${esc(meta)}` : ""}</button><span class="check-status">${statusHTML(id)}</span>${costHTML(id)}${more}</li>`;
   };
   const groups = buckets

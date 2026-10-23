@@ -10,6 +10,7 @@
 import { activityGroups, activityHTML, activitySummary, activityTime } from "./activity-ui.mjs";
 import { commentLevel, findingDrafts, readTag, tagBadge, withTag } from "./comment-tags.mjs";
 import { modelSummary } from "./model-line.mjs";
+import { noticeFind, noticeReplace, noticeSource, toastFind } from "./notice-ui.mjs";
 
 export const PATCHES = [
   {
@@ -170,7 +171,8 @@ export const PATCHES = [
       'M=[{label:"Default for all agents",description:Nt[E.default],detail:"Agents without a harness of their own use this one.",agent:"default"},{label:"Agents",kind:C.QuickPickItemKind.Separator},...Object.entries(O.agents).map(([j,ce])=>{let Me=ce.harness,q=Me||E.default,Le=ce.model||E[q].model||(q==="pi"?"Pi\'s default model":"the CLI\'s default model"),gt=q==="pi"&&E.pi.thinking&&!_e(ce.model)?`, thinking ${E.pi.thinking}`:"";return{label:Ue(ce.name),description:`${Nt[q]}${Me?"":" (default)"} \\xB7 ${Le}${gt}${ce.enabled?"":" \\xB7 off"}`,detail:j===z?"Also writes the briefing\'s opening line.":void 0,agent:j}})],J=await C.window.showQuickPick(M,{title:"Which CLI runs each agent?",placeHolder:"Pick the default or an agent to change it"});',
     replace:
       'xrvRows=await xrvCursor().harnessPicker(E,O.agents,{cursor:v.get("cursor")||"",codex:xrvCursor().installedSummary("codex"),claude:xrvCursor().installedSummary("claude")},z),' +
-      "M=xrvRows.rows.map(x=>x.separator?{label:x.label,kind:C.QuickPickItemKind.Separator}:x),J=await C.window.showQuickPick(M,{title:xrvRows.title,placeHolder:xrvRows.placeHolder});",
+      'M=xrvRows.rows.map(x=>x.separator?{label:x.label,kind:C.QuickPickItemKind.Separator}:{...x,...x.action?{buttons:[{iconPath:new C.ThemeIcon("cloud-download"),tooltip:x.action==="install"?"Install":"Install update"}]}:{}}),' +
+      'J=await new Promise(res=>{let qp=C.window.createQuickPick(),done=!1,finish=v=>{if(done)return;done=!0;qp.hide();qp.dispose();res(v)};qp.title=xrvRows.title;qp.placeholder=xrvRows.placeHolder;qp.matchOnDescription=!0;qp.items=M;qp.onDidTriggerItemButton(e=>finish({agent:(e.item.action==="install"?"install-":"update-")+e.item.harness,button:!0}));qp.onDidAccept(()=>finish(qp.selectedItems[0]));qp.onDidHide(()=>finish());qp.show()});',
   },
   {
     id: "effort-record",
@@ -207,7 +209,7 @@ export const PATCHES = [
     id: "run-button-notify",
     find: "noticeChange(e){",
     replace:
-      'notifyRun(){if(!this.panel||!this.current)return;let r=this.service.get(this.current)?.run,s=r?.state;this.panel.webview.postMessage({type:"host-run",running:s==="running"||s==="queued"||s==="waiting"||s==="elsewhere",state:s||"idle",automatic:!!r?.automatic,progress:r?.progress??null})}' +
+      'notifyRun(){for(let tab of this.xrvTabs.values()){if(!tab.panel||!tab.current)continue;let run=this.service.get(tab.current)?.run,s=run?.state||"idle",id=N(tab.current).toLowerCase(),auto=xrvCursor().wantsAutoPost(id);if(auto&&(s==="done"||s==="failed"||s==="cancelled"))xrvCursor().clearAutoPost(id);tab.panel.webview.postMessage({type:"host-run",running:s==="running"||s==="queued"||s==="waiting"||s==="elsewhere",state:s,automatic:!!run?.automatic,progress:run?.progress??null,autoPost:auto})}let slot=this.xrvSlot,cur=slot&&slot.current,active=cur?this.service.get(cur)?.run:null;xrvCursor().publishActivity(active?.progress??null,()=>$t().then(c=>xrvCursor().modelPlan(Yt().harnesses,c.settings.agents)).catch(()=>null))}' +
       'notifyModel(){if(!this.panel)return;$t().then(c=>xrvCursor().modelPlan(Yt().harnesses,c.settings.agents)).then(p=>this.panel?.webview.postMessage({type:"host-model",plan:p}),()=>{})}noticeChange(e){',
   },
   {
@@ -219,42 +221,92 @@ export const PATCHES = [
     id: "run-button-shim",
     find: 'm.type === "host-view" || m.type === "host-list" || m.type === "host-pr-changed" || m.type === "host-data"',
     replace:
-      'm.type === "host-view" || m.type === "host-list" || m.type === "host-pr-changed" || m.type === "host-data" || m.type === "host-run" || m.type === "host-model"',
+      'm.type === "host-view" || m.type === "host-list" || m.type === "host-pr-changed" || m.type === "host-data" || m.type === "host-run" || m.type === "host-model" || m.type === "host-notice"',
   },
   {
     id: "harness-install-actions",
     find: 'if(!J?.agent)return;if(J.agent==="default"){',
     replace:
-      'if(!J?.agent)return;if(J.agent.startsWith("update-")){if(await xrvCursor().updateCli({vscode:C,log:t},J.agent.slice(7)))o.notifyModel();continue}if(J.agent==="pick-cursor"||J.agent==="install-codex"||J.agent==="install-claude"){let h=J.agent.replace(/^(pick|install)-/,"");if(await xrvModel(h,null)){await xrvMove(h);await xrvDone(h,null);return}continue}if(J.agent==="default"){',
+      'if(!J?.agent)return;if(J.button){let id=J.agent.slice(J.agent.startsWith("update-")?7:8),ok=J.agent.startsWith("update-")?await xrvCursor().updateCli({vscode:C,log:t},id):await xrvCursor().installCli({vscode:C,log:t},id);if(ok)o.notifyModel();continue}if(J.agent==="pick-cursor"||J.agent==="install-codex"||J.agent==="install-claude"){let h=J.agent.replace(/^(pick|install)-/,"");if(await xrvModel(h,null)){await xrvMove(h);await xrvDone(h,null);return}continue}if(J.agent==="default"){',
   },
   {
     id: "choose-model-host",
     find: 'runAgents() { vscode.postMessage({ type: "runAgents", key }); },',
     replace:
-      'runAgents() { vscode.postMessage({ type: "runAgents", key }); },\n    chooseHarness() { vscode.postMessage({ type: "chooseHarness", key }); },',
+      'runAgents() { vscode.postMessage({ type: "runAgents", key }); },\n    chooseHarness() { vscode.postMessage({ type: "chooseHarness", key }); },\n    showActivity() { vscode.postMessage({ type: "showActivity", key }); },',
   },
   {
     id: "choose-model-command",
     find: 'else if(e.type==="runAgents")ee.commands.executeCommand("xrayviewer.runAgents",N(t));',
     replace:
-      'else if(e.type==="chooseHarness")ee.commands.executeCommand("xrayviewer.selectHarness");else if(e.type==="runAgents")ee.commands.executeCommand("xrayviewer.runAgents",N(t));',
+      'else if(e.type==="chooseHarness")ee.commands.executeCommand("xrayviewer.selectHarness");else if(e.type==="showActivity")ee.commands.executeCommand("xrayviewer.agentActivity.focus");else if(e.type==="runAgents")ee.commands.executeCommand("xrayviewer.runAgents",N(t));',
   },
   {
     id: "sidebar-settings",
     find: 'function Ei(){let n=C.workspace.getConfiguration("xrayviewer.sidebar"),e=n.get("groupBy")==="repository"?"repository":"relationship",t=["risk","created","updated"].find(s=>s===n.get("sortBy"))||"risk";return{groupBy:e,sortBy:t,othersLimit:n.get("othersLimit",10)}}',
     replace:
-      'function Ei(){let n=C.workspace.getConfiguration("xrayviewer.sidebar"),e=n.get("groupBy")==="repository"?"repository":n.get("groupBy")==="author"?"author":n.get("groupBy")==="review"?"review":"relationship",t=["risk","created","updated"].find(s=>s===n.get("sortBy"))||"risk",list=["open","draft","merged","closed"],raw=n.get("status"),st=Array.isArray(raw)?raw.filter(s=>list.includes(s)):list.includes(raw)?[raw]:list,who=n.get("author"),au=Array.isArray(who)?who.filter(s=>typeof s==="string"&&s):typeof who==="string"&&who?[who]:[];if(!st.length)st=list;return{groupBy:e,sortBy:t,othersLimit:n.get("othersLimit",10),author:au,status:st,mine:n.get("mine")===true}}',
+      'function Ei(){let n=C.workspace.getConfiguration("xrayviewer.sidebar"),e=n.get("groupBy")==="repository"?"repository":n.get("groupBy")==="author"?"author":n.get("groupBy")==="review"?"review":"relationship",t=["risk","created","updated","title","size","number"].find(s=>s===n.get("sortBy"))||"risk",list=["open","draft","merged","closed"],raw=n.get("status"),st=Array.isArray(raw)?raw.filter(s=>list.includes(s)):list.includes(raw)?[raw]:list,who=n.get("author"),au=Array.isArray(who)?who.filter(s=>typeof s==="string"&&s):typeof who==="string"&&who?[who]:[];if(!st.length)st=list;return{groupBy:e,sortBy:t,othersLimit:n.get("othersLimit",10),author:au,status:st,mine:n.get("mine")===true}}',
   },
   {
     id: "sidebar-author-group",
     find: '}else for(let a of dd){',
     replace:
-      '}else if(e.groupBy==="author"){let a=new Map;for(let l of i){let c=l.record.summary?.author?.login||"Unknown";a.set(c,[...a.get(c)||[],l])}for(let[l,c]of[...a].sort(([d],[u])=>d.localeCompare(u)))r.push({id:`author:${l.toLowerCase()}`,label:l,description:String(c.length),rows:c.sort(s)})}else if(e.groupBy==="review"){let order=[["ongoing","Reviewing"],["never","Not reviewed"],["reviewed","Reviewed"]],buckets={ongoing:[],never:[],reviewed:[]};for(let l of i)buckets[xrvAgentState(l.record).flag].push(l);for(let[l,c]of order){let d=buckets[l];d.length&&r.push({id:`review:${l}`,label:c,description:String(d.length),rows:d.sort(s)})}}else for(let a of dd){',
+      '}else if(e.groupBy==="author"){let a=new Map;for(let l of i){let c=l.record.summary?.author?.login||"Unknown";a.set(c,[...a.get(c)||[],l])}for(let[l,c]of[...a].sort(([d],[u])=>d.localeCompare(u)))r.push({id:`author:${l.toLowerCase()}`,label:l,description:String(c.length),rows:c.sort(s)})}else if(e.groupBy==="review"){let order=[["ongoing","Reviewing PRs"],["never","Not Reviewed PRs"],["reviewed","Reviewed PRs"],["posted","Reviewed & Posted PRs"]],buckets={ongoing:[],never:[],reviewed:[],posted:[]};for(let l of i)buckets[xrvAgentState(l.record).flag].push(l);for(let[l,c]of order){let d=buckets[l];d.length&&r.push({id:`review:${l}`,label:c,description:String(d.length),rows:d.sort(s)})}}else for(let a of dd){',
   },
   {
     id: "sidebar-author-closed",
     find: 'rows:o}),e.groupBy!=="repository"){let a=i.filter(d=>fd(d.record))',
     replace: 'rows:o}),e.groupBy==="relationship"){let a=i.filter(d=>fd(d.record))',
+  },
+  {
+    id: "sidebar-group-names",
+    find: 'label:"Review requested from you"',
+    replace: 'label:"Requested PRs"',
+  },
+  {
+    id: "sidebar-group-assigned",
+    find: 'label:"Assigned to you"',
+    replace: 'label:"Assigned PRs"',
+  },
+  {
+    id: "sidebar-group-reviewed",
+    find: 'label:"You reviewed"',
+    replace: 'label:"Reviewed PRs"',
+  },
+  {
+    id: "sidebar-group-owner",
+    find: 'label:"You\'re a code owner"',
+    replace: 'label:"Code Owner PRs"',
+  },
+  {
+    id: "sidebar-group-team",
+    find: 'label:"Your teams\' requests"',
+    replace: 'label:"Team Requested PRs"',
+  },
+  {
+    id: "sidebar-group-authored",
+    find: 'label:"Your pull requests"',
+    replace: 'label:"Your PRs"',
+  },
+  {
+    id: "sidebar-group-watched",
+    find: 'label:"Watched"',
+    replace: 'label:"Watched PRs"',
+  },
+  {
+    id: "sidebar-group-pinned",
+    find: 'label:"Opened here"',
+    replace: 'label:"Opened Here"',
+  },
+  {
+    id: "sidebar-group-others",
+    find: 'label:"Others you could review"',
+    replace: 'label:"Other PRs"',
+  },
+  {
+    id: "sidebar-group-closed",
+    find: 'label:"Recently merged or closed"',
+    replace: 'label:"Merged or Closed PRs"',
   },
   {
     id: "sidebar-author-filter",
@@ -266,22 +318,34 @@ export const PATCHES = [
     id: "sidebar-status-text",
     find: 'function bf(n,e,t=Date.now()){let s=n.summary,i=Ai(s),r=fa(n,t).text;return[e.tag||"",i?"":wf(s)[0]||"",i&&e.risk?`${e.risk.score} ${fi[e.risk.level].toLowerCase()}`:"",i||jv.has(n.run.state)?r:"",...i?wf(s):[],Fv(s,t),e.inRepoGroup?"":n.key.name].filter(Boolean).join(" \\xB7 ")}',
     replace:
-      'function xrvAgentState(n,t=Date.now()){let run=n.run||{},a=jn(n.agent,n.summary),f=n.agent?n.agent.findings.length:0,fs=f+" finding"+(f===1?"":"s"),c=a.commit?a.commit.slice(0,7):"",flag=["waiting","queued","running","elsewhere"].includes(run.state)?"ongoing":a.state==="current"||a.state==="behind"?"reviewed":"never";' +
+      'function xrvAgentState(n,t=Date.now()){let run=n.run||{},a=jn(n.agent,n.summary),f=n.agent?n.agent.findings.length:0,fs=f+" finding"+(f===1?"":"s"),c=a.commit?a.commit.slice(0,7):"",pa=n.agent&&n.agent.postedAt,posted=pa?" Posted to GitHub "+ht(pa,t)+".":" Not posted to GitHub yet.",flag=["waiting","queued","running","elsewhere"].includes(run.state)?"ongoing":a.state==="current"||a.state==="behind"?pa?"posted":"reviewed":"never";' +
       'if(run.state==="waiting"||run.state==="queued")return{short:run.state==="queued"?"Reviewing, queued":"Reviewing",long:run.state==="queued"?"Review queued.":"Review starting soon.",color:"#4FA3FF",flag};' +
-      'if(run.state==="running"){let p=Object.values(run.progress?.agents||{}),d=p.filter(g=>g&&(g.state==="done"||g.state==="failed")).length,all=p.filter(g=>g&&g.state!=="skipped").length;return{short:all?"Reviewing "+d+"/"+all:"Reviewing",long:all?"Reviewing now: "+d+" of "+all+" agents done.":"Review starting.",color:"#4FA3FF",flag}}' +
+      'if(run.state==="running"){let p=Object.values(run.progress?.agents||{}),d=p.filter(g=>g&&(g.state==="done"||g.state==="failed")).length,all=p.filter(g=>g&&g.state!=="skipped").length,live=p.filter(g=>g&&g.state==="running").length,wait=p.filter(g=>g&&g.state==="queued").length;if(all&&!live&&wait)return{short:"Paused, waiting for an agent",long:"Paused until an agent finishes and is free.",color:"#E2C08D",flag};return{short:all?"Reviewing "+d+"/"+all:"Reviewing",long:all?"Reviewing now: "+d+" of "+all+" agents done.":"Review starting.",color:"#4FA3FF",flag}}' +
       'if(run.state==="elsewhere")return{short:"Reviewing in another window",long:"Reviewing in another window.",color:"#4FA3FF",flag};' +
       'if(run.state==="failed")return{short:"Review failed",long:"The last review failed."+(n.agent?" The one before found "+fs+".":""),color:"#F85149",flag};' +
       'let hold=run.state==="held"?run.hold==="approved-ask"?" Approved, so the agents wait for your choice.":run.hold==="approved-skip"?" Approved, so the agents skipped it.":" Large, so the agents wait for you to press Run.":"";' +
       'if(a.state==="none")return{short:"Not reviewed",long:"Not reviewed yet."+hold,color:"#9AA0A6",flag};' +
-      'if(a.state==="behind")return{short:"Reviewed, new commits",long:"Reviewed "+c+" "+ht(a.ranAt,t)+": "+fs+". New commits came after it."+hold,color:"#E2C08D",flag};' +
-      'return{short:"Reviewed, "+fs,long:"Reviewed "+c+" "+ht(a.ranAt,t)+": "+fs+"."+hold,color:"#3FB950",flag}}' +
+      'if(a.state==="behind")return{short:pa?"Reviewed & posted, new commits":"Reviewed, new commits",long:"Reviewed "+c+" "+ht(a.ranAt,t)+": "+fs+"."+posted+" New commits came after it."+hold,color:"#E2C08D",flag};' +
+      'if(!pa)return{short:"Reviewed, not posted, "+fs,long:"Reviewed "+c+" "+ht(a.ranAt,t)+": "+fs+"."+posted+hold,color:"#E2C08D",flag};' +
+      'return{short:"Reviewed & posted, "+fs,long:"Reviewed "+c+" "+ht(a.ranAt,t)+": "+fs+"."+posted+hold,color:"#3FB950",flag}}' +
       'function bf(n,e,t=Date.now()){let s=n.summary,i=Ai(s),state=!s?"":s.state==="MERGED"?"merged":s.state==="CLOSED"?"closed":s.isDraft?"draft":"open";return[state,xrvAgentState(n,t).short,e.tag||"",i&&yf(s)?"conflicts":"",Fv(s,t),e.inRepoGroup?"":n.key.name].filter(Boolean).join(" \\xB7 ")}',
   },
   {
-    id: "sidebar-status-icon",
-    find: 'let a=t.run.state==="running"||t.run.state==="queued"||t.run.state==="elsewhere",l=jn(t.agent,s),c=l.state==="current"?"pass-filled":l.state==="behind"?"pass":"circle-large-outline";r.iconPath=a?new oe.ThemeIcon("sync~spin"):t.run.state==="failed"?new oe.ThemeIcon("error",new oe.ThemeColor("list.errorForeground")):new oe.ThemeIcon(c,new oe.ThemeColor(e.risk?Bv[e.risk.level]:"disabledForeground"));',
+    id: "agent-summary-posted",
+    find: "sf=n=>n?{commit:n.commit,ranAt:n.ranAt,findings:",
+    replace: "sf=n=>n?{commit:n.commit,ranAt:n.ranAt,postedAt:n.postedAt||null,findings:",
+  },
+  {
+    id: "push-marks-posted",
+    find: "c=await xd(e,l,o.viewer?.login||null,a,r);return r||this.details.delete(N(e).toLowerCase()),c}",
     replace:
-      'let xrvSt=!s?"open":s.state==="MERGED"?"merged":s.state==="CLOSED"?"closed":s.isDraft?"draft":"open",xrvIcon=xrvSt==="merged"?"git-merge":xrvSt==="closed"?"git-pull-request-closed":xrvSt==="draft"?"git-pull-request-draft":"git-pull-request",xrvColor=xrvSt==="merged"?"charts.purple":xrvSt==="closed"?"charts.red":xrvSt==="draft"?"disabledForeground":"charts.green",xrvExt=oe.extensions.getExtension("aliqaryan.xrayviewer"),xrvFlag=xrvAgentState(t).flag;r.resourceUri=oe.Uri.from({scheme:"xrayviewer",path:"/"+t.key.owner+"/"+t.key.name+"/"+t.key.number,query:xrvFlag});r.iconPath=xrvExt&&e.risk?oe.Uri.joinPath(xrvExt.extensionUri,"media","risk",xrvSt+"-"+e.risk.level+".svg"):new oe.ThemeIcon(xrvIcon,new oe.ThemeColor(xrvColor));',
+      "c=await xd(e,l,o.viewer?.login||null,a,r);if(!r&&(c?.results||[]).some(x=>x&&x.ok)){let ag=await this.store.readAgent(e).catch(()=>null);if(ag){ag.postedAt=new Date().toISOString();await this.store.writeAgent(e,ag).catch(()=>{});this.record(e).agent=sf(ag);this.changed()}}return r||this.details.delete(N(e).toLowerCase()),c}",
+  },
+  {
+    id: "sidebar-status-icon",
+    find: 'let a=t.run.state==="running"||t.run.state==="queued"||t.run.state==="elsewhere",l=jn(t.agent,s),c=l.state==="current"?"pass-filled":l.state==="behind"?"pass":"circle-large-outline";r.iconPath=a?new oe.ThemeIcon("sync~spin"):t.run.state==="failed"?new oe.ThemeIcon("error",new oe.ThemeColor("list.errorForeground")):new oe.ThemeIcon(c,new oe.ThemeColor(e.risk?Bv[e.risk.level]:"disabledForeground"));let d=t.run.state==="elsewhere"?"elsewhere":a||t.run.state==="waiting"?"running":"idle";',
+    replace:
+      'let xrvSt=!s?"open":s.state==="MERGED"?"merged":s.state==="CLOSED"?"closed":s.isDraft?"draft":"open",xrvIcon=xrvSt==="merged"?"git-merge":xrvSt==="closed"?"git-pull-request-closed":xrvSt==="draft"?"git-pull-request-draft":"git-pull-request",xrvColor=xrvSt==="merged"?"charts.purple":xrvSt==="closed"?"charts.red":xrvSt==="draft"?"disabledForeground":"charts.green",xrvExt=oe.extensions.getExtension("aliqaryan.xrayviewer"),xrvFlag=xrvAgentState(t).flag;r.resourceUri=oe.Uri.from({scheme:"xrayviewer",path:"/"+t.key.owner+"/"+t.key.name+"/"+t.key.number,query:xrvFlag});r.iconPath=xrvExt&&e.risk?oe.Uri.joinPath(xrvExt.extensionUri,"media","risk",xrvSt+"-"+e.risk.level+".svg"):new oe.ThemeIcon(xrvIcon,new oe.ThemeColor(xrvColor));let d=t.run.state==="elsewhere"?"elsewhere":t.run.state==="running"||t.run.state==="queued"||t.run.state==="waiting"?"running":"idle";',
   },
   {
     id: "review-tabs-state",
@@ -293,7 +357,7 @@ export const PATCHES = [
     id: "review-tabs-panel",
     find: 'ensurePanel(){if(this.panel)return this.panel;let e=ee.window.createWebviewPanel("xrayviewer.review","X-RayViewer",ee.ViewColumn.Active,{enableScripts:!0,retainContextWhenHidden:!0,localResourceRoots:[this.ui()]});return e.iconPath=ee.Uri.joinPath(this.extensionUri,"media","xrayviewer.svg"),e.onDidDispose(()=>{this.panel=null,this.current=null,this.shownSeq=-1,this.shownPr=null}),e.webview.onDidReceiveMessage(t=>{this.onMessage(t)}),this.panel=e,e}',
     replace:
-      'ensurePanel(pr){let id=pr?N(pr).toLowerCase():"";if(id){let tab=this.xrvTabs.get(id);if(tab?.panel)return this.xrvSlot=tab,tab.panel}else if(this.panel)return this.panel;let e=ee.window.createWebviewPanel("xrayviewer.review",pr?`#${pr.number}`:"X-RayViewer",ee.ViewColumn.Active,{enableScripts:!0,retainContextWhenHidden:!0,localResourceRoots:[this.ui()]});let tab={panel:e,current:pr||null,home:!1,view:void 0,loadSeq:0,shownSeq:-1,shownPr:null,noticed:null,drawing:new Map};id&&this.xrvTabs.set(id,tab);this.xrvSlot=tab;e.iconPath=ee.Uri.joinPath(this.extensionUri,"media","xrayviewer.svg");e.onDidDispose(()=>{id&&this.xrvTabs.delete(id);this.xrvSlot===tab&&(this.xrvSlot=null)});e.onDidChangeViewState(v=>{v.webviewPanel.active&&(this.xrvSlot=tab)});e.webview.onDidReceiveMessage(t=>{this.xrvSlot=tab,this.onMessage(t)});return e}',
+      'ensurePanel(pr){let id=pr?N(pr).toLowerCase():"";if(id){let tab=this.xrvTabs.get(id);if(tab?.panel)return this.xrvSlot=tab,tab.panel}else if(this.panel)return this.panel;let e=ee.window.createWebviewPanel("xrayviewer.review",pr?`#${pr.number}`:"X-RayViewer",ee.ViewColumn.Active,{enableScripts:!0,retainContextWhenHidden:!0,localResourceRoots:[this.ui()]});let tab={panel:e,current:pr||null,home:!1,view:void 0,loadSeq:0,shownSeq:-1,shownPr:null,noticed:null,drawing:new Map};id&&this.xrvTabs.set(id,tab);this.xrvSlot=tab;e.iconPath=ee.Uri.joinPath(this.extensionUri,"media","xrayviewer.svg");e.onDidDispose(()=>{id&&this.xrvTabs.delete(id);this.xrvSlot===tab&&(xrvCursor().cancelNotices(),this.xrvSlot=null)});e.onDidChangeViewState(v=>{if(v.webviewPanel.active)this.xrvSlot=tab,this.notifyRun()});e.webview.onDidReceiveMessage(t=>{this.xrvSlot=tab;if(t&&t.type==="notice-answer")xrvCursor().answerNotice(t);this.onMessage(t)});xrvCursor().bindNotice(m=>{let p=this.panel;if(!p||!String(p.webview.html||"").includes("host-notice"))return!1;p.webview.postMessage(m);return!0});return e}',
   },
   {
     id: "review-tabs-show",
@@ -304,7 +368,7 @@ export const PATCHES = [
   {
     id: "review-tabs-shown",
     find: 's.webview.html=P,this.shownSeq=i,this.shown(g.live.pr);',
-    replace: 'this.xrvSlot=slot,s.webview.html=P,slot.shownSeq=i,slot.shownPr=g.live.pr?{state:g.live.pr.state??null,headRefOid:g.live.pr.headRefOid??null,updatedAt:g.live.pr.updatedAt??null}:null,slot.noticed=null;',
+    replace: 'xrvCursor().cancelNotices(),this.xrvSlot=slot,s.webview.html=P,slot.shownSeq=i,slot.shownPr=g.live.pr?{state:g.live.pr.state??null,headRefOid:g.live.pr.headRefOid??null,updatedAt:g.live.pr.updatedAt??null}:null,slot.noticed=null,this.notifyRun();',
   },
   {
     id: "review-tabs-drawn-page",
@@ -319,7 +383,7 @@ export const PATCHES = [
   {
     id: "review-tabs-refresh",
     find: "s.webview.html=w,this.shown(x.live.pr),this.log(`Updated ${N(e)} with the latest from GitHub`)",
-    replace: "s.webview.html=w,slot.shownPr=x.live.pr?{state:x.live.pr.state??null,headRefOid:x.live.pr.headRefOid??null,updatedAt:x.live.pr.updatedAt??null}:null,slot.noticed=null,this.log(`Updated ${N(e)} with the latest from GitHub`)",
+    replace: "xrvCursor().cancelNotices(),s.webview.html=w,slot.shownPr=x.live.pr?{state:x.live.pr.state??null,headRefOid:x.live.pr.headRefOid??null,updatedAt:x.live.pr.updatedAt??null}:null,slot.noticed=null,this.log(`Updated ${N(e)} with the latest from GitHub`)",
   },
   {
     id: "review-tabs-show-error",
@@ -330,13 +394,13 @@ export const PATCHES = [
     id: "review-decoration",
     find: 'l=C.window.createTreeView("xrayviewer.pullRequests",{treeDataProvider:a,showCollapseAll:!0});n.subscriptions.push(l,a,{dispose:()=>r.dispose()},{dispose:()=>o.dispose()});',
     replace:
-      'l=C.window.createTreeView("xrayviewer.pullRequests",{treeDataProvider:a,showCollapseAll:!0});n.subscriptions.push(l,a,{dispose:()=>r.dispose()},{dispose:()=>o.dispose()},C.window.registerFileDecorationProvider({provideFileDecoration(u){if(u.scheme!=="xrayviewer")return;let f=u.query;return f==="ongoing"?{badge:"\\u25cf",color:new C.ThemeColor("charts.blue"),tooltip:"Reviewing"}:f==="reviewed"?{badge:"\\u2713",color:new C.ThemeColor("charts.green"),tooltip:"Reviewed by X-RayViewer"}:{badge:"\\u2013",color:new C.ThemeColor("disabledForeground"),tooltip:"Not reviewed by X-RayViewer"}}}));',
+      'l=C.window.createTreeView("xrayviewer.pullRequests",{treeDataProvider:a,showCollapseAll:!0,canSelectMany:!0});l.onDidChangeCheckboxState(ev=>{let blocked="";for(let [item,state] of ev.items||[]){if(!item||item.kind!=="pr"||!item.record?.key)continue;let res=xrvCursor().setChecked(N(item.record.key),state===1);if(!res.ok)blocked=res.reason||"Five is the most you can select."}blocked&&(xrvCursor().offerNotice(blocked,[],"warning")||C.window.showInformationMessage(blocked));a.refresh()});n.subscriptions.push(l,a,{dispose:()=>r.dispose()},{dispose:()=>o.dispose()},C.window.registerFileDecorationProvider({provideFileDecoration(u){if(u.scheme!=="xrayviewer")return;let f=u.query;return f==="ongoing"?{badge:"\\u25cf",color:new C.ThemeColor("charts.blue"),tooltip:"Reviewing"}:f==="posted"?{badge:"\\u2713",color:new C.ThemeColor("charts.green"),tooltip:"Reviewed and posted by X-RayViewer"}:f==="reviewed"?{badge:"\\u2713",color:new C.ThemeColor("charts.yellow"),tooltip:"Reviewed by X-RayViewer, not posted yet"}:{badge:"\\u2013",tooltip:"Not reviewed by X-RayViewer"}}}));',
   },
   {
     id: "sidebar-group-author",
     find: '{label:"By repository",description:m==="repository"?"current":"",detail:"One group per repository; each row says why it\'s listed",value:"repository"}]',
     replace:
-      '{label:"By repository",description:m==="repository"?"current":"",detail:"One group per repository; each row says why it\'s listed",value:"repository"},{label:"By author",description:m==="author"?"current":"",detail:"One group per pull request author",value:"author"},{label:"By X-RayViewer review",description:m==="review"?"current":"",detail:"Reviewing, not reviewed, or reviewed",value:"review"}]',
+      '{label:"By repository",description:m==="repository"?"current":"",detail:"One group per repository; each row says why it\'s listed",value:"repository"},{label:"By author",description:m==="author"?"current":"",detail:"One group per pull request author",value:"author"},{label:"By X-RayViewer review",description:m==="review"?"current":"",detail:"Reviewing PRs, Not Reviewed PRs, Reviewed PRs, or Reviewed & Posted PRs",value:"review"}]',
   },
   {
     id: "sidebar-tooltip",
@@ -355,10 +419,61 @@ export const PATCHES = [
     replace:
       'k("xrayviewer.filter",()=>{let cur=Ei(),authors=[...new Set(r.all().map(E=>E.summary?.author?.login).filter(Boolean))].sort((E,O)=>E.localeCompare(O)),mine={label:"My pull requests",pick:"mine",value:"mine"},allSt={label:"All",pick:"all-status",value:"all"},statuses=[["Open","open"],["Draft","draft"],["Merged","merged"],["Closed","closed"]].map(([label,value])=>({label,pick:"status",value})),allAu={label:"All authors",pick:"all-author",value:"all"},people=authors.map(E=>({label:E,pick:"author",value:E})),qp=C.window.createQuickPick();qp.canSelectMany=!0;qp.title="Filter pull requests";qp.placeholder="Check any, then press Return. All shows every item in that group.";qp.items=[mine,{label:"Status",kind:C.QuickPickItemKind.Separator},allSt,...statuses,{label:"Author",kind:C.QuickPickItemKind.Separator},allAu,...people];let stAll=!cur.status.length||cur.status.length>=4,auAll=!cur.author.length,on=new Set(cur.status),who=new Set(cur.author.map(E=>String(E).toLowerCase()));qp.selectedItems=qp.items.filter(E=>E.pick==="mine"?cur.mine:E.pick==="all-status"?stAll:E.pick==="status"?!stAll&&on.has(E.value):E.pick==="all-author"?auAll:E.pick==="author"&&!auAll&&who.has(String(E.value).toLowerCase()));let lock=0;qp.onDidChangeSelection(items=>{if(lock)return;let sel=items.filter(E=>E.pick),prev=qp._prev||[],added=sel.filter(E=>!prev.includes(E)),keep=sel.filter(E=>E.pick==="mine"),st=sel.filter(E=>E.pick==="status"||E.pick==="all-status"),au=sel.filter(E=>E.pick==="author"||E.pick==="all-author");if(added.some(E=>E.pick==="all-status"))st=[allSt];else if(added.some(E=>E.pick==="status"))st=st.filter(E=>E.pick==="status");else if(!st.some(E=>E.pick==="status")&&!st.some(E=>E.pick==="all-status"))st=[allSt];if(added.some(E=>E.pick==="all-author"))au=[allAu];else if(added.some(E=>E.pick==="author"))au=au.filter(E=>E.pick==="author");else if(!au.some(E=>E.pick==="author")&&!au.some(E=>E.pick==="all-author"))au=[allAu];let next=[...keep,...st,...au];qp._prev=next;if(next.length!==sel.length||next.some(E=>!sel.includes(E))){lock=1;qp.selectedItems=next;lock=0}});qp._prev=[...qp.selectedItems];qp.onDidAccept(async()=>{let chosen=qp.selectedItems.filter(E=>E.pick),st=chosen.some(E=>E.pick==="all-status")?[]:chosen.filter(E=>E.pick==="status").map(E=>E.value),au=chosen.some(E=>E.pick==="all-author")?[]:chosen.filter(E=>E.pick==="author").map(E=>E.value),cfg=C.workspace.getConfiguration("xrayviewer.sidebar");await cfg.update("mine",chosen.some(E=>E.pick==="mine"),C.ConfigurationTarget.Global);await cfg.update("status",st,C.ConfigurationTarget.Global);await cfg.update("author",au,C.ConfigurationTarget.Global);qp.hide()});qp.onDidHide(()=>qp.dispose());qp.show()}),k("xrayviewer.sortBy",async()=>{',
   },
+  {
+    id: "page-notices",
+    find: 'async function Uv(n){let e=C.window.createOutputChannel("X-RayViewer",{log:!0})',
+    replace:
+      'function xrvInstallNotices(){if(C.window.__xrvNotices)return;C.window.__xrvNotices=1;let w=C.window,info=w.showInformationMessage.bind(w),warn=w.showWarningMessage.bind(w),err=w.showErrorMessage.bind(w),prog=w.withProgress.bind(w),buttons=a=>a.filter(x=>typeof x==="string"),ask=(fallback,tone,message,...rest)=>{let choice=xrvCursor().offerNotice(String(message??""),buttons(rest),tone);return choice||fallback(message,...rest)};w.showInformationMessage=(m,...r)=>ask(info,"info",m,...r);w.showWarningMessage=(m,...r)=>ask(warn,"warning",m,...r);w.showErrorMessage=(m,...r)=>ask(err,"error",m,...r);w.withProgress=(o,task)=>{if(o&&o.location===C.ProgressLocation.Notification){let g=xrvCursor().holdNotice(String(o.title||"Working…"));if(g)return Promise.resolve(task({report(){}})).finally(()=>xrvCursor().clearNotice(g))}return prog(o,task)}}async function Uv(n){xrvInstallNotices();let xrvGo=async run=>{let note=run?"Check up to 5 pull requests, then Review all selected and post.":"Check up to 5 pull requests, then Open selected PRs.";let sent=xrvCursor().offerNotice(note,[],"warning");sent||C.window.showInformationMessage(note)};n.subscriptions.push(C.commands.registerCommand("xrayviewer.openSelected",()=>xrvGo(!1)),C.commands.registerCommand("xrayviewer.runSelected",()=>xrvGo(!0)),C.window.registerWebviewViewProvider("xrayviewer.selectionButtons",{resolveWebviewView(view){let nonce=Math.random().toString(36).slice(2);view.title="";view.webview.options={enableCommandUris:["xrayviewer.openSelected","xrayviewer.runSelected"]};view.webview.html=xrvCursor().selectionBarHTML(nonce)}}),C.window.registerWebviewViewProvider("xrayviewer.agentActivity",{resolveWebviewView(view){let nonce=Math.random().toString(36).slice(2);view.webview.options={enableScripts:!0,localResourceRoots:[n.extensionUri]};let css=view.webview.asWebviewUri(C.Uri.joinPath(n.extensionUri,"media","ui","styles.css"));view.webview.html=xrvCursor().activityPanelHTML(view.webview.cspSource,nonce,String(css));xrvCursor().bindActivity(view.webview);view.webview.onDidReceiveMessage(m=>xrvCursor().onActivityMessage(m))}}));let e=C.window.createOutputChannel("X-RayViewer",{log:!0})',
+  },
+  {
+    id: "page-notice-answer",
+    find: 'rendered(o) { vscode.postMessage({ type: "rendered", key, load, stage: o && o.stage, ms: o && o.ms, error: o && o.error ? String(o.error).slice(0, 300) : undefined }); },',
+    replace:
+      'rendered(o) { vscode.postMessage({ type: "rendered", key, load, stage: o && o.stage, ms: o && o.ms, error: o && o.error ? String(o.error).slice(0, 300) : undefined }); },\n    notice(id, value) { vscode.postMessage({ type: "notice-answer", key, id: id, value: value }); },',
+  },
+  {
+    id: "sidebar-sort-compare",
+    find: 'function cd(n){let e=(t,s)=>(s.record.summary?.updatedAt||"").localeCompare(t.record.summary?.updatedAt||"");return n==="created"?(t,s)=>(s.record.summary?.createdAt||"").localeCompare(t.record.summary?.createdAt||"")||e(t,s):n==="updated"?e:(t,s)=>(s.risk?.score??-1)-(t.risk?.score??-1)||e(t,s)}',
+    replace: "function cd(n){return xrvCursor().comparePullRequests(n)}",
+  },
+  {
+    id: "sidebar-sort-closed",
+    find: '.sort(cd("updated"))',
+    replace: ".sort(s)",
+  },
+  {
+    id: "sidebar-sort-labels",
+    find: 'var md={risk:"riskiest first",created:"newest first",updated:"recently updated"}',
+    replace: 'var md={risk:"riskiest first",created:"newest first",updated:"recently updated",title:"by title",size:"largest first",number:"highest number"}',
+  },
+  {
+    id: "sidebar-open-selected",
+    find: 'k("xrayviewer.sortBy",async()=>{let m=Ei().sortBy,v=[{label:"Risk",detail:"Riskiest first",value:"risk"},{label:"Newest",detail:"Most recently created first",value:"created"},{label:"Recently updated",detail:"Most recent activity first",value:"updated"}].map(E=>({...E,description:E.value===m?"current":""})),A=await C.window.showQuickPick(v,{title:"Sort pull requests"});A&&await C.workspace.getConfiguration("xrayviewer.sidebar").update("sortBy",A.value,C.ConfigurationTarget.Global)}),k("xrayviewer.selectHarness"',
+    replace:
+      'k("xrayviewer.sortBy",async()=>{let m=Ei().sortBy,v=[{label:"Risk",detail:"Riskiest first, inside every group",value:"risk"},{label:"Recently updated",detail:"Most recent activity first, inside every group",value:"updated"},{label:"Newest",detail:"Most recently created first, inside every group",value:"created"},{label:"Title",detail:"A to Z, inside every group",value:"title"},{label:"Size",detail:"Largest diff first, inside every group",value:"size"},{label:"Number",detail:"Highest pull request number first, inside every group",value:"number"}].map(E=>({...E,description:E.value===m?"current":""})),A=await C.window.showQuickPick(v,{title:"Sort within each group"});A&&await C.workspace.getConfiguration("xrayviewer.sidebar").update("sortBy",A.value,C.ConfigurationTarget.Global)}),' +
+      'k("xrayviewer.toggleCheck",item=>{if(!item?.record?.key)return;let id=N(item.record.key),res=xrvCursor().setChecked(id,!xrvCursor().isChecked(id));if(!res.ok){let sent=xrvCursor().offerNotice(res.reason,[],"warning");sent||C.window.showInformationMessage(res.reason);return}a.refresh()}),' +
+      '(xrvGo=async run=>{try{let marked=xrvCursor().checkedKeys().map(id=>r.all().find(rec=>N(rec.key).toLowerCase()===id)).filter(Boolean).map(rec=>({kind:"pr",record:rec})),pick=xrvCursor().chosenPullRequests(marked.length?marked:[...l.selection]);if(!pick.chosen.length){let note="Check up to 5 pull requests first.";let sent=xrvCursor().offerNotice(note,[],"warning");sent||C.window.showInformationMessage(note);return}xrvCursor().clearChecked();a.refresh();for(let row of pick.chosen)await o.show(row.record.key);if(run)for(let row of pick.chosen)xrvCursor().armAutoPost(N(row.record.key)),r.runAgents(row.record.key)}catch(err){let note=`X-RayViewer could not ${run?"run":"open"} the selected pull requests. ${err&&err.message||err}`;let sent=xrvCursor().offerNotice(note,[],"error");sent||C.window.showErrorMessage(note)}}),k("xrayviewer.selectHarness"',
+  },
+  {
+    id: "agent-pause",
+    find: '}catch(q){let Le=n.signal?.aborted||q instanceof F&&q.kind==="cancelled",gt=q instanceof F?q.message:String(q?.message||q);return l.agents[$]={state:Le?"cancelled":"failed"',
+    replace:
+      '}catch(q){let Le=n.signal?.aborted||q instanceof F&&q.kind==="cancelled",gt=q instanceof F?q.message:String(q?.message||q);if(!Le&&xrvCursor().agentUnavailable(q)&&((R.tries??={})[$]=(R.tries[$]||0)+1)<4){l.agents[$]={state:"queued",harness:j.id},c(),t(`${$} is paused on ${j.id} until an agent is free. ${gt}`),await new Promise(res=>{let timer=setTimeout(res,2000);n.signal?.addEventListener("abort",()=>{clearTimeout(timer),res()},{once:!0})});if(n.signal?.aborted)return l.agents[$]={state:"cancelled",harness:j.id},c(),null;return R($,L,B,se)}return l.agents[$]={state:Le?"cancelled":"failed"',
+  },
+  {
+    id: "sidebar-actions",
+    find: 'async getChildren(e){return e?e.kind==="group"?e.rows:[]:(await this.service.groups()).map(s=>({kind:"group",...s,rows:s.rows.map(i=>({kind:"pr",...i}))}))}',
+    replace: 'async getChildren(e){if(e)return e.kind==="group"?e.rows:[];let groups=await this.service.groups();C.commands.executeCommand("setContext","xrayviewer.hasPullRequests",groups.some(s=>(s.rows||[]).length>0));return groups.map(s=>({kind:"group",...s,rows:s.rows.map(i=>({kind:"pr",...i}))}))}',
+  },
+  {
+    id: "sidebar-check-command",
+    find: 'return r.contextValue=`pr.${d}${t.agent?".agent":""}${t.pinned?".pinned":""}`,r.command={command:"xrayviewer.open",title:"Open Review",arguments:[i]}',
+    replace: 'r.checkboxState=xrvCursor().isChecked(i)?1:0;return r.contextValue=`pr.${d}${t.agent?".agent":""}${xrvCursor().isChecked(i)?".on":""}${t.pinned?".pinned":""}`,r.command={command:"xrayviewer.open",title:"Open Review",arguments:[i]}',
+  },
 ];
 
 /** Names the patches add; the original bundle must not use them already. */
-export const ADDED_NAMES = ["xrvCursorHarness", "xrvCursor", "xrvReview", "xrvA", "xrvPick", "xrvClaude", "xrvCodex", "xrvModel", "xrvDone", "xrvRows", "xrvMove", "xrvSt", "xrvIcon", "xrvColor", "xrvExt", "xrvStatus", "xrvAgentState", "xrvTabs", "xrvSlot", "xrvHold"];
+export const ADDED_NAMES = ["xrvCursorHarness", "xrvCursor", "xrvReview", "xrvA", "xrvPick", "xrvClaude", "xrvCodex", "xrvModel", "xrvDone", "xrvRows", "xrvMove", "xrvSt", "xrvIcon", "xrvColor", "xrvExt", "xrvStatus", "xrvAgentState", "xrvTabs", "xrvSlot", "xrvHold", "xrvInstallNotices"];
 
 const modelBit = '${modelSummary(AGENTS).line ? ` · ${esc(modelSummary(AGENTS).line)} <button type="button" class="link" data-act="choose-model">Change</button>` : ""}';
 
@@ -375,7 +490,6 @@ const activityOpen = new Map();
 let activityTimer = 0;
 let activityShown = "";
 let activityDetail = "";
-const activityItemHTML = () => '<button type="button" role="menuitem" class="menu-item" data-act="agent-activity"><b>Agent activity…</b><span>What each agent read, ran and said</span></button>';
 const activityBodyHTML = () => activityHTML(agentProgress, LIVE && LIVE.modelPlan, { esc, icon, avatar: agentAv("xs"), now: Date.now(), open: activityOpen, detail: activityDetail });
 function openActivity() {
   runMenu(false);
@@ -411,16 +525,12 @@ function showActivity(id) {
   if (!body) return;
   const from = activityDetail;
   activityDetail = id;
-  for (const key of [...activityOpen.keys()]) if (key.startsWith("m:")) activityOpen.delete(key);
   activityShown = JSON.stringify(agentProgress);
   body.innerHTML = activityBodyHTML();
   body.scrollTop = 0;
   const target = id ? body.querySelector('[data-act="activity-back"]') : [...body.querySelectorAll(".check-name")].find((el) => el.dataset.id === from);
   if (target) target.focus();
 }
-document.addEventListener("click", (e) => {
-  for (const menu of document.querySelectorAll("#activity-body details.check-more[open]")) if (!menu.contains(e.target)) menu.open = false;
-});
 document.addEventListener("toggle", (e) => {
   const el = e.target;
   if (!(el instanceof HTMLDetailsElement) || !el.dataset.key || !el.closest("#activity-body")) return;
@@ -518,11 +628,12 @@ function adoptFinding(id) {`,
   const commit = String(AG.commit || "").slice(0, 7);
   const found = plural(FINDINGS.length, "finding");
   if (agentsBehind()) return { kind: "behind", label: "X-RayViewer reviewed an older push", sub: found, title: \`X-RayViewer reviewed \${commit}\${when}. New commits came after it, and Rerun reviews the latest.\` };
-  return { kind: "current", label: "X-RayViewer reviewed", sub: found, title: \`X-RayViewer reviewed \${commit}\${when}: \${found}.\` };
+  if (AG.postedAt) return { kind: "posted", label: "X-RayViewer reviewed & posted", sub: found, title: \`X-RayViewer reviewed \${commit}\${when}: \${found}. Posted to GitHub \${ago(AG.postedAt)}.\` };
+  return { kind: "current", label: "X-RayViewer reviewed", sub: found, title: \`X-RayViewer reviewed \${commit}\${when}: \${found}. Not posted to GitHub yet.\` };
 }
 function xrayPillHTML() {
   const s = xrayState();
-  const marks = { running: '<span class="spin" aria-hidden="true"></span>', failed: icon("x-circle"), none: icon("circle"), behind: icon("clock"), current: icon("check-circle") };
+  const marks = { running: '<span class="spin" aria-hidden="true"></span>', failed: icon("x-circle"), none: icon("circle"), behind: icon("clock"), current: icon("check-circle"), posted: icon("check-circle") };
   return \`<button type="button" class="xray-pill is-\${s.kind}" id="xray-pill" data-act="agent-activity" title="\${esc(s.title)}">\${marks[s.kind]}<span>\${esc(s.label)}</span>\${s.sub ? \`<span class="xray-sub">\${esc(s.sub)}</span>\` : ""}</button>\`;
 }
 function applyXrayPill() {
@@ -722,7 +833,7 @@ function prHeadHTML() {`,
       "  runButtonLabel = label;\n" +
       "  return `<div class=\"run-tools\"><div class=\"split-btn\" id=\"host-run-wrap\">${runMainHTML(label)}\n" +
       "      <button type=\"button\" class=\"btn sm ghost sb-caret\" data-act=\"run-menu\" aria-haspopup=\"menu\" aria-expanded=\"false\" aria-controls=\"run-menu\" aria-label=\"Choose the model the agents run on\">${icon(\"chev\")}</button>\n" +
-      "      <div class=\"menu\" id=\"run-menu\" role=\"menu\" aria-label=\"Agent runs\" hidden>${chooseModelHTML()}${activityItemHTML()}</div></div>${postAllHTML()}</div>`;\n" +
+      "      <div class=\"menu\" id=\"run-menu\" role=\"menu\" aria-label=\"Agent runs\" hidden>${chooseModelHTML()}</div></div>${postAllHTML()}</div>`;\n" +
       "};\n" +
       "const applyRunButton = () => { const btn = document.getElementById(\"host-run\"); if (btn) btn.outerHTML = runMainHTML(runButtonLabel); applyXrayPill(); };\n" +
       "const modelNow = () => {\n" +
@@ -765,6 +876,7 @@ function prHeadHTML() {`,
       "  if (m.progress) agentProgress = m.progress;\n" +
       "  applyRunButton();\n" +
       "  refreshActivity();\n" +
+      "  if (m.autoPost) armPostAll();\n" +
       "  if (postAllOn() && agentsRunning && !m.automatic) armPostAll();\n" +
       "  if (!postAllArmed()) return;\n" +
       "  if (was && !agentsRunning && m.state === \"done\" && typeof HOST.reload === \"function\") HOST.reload();\n" +
@@ -810,7 +922,7 @@ function prHeadHTML() {`,
       "    HOST.runAgents();\n" +
       "  },\n" +
       '  "run-menu": () => runMenu(!runMenuOpen()),\n' +
-      '  "agent-activity": () => openActivity(),\n  "activity-detail": (el) => showActivity(el.dataset.id),\n  "activity-back": () => showActivity(""),\n' +
+      '  "agent-activity": () => { runMenu(false); if (typeof HOST.showActivity === "function") HOST.showActivity(); else openActivity(); },\n  "activity-detail": (el) => showActivity(el.dataset.id),\n  "activity-back": () => showActivity(""),\n' +
       '  "choose-model": () => { runMenu(false); if (typeof HOST.chooseHarness === "function") HOST.chooseHarness(); },',
   },
   {
@@ -899,6 +1011,7 @@ function prHeadHTML() {`,
     find: 'showPushPanel(`<p class="push-ok">${icon("check-circle")}<span>Posted to GitHub.${review && review.url ? ` <a class="link" href="${esc(review.url)}" target="_blank" rel="noopener">Open the review</a>.` : ""} Reloading with the latest from GitHub…</span></p>`);\n    await api("POST", "/refresh");\n    reloadPage();',
     replace:
       'showPushPanel(`<p class="push-ok">${icon("check-circle")}<span>Posted to GitHub.${review && review.url ? ` <a class="link" href="${esc(review.url)}" target="_blank" rel="noopener">Open the review</a>.` : ""} Reloading with the latest from GitHub…</span></p>`);\n' +
+      "    notePosted(p.body.event, p.body.comments.length, review && review.url);\n" +
       "    try { await api(\"POST\", \"/refresh\"); } catch { /* reload fetches GitHub again */ }\n" +
       "    reloadPage();",
   },
@@ -953,6 +1066,7 @@ function statusLineHTML() {
     replace:
       'if (m.type === "host-run") { onHostRun(m); return; }\n' +
       '  if (m.type === "host-model") { if (LIVE) LIVE.modelPlan = m.plan; applyModelNow(); return; }\n' +
+      '  if (m.type === "host-notice") { showHostNotice(m); return; }\n' +
       '  if (m.type === "host-pr-changed") { showChange(m); return; }',
   },
   {
@@ -974,7 +1088,39 @@ function statusLineHTML() {
   {
     id: "post-all-after-load",
     find: "render();\nwatchActivity();\n// Starting again ends this start:",
-    replace: "render();\nwatchActivity();\nmaybePostAll();\n// Starting again ends this start:",
+    replace: "render();\nwatchActivity();\nmaybePostAll();\nshowPostedNotice();\n// Starting again ends this start:",
+  },
+  {
+    id: "notice-banner",
+    find: toastFind,
+    replace: noticeSource(),
+  },
+  {
+    id: "notice-mark",
+    find: noticeFind,
+    replace: noticeReplace,
+  },
+  {
+    id: "notice-dismiss",
+    find: '"notice-close": () => { S.noticeHidden = true; const el = $("#notice"); if (el) el.innerHTML = ""; },',
+    replace:
+      '"notice-close": () => {\n' +
+      '    const box = document.querySelector("#notice .notice, #toasts .notice");\n' +
+      '    const pin = !!(box && box.dataset.pin === "1");\n' +
+      "    const ask = box && box.dataset.ask;\n" +
+      '    if (ask && HOST && HOST.notice) HOST.notice(ask, "");\n' +
+      '    if (pin) { S.noticeHidden = true; bannerPin = ""; }\n' +
+      "    dropBanner(pin);\n" +
+      "  },\n" +
+      '  "notice-pick": (el) => {\n' +
+      "    if (HOST && HOST.notice) HOST.notice(el.dataset.nid, el.dataset.value || \"\");\n" +
+      "    dropBanner(false);\n" +
+      "  },",
+  },
+  {
+    id: "notice-release",
+    find: 'if (fn) { if (el.tagName === "A") e.preventDefault(); fn(el, e); return; }',
+    replace: 'if (fn) { if (el.tagName === "A") e.preventDefault(); if (el.closest(".notice")) releaseBanner(el); fn(el, e); return; }',
   },
 ];
 
@@ -982,9 +1128,10 @@ export const UI_ADDED_NAMES = [
   "modelSummary", "runMainHTML", "modelNow", "chooseModelHTML", "applyModelNow", "runMenuOpen", "runMenu",
   "tagBadge", "commentLevel", "readTag", "withTag", "draftLevel", "levelChip", "levelRowHTML", "setLevel",
   "activityTime", "activityGroups", "activitySummary", "activityHTML", "agentProgress", "activityOpen", "activityTimer",
-  "activityShown", "activityItemHTML", "activityBodyHTML", "openActivity", "refreshActivity", "activityDetail", "showActivity",
+  "activityShown", "activityBodyHTML", "openActivity", "refreshActivity", "activityDetail", "showActivity",
   "findingDrafts", "lastAdopted", "adoptAllHTML", "adoptAll", "undoAdoptAll", "adoptAllCardHTML", "syncAdoptAll", "xrayState", "xrayPillHTML", "applyXrayPill",
   "postAllKey", "postAllOn", "postAllArmed", "armPostAll", "disarmPostAll", "setPostAll", "postAllHTML", "postingAll", "onHostRun", "postFinishedReview", "maybePostAll", "runState",
+  "TONE_ICONS", "toneOf", "toneHTML", "notePosted", "showPostedNotice", "bannerTimer", "bannerPin", "bannerNow", "bannerStay", "bannerHost", "bannerHTML", "paintBanner", "dropBanner", "releaseBanner", "showPinnedNotice", "showHostNotice",
 ];
 
 export function countOccurrences(text, needle) {

@@ -39,7 +39,7 @@ Automatic runs are on. About two minutes after the first start, agents begin on 
 | **Change** | Opens the model picker. The line next to it is the model that already ran. |
 | **Run agents** / **Rerun** | Runs the agents. While they run, the button says **Agents are running**, and clicking it shows what each agent is doing. |
 | **Post all findings when finished** | The checkbox beside **Run**. Check it, then run the agents with **Run**. When that run finishes, every open finding is added as its suggested comment and the review is posted to the pull request. It posts as comments. It does not approve or request changes. Uncheck it before the run finishes to keep the findings here. A run that starts on its own is left for you to post. |
-| The arrow beside it | Opens **Choose model…**, with what the agents will run on under it, such as **Codex · gpt-6-astra · medium**, and **Agent activity…**. Both are there before and after a run, and while the agents run. |
+| The arrow beside it | Opens **Choose model…**, with what the agents will run on under it, such as **Codex · gpt-6-astra · medium**. It is there before and after a run, and while the agents run. |
 | A finding | Keep it, reword it, or dismiss it. Only what you post is visible to the author. |
 | **Add all N to my review** | Under the briefing's findings list, and as **Add all N** on each finding. Adds every open finding at once, each as its suggested comment on its line, at its level. **Undo** in the message takes them all back out. Edit or delete any of them before you post. |
 
@@ -66,7 +66,8 @@ Replies post as written, since the thread's first comment has the level. When X-
 |---|---|
 | **Change all agents** | **Cursor Agent**, **Codex**, and **Claude Code**. Each says how many agents use it. Pick one, then a model, and every agent moves to it. |
 | **Change one agent** | **Guide**, **Architecture**, **Correctness**, **Test**, and **Security**, each with its CLI, model, and what it looks at. Pick one to move only that agent. |
-| **Updates** | Shown when Claude Code, Codex, or Cursor Agent has a newer version. Pick one to download it. The list shows the new version when the download finishes. |
+
+Each CLI has a control on the right. It says **Install** when that program is missing, and **Install update** when a newer version is published. It downloads that program, then the list shows the version that is on the machine. Picking the CLI name still chooses its model.
 
 - **Cursor** lists the models on your Cursor account. The first row keeps whatever `cursor-agent` used last. Pick a model by name if you care which one reviews.
 - **Codex** lists the models that CLI provides, then a reasoning level such as medium or high.
@@ -101,30 +102,31 @@ A pull request appears in the first group it fits.
 
 | Group | What is in it |
 |---|---|
-| Review requested from you | Your review is requested by name. Automatic runs use this group only. |
-| Assigned to you | You are an assignee. |
-| You reviewed | Still open, not yours, and you have reviewed it. |
-| You're a code owner | It changes files you or a team of yours own. |
-| Your teams' requests | A review is requested from one of your teams. |
-| Your pull requests | You opened it. |
-| Watched | Open pull requests in repositories you list. |
-| Opened here | Opened from **Open a Pull Request…** or a link. |
-| Others you could review | Up to 10 more open pull requests in those repositories. |
-| Recently merged or closed | Ones you reviewed or wrote, for the last 3 days. |
+| Requested PRs | Your review is requested by name. Automatic runs use this group only. |
+| Assigned PRs | You are an assignee. |
+| Reviewed PRs | Still open, not yours, and you have reviewed it. |
+| Code Owner PRs | It changes files you or a team of yours own. |
+| Team Requested PRs | A review is requested from one of your teams. |
+| Your PRs | You opened it. |
+| Watched PRs | Open pull requests in repositories you list. |
+| Opened Here | Opened from **Open a Pull Request…** or a link. |
+| Other PRs | Up to 10 more open pull requests in those repositories. |
+| Merged or Closed PRs | Ones you reviewed or wrote, for the last 3 days. |
 
-A colored bar at the left of each row is the risk: green is low, orange is medium, and red is high. The icon beside it is the pull request: green is open, a draft icon is a draft, purple is merged, and red is closed. The full score is in the row's tooltip. A mark on that icon is the X-RayViewer review: green when it has been reviewed, blue while a review is running, and gray when it has never been reviewed.
+A colored bar at the left of each row is the risk: green is low, orange is medium, and red is high. The icon beside it is the pull request: green is open, a draft icon is a draft, purple is merged, and red is closed. The full score is in the row's tooltip. A mark at the end of the row is the X-RayViewer review: a green check when the review is posted to GitHub, a yellow check when it is reviewed but not posted yet, a blue dot while a review is running, and a dash when it has never been reviewed. The row's title takes the same color, and a row that has never been reviewed keeps the theme's normal text color.
 
-Each row also says that review in words, right after the pull request's state. **Group Pull Requests…** can group the list into Reviewing, Not reviewed, and Reviewed.
+Each row also says that review in words, right after the pull request's state. **Group Pull Requests…** can group the list into Reviewing PRs, Not Reviewed PRs, Reviewed PRs, and Reviewed & Posted PRs. A review counts as posted once you post it to GitHub from X-RayViewer, and a new review of the pull request starts over as not posted. The sidebar's **Agent Activity** panel shows what each agent read, ran and said for the pull request you are reviewing.
 
 | Row says | What it means |
 |---|---|
-| Reviewed, 13 findings | X-RayViewer reviewed the latest commit. |
-| Reviewed, new commits | X-RayViewer reviewed an older commit. Rerun reviews the latest. |
+| Reviewed & posted, 13 findings | X-RayViewer reviewed the latest commit, and you posted the review to GitHub. |
+| Reviewed, not posted, 13 findings | X-RayViewer reviewed the latest commit, and the review is not on GitHub yet. |
+| Reviewed, new commits | X-RayViewer reviewed an older commit. Rerun reviews the latest. It says **Reviewed & posted, new commits** when that review was posted. |
 | Not reviewed | X-RayViewer has not reviewed it yet. |
 | Reviewing 2/5, Reviewing, queued | A review is running or waiting to start. |
 | Review failed | The last review failed. The tooltip has the error. |
 
-The tooltip says it in full on its **X-RayViewer** line, such as "Reviewed a9dca66 3 hours ago: 13 findings." On the review page, the same state is a pill beside the risk score, such as **X-RayViewer reviewed · 13 findings** or **X-RayViewer reviewing · 2/5**. Click it to open **Agent activity**.
+The tooltip says it in full on its **X-RayViewer** line, such as "Reviewed a9dca66 3 hours ago: 13 findings. Posted to GitHub 2 hours ago." On the review page, the same state is a pill beside the risk score, such as **X-RayViewer reviewed & posted · 13 findings**, **X-RayViewer reviewed · 13 findings**, or **X-RayViewer reviewing · 2/5**. Click it to open the sidebar's **Agent Activity** panel.
 
 The view menu groups by relationship, repository, author, or X-RayViewer review. **Filter…** is one checklist. **My pull requests** shows only ones you opened. Each of status and author has its own **All**. Check any of the rest, then press Return. The list only contains the pull requests it has already loaded, including recently merged and closed ones.
 
@@ -132,9 +134,9 @@ The view menu groups by relationship, repository, author, or X-RayViewer review.
 
 Five agents ship. The **guide** checks the description, sets a reading order, and draws the flow. **Architecture**, **correctness**, **tests**, and **security** look for problems. You can add more with **X-RayViewer: New Agent…**.
 
-On Claude Code, the agents that look for problems hand over to Claude Code's own **/code-review**. It runs once, at the effort level you picked, and its findings show under one **Code review** agent. Then Claude Code checks the pull request against the instructions of each agent it replaced, such as **Architecture**. A problem in those instructions that /code-review missed shows under that agent, within its own max findings, minimum confidence, and skipped files. In **Agent activity**, those agents sit under **Code review agent** and show its status, such as "Covered by Code review agent · In progress". The guide keeps its own instructions, and agents on Cursor or Codex run as usual. /code-review reads the diff with `git` in Claude Code's sandbox, which writes nothing and reads only the checkout and its git history. **X-RayViewer: Show Agent Log** has its report.
+On Claude Code, the agents that look for problems hand over to Claude Code's own **/code-review**. It runs once, at the effort level you picked, and its findings show under one **Code review** agent. Then Claude Code checks the pull request against the instructions of each agent it replaced, such as **Architecture**. A problem in those instructions that /code-review missed shows under that agent, within its own max findings, minimum confidence, and skipped files. In **Agent Activity**, those agents sit under **Code review agent** and show its status, such as "Covered by Code review agent · In progress". The guide keeps its own instructions, and agents on Cursor or Codex run as usual. /code-review reads the diff with `git` in Claude Code's sandbox, which writes nothing and reads only the checkout and its git history. **X-RayViewer: Show Agent Log** has its report.
 
-To watch the agents work, click **Agents are running**, or open the arrow beside **Run agents** and choose **Agent activity…**. The agents are listed the way GitHub lists a pull request's checks: a line that sums them up, such as "1 failing, 1 in progress, 2 successful agents", then each agent under its status with its harness, model, and time. Click an agent's name, or open its **⋯** menu and choose **View details**, to see its log. **All agents** goes back. In the log, what the agent says stands as text, and the commands, reads, and searches between those messages fold into one line, such as "Ran 2 commands, read cart.js". Open that line for each step, and open a command for its output. The activity stays after the run until the next one.
+To watch the agents work, open the **Agent Activity** panel in the X-RayViewer sidebar, or click **Agents are running** on the review page. The agents are listed the way GitHub lists a pull request's checks: a line that sums them up, such as "1 failing, 1 in progress, 2 successful agents", then each agent under its status with its harness, model, and time. Click an agent's name or its **⋯** button to see its log. **All agents** goes back. In the log, what the agent says stands as text, and the commands, reads, and searches between those messages fold into one line, such as "Ran 2 commands, read cart.js". Open that line for each step, and open a command for its output. The activity stays after the run until the next one.
 
 The first run writes `~/.xrayviewer` (`XRAYVIEWER_HOME` moves it): `agents.yml` for the list, and one instruction file per agent. **Customize Agents…** opens those files. Changes apply on the next run.
 

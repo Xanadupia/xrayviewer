@@ -27,6 +27,36 @@ const state = {
 const vscode = stubModule("vscode", {
   window: stub("vscode.window", {
     createOutputChannel: () => stub("output", { info: (line: string) => state.logs.push(line) }),
+    createQuickPick() {
+      const qp = {
+        title: "",
+        placeholder: "",
+        items: [] as Pick["items"],
+        matchOnDescription: false,
+        selectedItems: [] as Pick["items"],
+        _accept: undefined as (() => void) | undefined,
+        _hide: undefined as (() => void) | undefined,
+        onDidAccept(fn: () => void) {
+          qp._accept = fn;
+        },
+        onDidHide(fn: () => void) {
+          qp._hide = fn;
+        },
+        onDidTriggerItemButton() {},
+        show() {
+          state.picks.push({ title: qp.title, placeHolder: qp.placeholder, items: qp.items });
+          const chosen = state.script.shift()?.(qp.items);
+          if (chosen) {
+            qp.selectedItems = [chosen];
+            qp._accept?.();
+          }
+          qp._hide?.();
+        },
+        hide() {},
+        dispose() {},
+      };
+      return qp;
+    },
     async showQuickPick(items: Pick["items"] | Promise<Pick["items"]>, options?: { title?: string; placeHolder?: string }) {
       const resolved = await items;
       state.picks.push({ title: options?.title, placeHolder: options?.placeHolder, items: resolved });
@@ -38,7 +68,11 @@ const vscode = stubModule("vscode", {
       return undefined;
     },
     showWarningMessage: async () => undefined,
-    showErrorMessage: async () => undefined,
+    showErrorMessage: async (message: string) => {
+      state.messages.push(message);
+      return undefined;
+    },
+    createTreeView: () => stub("tree", { selection: [] }),
   }),
   workspace: stub("vscode.workspace", {
     workspaceFolders: [],
@@ -140,13 +174,13 @@ before(async () => {
   extensionDir = await buildExtension(path.join(root, "extension"));
   state.settings["xrayviewer.cursor.path"] = (await fakeCli("cursor-agent")).file;
   ext = await loadExtension(path.join(extensionDir, "dist"), vscode);
-  context = {
+  context = Object.preventExtensions({
     subscriptions: [],
     globalStorageUri: { fsPath: path.join(root, "storage") },
     globalState: { get: (_key: string, fallback?: unknown) => fallback, update: async () => {}, keys: () => [], setKeysForSync() {} },
     extensionUri: stub("extensionUri"),
     extension: { packageJSON: { version: "0.4.0" } },
-  };
+  });
   await ext.activate(context);
 });
 
@@ -163,6 +197,13 @@ describe("the patched extension", () => {
     const contributed = manifest.contributes.commands.map((command: { command: string }) => command.command).sort();
 
     assert.deepEqual([...state.commands.keys()].sort(), contributed);
+  });
+
+  test("opening or reviewing with nothing checked asks for a selection", async () => {
+    state.messages = [];
+    await state.commands.get("xrayviewer.openSelected")!();
+    await state.commands.get("xrayviewer.runSelected")!();
+    assert.deepEqual(state.messages, ["Check up to 5 pull requests first.", "Check up to 5 pull requests first."]);
   });
 
   test("knows Cursor as a harness and reads its settings", () => {
@@ -186,7 +227,7 @@ describe("the patched extension", () => {
     const [pick] = state.picks;
     assert.equal(pick.title, "Choose model");
     assert.equal(pick.placeHolder, `Run agents runs all ${ids.length} agents together. A change here is saved for the next run.`);
-    assert.deepEqual(pick.items.filter((item) => "kind" in item).map((item) => item.label), ["Change all agents", "Change one agent"]);
+    assert.deepEqual(pick.items.filter((item) => "kind" in item).map((item) => item.label), ["—  Change all agents  —", "—  Change one agent  —"]);
     assert.deepEqual(pick.items.filter((item) => item.agent).map((item) => item.agent), ["pick-cursor", "install-codex", "install-claude", ...ids]);
     assert.equal(pick.items[1].detail, `Move all ${ids.length} agents to Cursor, then pick a model on your Cursor account.`);
     const guide = pick.items.find((item) => item.agent === "guide")!;
@@ -258,6 +299,7 @@ describe("the patched extension", () => {
       description: "used by 1 of 5 agents",
       detail: `Move all ${count} agents to Cursor, then pick a model on your Cursor account.`,
       agent: "pick-cursor",
+      harness: "cursor",
     });
     assert.equal(state.picks[1].title, "Model for agents on Cursor");
     assert.equal(state.settings["xrayviewer.harness"], "cursor");

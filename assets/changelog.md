@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.4.10
+
+- **Install and Install update sit on the CLI row.** Choose model no longer has a separate update list. The control on the right says Install when that program is missing, and Install update when a newer version is published.
+- **The section titles in Choose model are easier to see.** Each break is a light rule around the title.
+
+## 0.4.9
+
+- **The pull request list loads again.** A sidebar row no longer fails with “a is not defined” while it draws the risk bar.
+
 ## 0.4.8
 
 - **Update Claude Code, Codex, and Cursor Agent from the model list.** When a newer version is published, **Choose model** lists it under **Updates**. Pick it to download. The list shows the new version when the download finishes, and the next run uses it.

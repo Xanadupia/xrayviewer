@@ -19,7 +19,7 @@ npm run typecheck
 npm run package
 ```
 
-`npm run package` writes `build/xrayviewer-0.4.8.vsix`. Raise `VERSION` in `scripts/manifest.mjs` before every later release, then package that new file. Publish the same file to both galleries.
+`npm run package` writes `build/xrayviewer-0.4.10.vsix`. Raise `VERSION` in `scripts/manifest.mjs` before every later release, then package that new file. Publish the same file to both galleries.
 
 ## Visual Studio Marketplace
 
@@ -31,7 +31,7 @@ This is the gallery VS Code searches.
 
 ```sh
 npx vsce login aliqaryan
-npx vsce publish --packagePath build/xrayviewer-0.4.8.vsix
+npx vsce publish --packagePath build/xrayviewer-0.4.10.vsix
 ```
 
 The management page can also take an upload of that file.
@@ -43,7 +43,7 @@ The management page can also take an upload of that file.
 
 ```sh
 npx ovsx create-namespace aliqaryan -p "$OVSX_PAT"
-npx ovsx publish build/xrayviewer-0.4.8.vsix -p "$OVSX_PAT"
+npx ovsx publish build/xrayviewer-0.4.10.vsix -p "$OVSX_PAT"
 ```
 
 3. Submit it at [cursor.com/marketplace/publish](https://cursor.com/marketplace/publish). Cursor reviews the publisher and the code before the extension shows up in search.
