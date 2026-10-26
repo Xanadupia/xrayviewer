@@ -21,6 +21,7 @@ export interface VersionPickerDeps {
   currentPath(): string;
   install(): Promise<{ ok: boolean; output: string }>;
   log(line: string): void;
+  /** The model every agent on the CLI uses. One agent's own is on its `PickedAgent`. */
   currentModel?: () => string;
   currentExtraArgs?: () => readonly string[];
   setAgentModel?: (id: string, model: string) => Promise<void>;
@@ -31,8 +32,8 @@ export interface VersionPickerDeps {
   listModels?: (command: string) => Promise<CliModel[] | null>;
 }
 
-/** The agent the picker changes; `effort` is its own level, empty when it follows the CLI's. */
-export type PickedAgent = { id?: string; name: string; effort?: string };
+/** The agent the picker changes; `model` and `effort` are its own, empty when it follows the CLI's. */
+export type PickedAgent = { id?: string; name: string; model?: string; effort?: string };
 
 interface CliSpec {
   title: string;
@@ -126,11 +127,22 @@ async function pickModel(
     return true;
   }
   const fallback = `${chosen.title}'s default`;
-  const current = deps.currentModel?.() ?? "";
+  const sharedModel = deps.currentModel?.() ?? "";
+  const agentId = agent?.id;
+  const ownModel = agentId && deps.setAgentModel ? (agent?.model ?? "") : undefined;
+  const current = ownModel ?? sharedModel;
   const listed = models.some((model) => model.slug === current);
+  const same = `the other ${chosen.title} agents`;
   const picked = await window.showQuickPick(
     [
-      { label: fallback, description: current ? "" : "in use", detail: "Whatever this CLI picks.", value: "" },
+      ownModel === undefined
+        ? { label: fallback, description: current ? "" : "in use", detail: "Whatever this CLI picks.", value: "" }
+        : {
+            label: `Same as ${same}`,
+            description: [sharedModel || fallback, current ? "" : "in use"].filter(Boolean).join(" · "),
+            detail: `Uses xrayviewer.${chosen.modelSetting}.`,
+            value: "",
+          },
       ...(current && !listed ? [{ label: current, description: "in use", value: current }] : []),
       ...models.map((model) => ({
         label: model.name,
@@ -146,7 +158,6 @@ async function pickModel(
   if (picked.value === CHANGE_VERSION) return "version";
   const model = models.find((item) => item.slug === picked.value);
   const extraArgs = deps.currentExtraArgs?.() ?? [];
-  const agentId = agent?.id;
   const setOwnLevel = agentId ? deps.setAgentEffort : undefined;
   let effort = "";
   if (model?.efforts.length) {
@@ -155,7 +166,7 @@ async function pickModel(
     const first = setOwnLevel
       ? [
           {
-            label: `Same as the other ${chosen.title} agents`,
+            label: `Same as ${same}`,
             description: [shared || model.defaultEffort || fallback, currentEffort ? "" : "in use"].filter(Boolean).join(" · "),
             detail: `Follows the ${chosen.levelWord} every agent on ${chosen.title} uses.`,
             value: "",
@@ -183,7 +194,8 @@ async function pickModel(
   if (agentId && deps.setAgentModel) await deps.setAgentModel(agentId, picked.value);
   else await saveSetting(chosen.modelSetting, picked.value);
   if (model) await (agentId && setOwnLevel ? setOwnLevel(agentId, effort) : saveSetting(chosen.argsSetting, chosen.writeLevel(extraArgs, effort)));
-  deps.log(`${who} now ${agent ? "uses" : "use"} ${picked.value || fallback}${effort ? `, ${chosen.levelWord} ${effort}` : ""}`);
+  const named = picked.value || (ownModel === undefined ? fallback : `${same}' model`);
+  deps.log(`${who} now ${agent ? "uses" : "use"} ${named}${effort ? `, ${chosen.levelWord} ${effort}` : ""}`);
   return true;
 }
 
