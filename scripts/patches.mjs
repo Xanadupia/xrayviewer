@@ -257,7 +257,7 @@ export const PATCHES = [
     replace:
       'xrvRows=await xrvCursor().harnessPicker(E,O.agents,{cursor:v.get("cursor")||"",codex:xrvCursor().installedSummary("codex"),claude:xrvCursor().installedSummary("claude")},z,xrvSc.picker),' +
       'M=xrvRows.rows.map(x=>x.separator?{label:x.label,kind:C.QuickPickItemKind.Separator}:{...x,...x.icon?{iconPath:new C.ThemeIcon(x.icon)}:{},...x.action?{buttons:[{iconPath:new C.ThemeIcon("cloud-download"),tooltip:x.action==="install"?"Install":"Install update"}]}:{}}),' +
-      'J=await new Promise(res=>{let qp=C.window.createQuickPick(),done=!1,finish=v=>{if(done)return;done=!0;qp.hide();qp.dispose();res(v)};qp.title=xrvRows.title;qp.placeholder=xrvRows.placeHolder;qp.matchOnDescription=!0;qp.items=M;qp.onDidTriggerItemButton(e=>finish({agent:(e.item.action==="install"?"install-":"update-")+e.item.harness,button:!0}));qp.onDidAccept(()=>finish(qp.selectedItems[0]));qp.onDidHide(()=>finish());qp.show()});',
+      'J=await new Promise(res=>{let qp=C.window.createQuickPick(),done=!1,finish=v=>{if(done)return;done=!0;qp.hide();qp.dispose();res(v)};qp.title=xrvRows.title;qp.placeholder=xrvRows.placeHolder;qp.matchOnDescription=!0;qp.items=M;qp.onDidTriggerItemButton(e=>finish({agent:(e.item.action==="install"?"install-":"update-")+e.item.harness,button:!0}));qp.onDidAccept(()=>{let s=qp.selectedItems[0];finish(s?.runs?{agent:s.runs+"-"+s.harness,button:!0}:s)});qp.onDidHide(()=>finish());qp.show()});',
   },
   {
     id: "effort-record",

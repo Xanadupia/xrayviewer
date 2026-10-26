@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
-import { chmod, mkdir, mkdtemp, readFile, realpath, stat, writeFile } from "node:fs/promises";
+import { chmod, mkdir, mkdtemp, readFile, realpath, rm, stat, writeFile } from "node:fs/promises";
 import { createRequire } from "node:module";
 import { tmpdir } from "node:os";
 import path from "node:path";
@@ -428,6 +428,33 @@ describe("the patched extension", () => {
     assert.equal(guide.detail, `${agents.guide.focus}.`);
     assert.equal(guide.iconPath.id, "compass");
     assert.ok(!pick.items.some((item) => item.agent === "run" || item.agent === "default"), "the picker only saves; Run agents runs");
+  });
+
+  test("an Install update row under a CLI with a newer release asks to install it, then opens the picker again", async () => {
+    const versions = path.join(root, ".local", "share", "claude", "versions");
+    await mkdir(versions, { recursive: true });
+    await writeFile(path.join(versions, "2.1.300"), "");
+    const realFetch = globalThis.fetch;
+    globalThis.fetch = (async (url: string) => ({ ok: true, text: async () => (url.includes("claude-code-releases") ? "2.1.310\n" : "") })) as unknown as typeof fetch;
+    state.picks = [];
+    state.messages = [];
+    state.script = [(items) => items.find((item) => item.runs === "update")];
+    try {
+      await state.commands.get("xrayviewer.selectHarness")!();
+    } finally {
+      globalThis.fetch = realFetch;
+      await rm(versions, { recursive: true });
+    }
+
+    const [pick] = state.picks;
+    const claude = pick.items.findIndex((item) => item.agent === "install-claude");
+    const { iconPath, ...update } = pick.items[claude + 1];
+    assert.deepEqual(update, { label: "Install update", description: "Claude Code 2.1.310", icon: "cloud-download", harness: "claude", runs: "update" });
+    assert.deepEqual(iconPath, new ThemeIcon("cloud-download"));
+    assert.deepEqual(pick.items[claude].buttons?.map((button: { tooltip: string }) => button.tooltip), ["Install update"], "the CLI row keeps its button");
+    assert.equal(pick.items.filter((item) => item.runs).length, 1, "only the CLI with a newer release gets the row");
+    assert.deepEqual(state.messages, ["Install the update for Claude Code? X-RayViewer will download the latest version."]);
+    assert.equal(state.picks.length, 2, "saying no goes back to the picker");
   });
 
   test("Choose Agent Harnesses can put one agent on Cursor with its own model, then confirm", async () => {

@@ -108,20 +108,31 @@ describe("harnessPicker", () => {
     assert.equal(picker.placeHolder, "Changes apply to the next run.");
   });
 
-  test("offers Install update on a CLI that has a newer version, and Install when it is missing", () => {
+  test("puts an Install update row under each CLI that has a newer version, and keeps the CLI row's button", () => {
     const picker = harnessPicker({
       ...input,
       updates: { claude: "2.1.308", codex: "0.163.0", cursor: "2026.10.22-27dcf5f" },
     });
-    const byAgent = Object.fromEntries(picker.rows.map((row) => [row.agent, row]));
+    const [, cursor, cursorUpdate, codex, codexUpdate, claude, claudeUpdate, next] = picker.rows;
 
-    assert.equal(byAgent["pick-cursor"].action, "update");
-    assert.equal(byAgent["pick-cursor"].description, "2026.10.19 · Update available");
-    assert.equal(byAgent["install-codex"].description, "1 of 3 agents · 0.162.1 · Update available");
-    assert.equal(byAgent["install-claude"].action, "update");
-    assert.equal(picker.rows.some((row) => row.agent?.startsWith("update-")), false);
+    assert.deepEqual(cursorUpdate, { label: "Install update", description: "Cursor Agent 2026.10.22", icon: "cloud-download", harness: "cursor", runs: "update" });
+    assert.deepEqual([codexUpdate.description, codexUpdate.harness, codexUpdate.runs], ["Codex 0.163.0", "codex", "update"]);
+    assert.deepEqual([claudeUpdate.description, claudeUpdate.harness, claudeUpdate.runs], ["Claude Code 2.1.308", "claude", "update"]);
+    assert.equal(next.label, "One agent");
+    assert.deepEqual([cursor.description, cursor.action], ["2026.10.19", "update"]);
+    assert.deepEqual([codex.description, codex.action], ["1 of 3 agents · 0.162.1", "update"]);
+    assert.equal(claude.agent, "install-claude", "picking the CLI row still chooses that CLI");
 
-    const missing = harnessPicker({ ...input, installed: { cursor: "", codex: "", claude: "2.1.294" } });
+    const one = harnessPicker({ ...input, updates: { claude: "2.1.308" } });
+    assert.deepEqual(
+      one.rows.slice(0, 6).map((row) => row.agent ?? (row.runs ? `${row.runs}-${row.harness}` : `-- ${row.label}`)),
+      ["-- All agents", "pick-cursor", "install-codex", "install-claude", "update-claude", "-- One agent"],
+    );
+  });
+
+  test("offers Install on a CLI that is missing, and no update row for it", () => {
+    const missing = harnessPicker({ ...input, installed: { cursor: "", codex: "", claude: "2.1.294" }, updates: { codex: "0.163.0" } });
+    assert.equal(missing.rows.some((row) => row.runs), false);
     const missingByAgent = Object.fromEntries(missing.rows.map((row) => [row.agent, row]));
     const summary = (row: (typeof missing.rows)[number]) => [row.label, row.description, row.icon, row.action];
     assert.deepEqual(summary(missingByAgent["pick-cursor"]), ["Cursor Agent", "Not installed", "circle-large-outline", "install"]);
