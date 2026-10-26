@@ -41,7 +41,7 @@ Leave **Post all findings when finished** unchecked for now. When it's checked, 
 
 ### 3. Watch them work
 
-![Agent Activity while a review runs: the guide agent finished in 46 seconds for $0.32, the code review agent is in progress, and four agents are covered by it](docs/agent-activity.png)
+![Agent Activity while a review runs: the overview agent finished in 59 seconds for $0.37, the code review agent is in progress, and the architecture, bugs, test, and security agents are covered by it](docs/agent-activity.png)
 
 **Running Reviews** in the sidebar lists every pull request under review, with its progress and how long it has run. **Agent Activity** below it lists the agents the way GitHub lists checks: each one's status, program, model, time, and cost. Click an agent for its log: what it said, and the commands, reads, and searches it ran.
 
