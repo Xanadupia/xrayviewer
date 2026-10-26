@@ -171,6 +171,11 @@ export const PATCHES = [
     replace: '`    model: ${JSON.stringify(e.model)}`,`    effort: ${JSON.stringify(e.effort||"")}`]}',
   },
   {
+    id: "agents-yml-list-style",
+    find: "On={lineWidth:0}",
+    replace: "On={lineWidth:0,flowCollectionPadding:!1}",
+  },
+  {
     id: "agents-yml-effort",
     find: 'model:typeof d.model=="string"?d.model.trim():h.model,instructions:f}',
     replace: 'model:typeof d.model=="string"?d.model.trim():h.model,effort:typeof d.effort=="string"?d.effort.trim():"",instructions:f}',

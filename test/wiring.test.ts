@@ -327,7 +327,7 @@ describe("the patched extension", () => {
     );
   });
 
-  test("an agents.yml from an earlier version gets the new names and lines, and keeps the ones someone wrote", async () => {
+  test("an agents.yml from an earlier version gets the new names, lines and comments once, and keeps the ones someone wrote", async () => {
     const { ut, $t } = ext.__xrayviewer;
     const file = path.join(process.env.XRAYVIEWER_HOME!, "agents.yml");
     const fresh = await readFile(file, "utf8");
@@ -335,26 +335,41 @@ describe("the patched extension", () => {
       assert.ok(text.includes(now), now);
       return text.replace(now, was);
     };
-    let earlier = swap(fresh, '"Overview agent"', '"Guide agent"');
-    earlier = swap(earlier, `"Checks the description, suggests a reading order and draws the flow it touches"`, '"Checks the description, sets the reading order and draws the flow the change touches"');
-    earlier = swap(earlier, '"Bugs agent"', '"Logic agent"');
-    earlier = swap(earlier, `"Changed behavior that no test covers, and tests that wouldn't catch a bug"`, '"Payments that no test covers"');
-    earlier = swap(earlier, '"Untrusted input, auth, secrets and data leaks"', '"Money movement, sign-in and input validation"');
+    const earlier = [
+      ["The overview agent (guide) checks the description, suggests a reading order and", "The guide checks the description, sets the reading order and"],
+      ["uses the overview agent's harness.", "uses the guide's harness."],
+      ["# The rules the overview agent checks", "# The rules the guide agent checks"],
+      ['"Overview agent"', '"Guide agent"'],
+      ['"Checks the description, suggests a reading order and draws the flow it touches"', '"Checks the description, sets the reading order and draws the flow the change touches"'],
+      ['"Code in the wrong module, duplicated helpers and code that breaks the patterns around it"', `"Where code lives: boundaries, existing patterns and code that shouldn't exist"`],
+      ['"Bugs agent"', '"Correctness agent"'],
+      [`"Changed behavior that no test covers, and tests that wouldn't catch a bug"`, '"Payments that no test covers"'],
+      ['"Security agent"', '"AppSec agent"'],
+      ['"Untrusted input, auth, secrets and data leaks"', '"Money movement, sign-in and input validation"'],
+    ].reduce((text, [now, was]) => swap(text, now, was), fresh);
+    const named = async () => {
+      const agents = (await $t()).settings.agents as Record<string, { name: string; focus: string }>;
+      return Object.entries(agents).map(([id, agent]) => [id, agent.name, agent.focus]);
+    };
     try {
       await writeFile(file, earlier);
       await ut();
 
-      const agents = (await $t()).settings.agents as Record<string, { name: string; focus: string }>;
-      assert.deepEqual(
-        ["guide", "correctness", "tests", "security"].map((id) => [agents[id].name, agents[id].focus]),
-        [
-          ["Overview agent", "Checks the description, suggests a reading order and draws the flow it touches"],
-          ["Logic agent", "Logic errors, races and edge cases"],
-          ["Test agent", "Payments that no test covers"],
-          ["Security agent", "Untrusted input, auth, secrets and data leaks"],
-        ],
-      );
-      assert.match(await readFile(file, "utf8"), /^ {4}name: "Overview agent"$/m, "the file keeps its quotes");
+      assert.deepEqual(await named(), [
+        ["guide", "Overview agent", "Checks the description, suggests a reading order and draws the flow it touches"],
+        ["architecture", "Architecture agent", "Code in the wrong module, duplicated helpers and code that breaks the patterns around it"],
+        ["correctness", "Bugs agent", "Logic errors, races and edge cases"],
+        ["tests", "Test agent", "Payments that no test covers"],
+        ["security", "AppSec agent", "Untrusted input, auth, secrets and data leaks"],
+      ]);
+      const upgraded = await readFile(file, "utf8");
+      assert.match(upgraded, /^ {4}name: "Overview agent"$/m, "the file keeps its quotes");
+      assert.match(upgraded, /^ {4}skip: \["\*\*\/\*\.lock", "docs\/\*\*"\]$/m, "the file keeps its list style");
+      assert.doesNotMatch(upgraded, /\bguide's harness|The guide checks|the guide agent checks/, "the comments say overview agent");
+
+      await writeFile(file, swap(upgraded, '"Bugs agent"', '"Correctness agent"'));
+      await ut();
+      assert.equal((await named())[2][1], "Correctness agent", "a name written after the upgrade stays");
     } finally {
       await writeFile(file, fresh);
     }

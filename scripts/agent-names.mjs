@@ -1,7 +1,7 @@
 /**
  * What the built-in agents are called, and the line under each name in the agent picker. The ids stay, since
- * agents.yml, the instruction files, saved reviews and each pull request's model choice refer to them. An agents.yml
- * that still has an earlier default name or line gets the new one; anything someone wrote there stays.
+ * agents.yml, the instruction files, saved reviews and each pull request's model choice refer to them. When an earlier
+ * agents.yml is upgraded, a name or line that's still an earlier default gets the new one; anything someone wrote stays.
  */
 
 const AGENTS = [
@@ -39,6 +39,29 @@ const PREVIOUS = Object.fromEntries(
   AGENTS.map((agent) => [agent.id, Object.fromEntries(Object.entries(agent.was).filter(([key, value]) => agent.now[key] !== value))]),
 );
 
+/**
+ * The agents.yml comments that name the guide, as earlier versions wrote them and as they read now. A file whose header
+ * still has the earlier first line hasn't been upgraded, so only then do its defaults change; after that, a name someone
+ * writes stays even when it matches an earlier default.
+ */
+const COMMENTS = [
+  {
+    id: "agents-yml-guide-comment",
+    was: "# agents: every agent X-RayViewer runs, in this order. The guide checks the description, sets the reading order and",
+    now: "# agents: every agent X-RayViewer runs, in this order. The overview agent (guide) checks the description, suggests a reading order and",
+  },
+  {
+    id: "agents-yml-lede-comment",
+    was: "The lede (the briefing's opening line) uses the guide's harness.",
+    now: "The lede (the briefing's opening line) uses the overview agent's harness.",
+  },
+  {
+    id: "agents-yml-rules-comment",
+    was: "# The rules the guide agent checks the pull request description against, per kind of change.",
+    now: "# The rules the overview agent checks the pull request description against, per kind of change.",
+  },
+];
+
 const overview = (id, find) => ({ id, find, replace: find.replaceAll("guide agent", "overview agent") });
 
 export const AGENT_NAME_PATCHES = [
@@ -47,25 +70,23 @@ export const AGENT_NAME_PATCHES = [
     find: fields(agent),
     replace: `${agent.id}:{name:${JSON.stringify(agent.now.name)},focus:${JSON.stringify(agent.now.focus)},`,
   })),
+  ...COMMENTS.map((comment) => ({ id: comment.id, find: comment.was, replace: comment.now })),
+  {
+    id: "agents-yml-upgrade-comments",
+    find: 'let e=n;e.includes("# name: what the review page calls it")',
+    replace:
+      `let e=n,xrvRenamed=!n.includes(${JSON.stringify(COMMENTS[0].now)});` +
+      `if(xrvRenamed)for(let[r,o]of ${JSON.stringify(COMMENTS.map((comment) => [comment.was, comment.now]))})e=e.replace(r,o);` +
+      'e.includes("# name: what the review page calls it")',
+  },
   {
     id: "agents-yml-previous-defaults",
     find: 'o.items.unshift(o.items.splice(1,1)[0]),i=!0)}i&&await(0,W.writeFile)(ne(),t.toString(On),"utf8")}',
     replace:
       "o.items.unshift(o.items.splice(1,1)[0]),i=!0)}" +
-      `if(xe.default.isMap(s))for(let[r,x]of Object.entries(${JSON.stringify(PREVIOUS)})){let o=s.get(r,!0);if(xe.default.isMap(o))for(let[k,v]of Object.entries(x))o.get(k)===v&&(o.set(k,Xe.agents[r][k]),i=!0)}` +
+      `if(xrvRenamed&&xe.default.isMap(s))for(let[r,x]of Object.entries(${JSON.stringify(PREVIOUS)})){let o=s.get(r,!0);if(xe.default.isMap(o))for(let[k,v]of Object.entries(x))o.get(k)===v&&(o.set(k,Xe.agents[r][k]),i=!0)}` +
       'i&&await(0,W.writeFile)(ne(),t.toString(On),"utf8")}',
   },
-  {
-    id: "agents-yml-guide-comment",
-    find: '"# agents: every agent X-RayViewer runs, in this order. The guide checks the description, sets the reading order and"',
-    replace: '"# agents: every agent X-RayViewer runs, in this order. The overview agent (guide) checks the description, suggests a reading order and"',
-  },
-  {
-    id: "agents-yml-lede-comment",
-    find: "The lede (the briefing's opening line) uses the guide's harness.",
-    replace: "The lede (the briefing's opening line) uses the overview agent's harness.",
-  },
-  overview("agents-yml-rules-comment", '"# The rules the guide agent checks the pull request description against, per kind of change."'),
   {
     id: "guide-remove-message",
     find: "\"The guide can't be removed; turn it off with enabled: false instead.\"",
