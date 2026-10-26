@@ -4,7 +4,7 @@ Review GitHub pull requests in VS Code or Cursor. Agents on your computer read t
 
 ![X-RayViewer in VS Code: your pull requests in the sidebar, and a review page with the agents' briefing, the description check, the flow, and 12 findings grouped by severity](docs/hero.png)
 
-![How a review works: X-RayViewer reads the pull request from GitHub with gh and git, checks it out locally, runs the guide and four review agents in parallel through your model provider's CLI, and shows the briefing, chapters, map, and findings on the review page, where you decide what to keep before posting one review back to GitHub](docs/how-it-works.png)
+![How a review works: X-RayViewer reads the pull request from GitHub with gh and git, checks it out locally, runs the overview agent and four review agents in parallel through your model provider's CLI, and shows the briefing, chapters, map, and findings on the review page, where you decide what to keep before posting one review back to GitHub](docs/how-it-works.png)
 
 The user guide walks through a first review with screenshots, then covers automatic runs, models, custom agents, and every setting: **[xanadupia.github.io/xrayviewer](https://xanadupia.github.io/xrayviewer)**. It's generated from [assets/readme.md](assets/readme.md), which is also the page on the Marketplace and inside the extension.
 

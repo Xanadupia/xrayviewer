@@ -35,13 +35,13 @@ Click a row to open its review page. For a pull request that isn't listed, run *
 
 ![A review page before any agent ran: No agent review yet, with Run agents and the Post all findings when finished checkbox beside it](docs/run-agents.png)
 
-Press **Run agents**. Five agents run together: the **guide** checks the description, sets the reading order, and draws the flow, while **architecture**, **correctness**, **tests**, and **security** look for problems. A run takes a few minutes, and you can read the diff meanwhile. The arrow beside **Run agents** picks the program and model (see **Pick the program and model** below).
+Press **Run agents**. Five agents run together: the **overview** agent checks the description, suggests a reading order, and draws the flow, while the **architecture**, **bugs**, **test**, and **security** agents look for problems. A run takes a few minutes, and you can read the diff meanwhile. The arrow beside **Run agents** picks the program and model (see **Pick the program and model** below).
 
 Leave **Post all findings when finished** unchecked for now. When it's checked, the run ends by posting every open finding to GitHub as comments, before you've read them.
 
 ### 3. Watch them work
 
-![Agent Activity while a review runs: the guide agent finished in 46 seconds for $0.32, the code review agent is in progress, and four agents are covered by it](docs/agent-activity.png)
+![Agent Activity while a review runs: the overview agent finished in 59 seconds for $0.37, the code review agent is in progress, and the architecture, bugs, test, and security agents are covered by it](docs/agent-activity.png)
 
 **Running Reviews** in the sidebar lists every pull request under review, with its progress and how long it has run. **Agent Activity** below it lists the agents the way GitHub lists checks: each one's status, program, model, time, and cost. Click an agent for its log: what it said, and the commands, reads, and searches it ran.
 
@@ -55,9 +55,9 @@ When the run finishes, the top of the page is the agents' briefing: a summary of
 
 ### 5. Read the change in order
 
-![The map: the guide agent's drawing of the flow, each numbered box linked to its lines, and a Start here list of the boxes with findings](docs/map.png)
+![The map: the overview agent's drawing of the flow, each numbered box linked to its lines, and a Start here list of the boxes with findings](docs/map.png)
 
-The rail on the left splits the diff into chapters, in the order the guide suggests: code that the rest depends on comes first. **Map** draws the flow the change touches. Each numbered box links to its lines, and **Follow the flow** walks you through them.
+The rail on the left splits the diff into chapters, in the order the overview agent suggests: code that the rest depends on comes first. **Map** draws the flow the change touches. Each numbered box links to its lines, and **Follow the flow** walks you through them.
 
 Mark each hunk reviewed as you go. The ring at the top counts them, and **Saved locally** in the bar means your marks and drafts are on disk. Press `j` and `k` to move between hunks, `r` to mark one reviewed, and `c` to comment.
 
@@ -91,7 +91,7 @@ After that the button says **Update review**, the line under the title says what
 
 ## How a review works
 
-![How a review works: X-RayViewer reads the pull request from GitHub with gh and git, checks it out locally, runs the guide and four review agents in parallel through your model provider's CLI, and shows the briefing, chapters, map, and findings on the review page, where you decide what to keep before posting one review back to GitHub](docs/how-it-works.png)
+![How a review works: X-RayViewer reads the pull request from GitHub with gh and git, checks it out locally, runs the overview agent and four review agents in parallel through your model provider's CLI, and shows the briefing, chapters, map, and findings on the review page, where you decide what to keep before posting one review back to GitHub](docs/how-it-works.png)
 
 The agents read a local checkout at the pull request's head commit and change nothing. Each finding comes back with a severity, the exact line, why it matters, and a suggested comment. Your drafts, review marks, and agent results are saved on this computer, so they survive a restart. The only write to GitHub is your review, when you press **Post now**.
 
@@ -146,7 +146,7 @@ A program that's missing says **Not installed**, and one with a newer release sa
 
 ## Change what the agents look for
 
-The first run writes `~/.xrayviewer` (`XRAYVIEWER_HOME` moves it): `agents.yml` lists the agents, and `agents/<id>.md` holds each agent's instructions under **Look for** and **Leave alone**. **X-RayViewer: Customize Agents…** opens them, and changes apply on the next run.
+The first run writes `~/.xrayviewer` (`XRAYVIEWER_HOME` moves it): `agents.yml` lists the agents, and `agents/<id>.md` holds each agent's instructions under **Look for** and **Leave alone**. **X-RayViewer: Customize Agents…** opens them, and changes apply on the next run. The ids are older than some names: the overview agent is `guide`, and the bugs agent is `correctness`.
 
 To add an agent, run **X-RayViewer: New Agent…**, or add a block to `agents.yml` and a matching `agents/migrations.md`:
 
