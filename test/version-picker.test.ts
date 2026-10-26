@@ -174,7 +174,78 @@ describe("pickCliVersion", () => {
     assert.deepEqual(logs, ["agents on Claude Code now use opus, effort high"]);
   });
 
-  test("saves one agent's Claude model on that agent", async () => {
+  test("saves one agent's Claude model and effort on that agent, leaving the other agents' effort alone", async () => {
+    const answers = ["sonnet", "high"];
+    const saved: Array<[string, string, string]> = [];
+    const { deps, updates, picks, logs } = setup({
+      versions: [{ version: "2.1.294", path: "/claude" }],
+      choose: next(answers),
+    });
+    deps.listModels = async () => [
+      { slug: "sonnet", name: "Sonnet", description: "", defaultEffort: "", efforts: [{ effort: "low", description: "" }, { effort: "high", description: "" }] },
+    ];
+    deps.currentExtraArgs = () => ["--effort", "low"];
+    deps.setAgentModel = async (id, model) => {
+      saved.push([id, "model", model]);
+    };
+    deps.setAgentEffort = async (id, effort) => {
+      saved.push([id, "effort", effort]);
+    };
+
+    assert.equal(await pickCliVersion(deps, "claude", { id: "security", name: "Security", effort: "" }), true);
+
+    assert.deepEqual(
+      picks[1].items.map((item) => [item.label, item.description ?? ""]),
+      [
+        ["Same as the other Claude Code agents", "low · in use"],
+        ["Low", ""],
+        ["High", ""],
+      ],
+    );
+    assert.deepEqual(saved, [["security", "model", "sonnet"], ["security", "effort", "high"]]);
+    assert.deepEqual(updates, [], "settings.json keeps the effort the other agents use");
+    assert.deepEqual(logs, ["the security agent now uses sonnet, effort high"]);
+  });
+
+  test("Same as the other agents drops one agent's own Codex level", async () => {
+    const answers = ["gpt-6.1-sol", ""];
+    const saved: Array<[string, string, string]> = [];
+    const { deps, updates, picks } = setup({
+      versions: [{ version: "0.162.1", path: "/codex" }],
+      choose: next(answers),
+    });
+    deps.listModels = async () => [
+      {
+        slug: "gpt-6.1-sol",
+        name: "GPT-6.1-Sol",
+        description: "",
+        defaultEffort: "low",
+        efforts: [{ effort: "low", description: "" }, { effort: "medium", description: "" }],
+      },
+    ];
+    deps.currentExtraArgs = () => [];
+    deps.setAgentModel = async (id, model) => {
+      saved.push([id, "model", model]);
+    };
+    deps.setAgentEffort = async (id, effort) => {
+      saved.push([id, "effort", effort]);
+    };
+
+    assert.equal(await pickCliVersion(deps, "codex", { id: "security", name: "Security", effort: "medium" }), true);
+
+    assert.deepEqual(
+      picks[1].items.map((item) => [item.label, item.description ?? ""]),
+      [
+        ["Same as the other Codex agents", "low"],
+        ["Low", "default"],
+        ["Medium", "in use"],
+      ],
+    );
+    assert.deepEqual(saved, [["security", "model", "gpt-6.1-sol"], ["security", "effort", ""]]);
+    assert.deepEqual(updates, []);
+  });
+
+  test("without a way to save one agent's level, the level is the CLI's", async () => {
     const answers = ["sonnet", ""];
     const saved: Array<[string, string]> = [];
     const { deps, updates } = setup({

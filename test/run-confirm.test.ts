@@ -1,6 +1,15 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
-import { announceChoice, choiceSentence, plannedAgents, type HarnessTable, type NoticeDeps, type RunChoice } from "../src/run-confirm.ts";
+import {
+  agentHarness,
+  announceChoice,
+  choiceSentence,
+  plannedAgents,
+  withAgentLevel,
+  type HarnessTable,
+  type NoticeDeps,
+  type RunChoice,
+} from "../src/run-confirm.ts";
 
 function setup() {
   const messages: string[] = [];
@@ -40,6 +49,32 @@ describe("choiceSentence", () => {
       choiceSentence({ ...claude, agent: { name: "Guide", model: "" } }),
       "The guide agent will use Claude Code with opus at high effort.",
     );
+  });
+
+  test("uses one agent's own level", () => {
+    assert.equal(
+      choiceSentence({ ...claude, agent: { name: "Guide", model: "sonnet", effort: "max" } }),
+      "The guide agent will use Claude Code with sonnet at max effort.",
+    );
+  });
+});
+
+describe("one agent's own level", () => {
+  test("takes the place of the level every agent on its CLI shares, and keeps the other arguments", () => {
+    assert.deepEqual(withAgentLevel("claude", { model: "opus", extraArgs: ["--effort", "high", "--verbose"] }, "low").extraArgs, ["--verbose", "--effort", "low"]);
+    assert.deepEqual(withAgentLevel("codex", { model: "", extraArgs: ["-c", 'model_reasoning_effort="medium"'] }, "high").extraArgs, ["-c", 'model_reasoning_effort="high"']);
+    const cursor = { model: "fake-model-high", extraArgs: [] };
+    assert.equal(withAgentLevel("cursor", cursor, "low"), cursor, "Cursor's models name their level");
+    assert.equal(withAgentLevel("claude", claude.settings, ""), claude.settings, "no level of its own follows the CLI's");
+  });
+
+  test("reaches the settings the bundle runs that agent's CLI with", () => {
+    const config = { id: "claude", command: "claude", model: "opus", extraArgs: ["--effort", "high"] };
+    assert.deepEqual(agentHarness(config, "max"), { ...config, extraArgs: ["--effort", "max"] });
+    assert.equal(agentHarness(config, undefined), config);
+    assert.equal(agentHarness(undefined, "max"), undefined);
+    const unknown = { id: "gemini", model: "", extraArgs: ["--effort", "high"] };
+    assert.equal(agentHarness(unknown, "max"), unknown);
   });
 });
 
@@ -98,7 +133,8 @@ describe("plannedAgents", () => {
       {
         guide: { name: "Guide agent", harness: "", model: "", enabled: true },
         security: { name: "Security", harness: "claude", model: "", enabled: true },
-        tests: { name: "Tests", harness: "cursor", model: "gpt-6.1-sol", enabled: true },
+        architecture: { name: "Architecture", harness: "claude", model: "", effort: "max", enabled: true },
+        tests: { name: "Tests", harness: "cursor", model: "gpt-6.1-sol", effort: "high", enabled: true },
         old: { name: "Old", harness: "cursor", enabled: false },
       },
       harnesses,
@@ -108,6 +144,7 @@ describe("plannedAgents", () => {
     assert.deepEqual(plan, [
       { id: "guide", name: "Guide agent", short: "Guide", harness: "codex", model: "gpt-6-astra", thinking: "medium" },
       { id: "security", name: "Security", short: "Security", harness: "claude", model: "Opus 5.5", thinking: "high" },
+      { id: "architecture", name: "Architecture", short: "Architecture", harness: "claude", model: "Opus 5.5", thinking: "max" },
       { id: "tests", name: "Tests", short: "Tests", harness: "cursor", model: "gpt-6.1-sol", thinking: "" },
     ]);
   });

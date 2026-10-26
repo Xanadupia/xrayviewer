@@ -159,6 +159,40 @@ export const PATCHES = [
     replace: '"# model: a model for this agent, a name its harness knows (sonnet for claude, for example); empty uses that harness\'s model setting in",',
   },
   {
+    id: "agents-yml-effort-comment",
+    find: '"#   VS Code.","agents:"]',
+    replace:
+      '"#   VS Code.","# effort: how long this agent\'s model thinks, such as low, medium, high, xhigh or max; empty uses the level in that","#   harness\'s extraArgs setting in VS Code. Cursor has none: its models name their level.","agents:"]',
+  },
+  {
+    id: "agents-yml-effort-line",
+    find: "`    model: ${JSON.stringify(e.model)}`]}",
+    replace: '`    model: ${JSON.stringify(e.model)}`,`    effort: ${JSON.stringify(e.effort||"")}`]}',
+  },
+  {
+    id: "agents-yml-effort",
+    find: 'model:typeof d.model=="string"?d.model.trim():h.model,instructions:f}',
+    replace: 'model:typeof d.model=="string"?d.model.trim():h.model,effort:typeof d.effort=="string"?d.effort.trim():"",instructions:f}',
+  },
+  {
+    id: "harness-change-clears-effort",
+    find: '(r=i.trim(),t.setIn(["agents",n,"model"],"")),t.setIn(["agents",n,"harness"],e)',
+    replace:
+      '(r=i.trim(),t.setIn(["agents",n,"model"],"")),(typeof s=="string"?s:"")!==e&&t.getIn(["agents",n,"effort"])&&t.setIn(["agents",n,"effort"],""),t.setIn(["agents",n,"harness"],e)',
+  },
+  {
+    id: "agent-effort-setter",
+    find: 'async function Cu(n,e){await ut();let t=xe.default.parseDocument(await(0,W.readFile)(ne(),"utf8"));t.setIn(["agents",n,"model"],e),await(0,W.writeFile)(ne(),t.toString(On),"utf8")}',
+    replace:
+      'async function Cu(n,e){await ut();let t=xe.default.parseDocument(await(0,W.readFile)(ne(),"utf8"));t.setIn(["agents",n,"model"],e),await(0,W.writeFile)(ne(),t.toString(On),"utf8")}' +
+      'async function xrvSetEffort(n,e){await ut();let t=xe.default.parseDocument(await(0,W.readFile)(ne(),"utf8"));t.setIn(["agents",n,"effort"],e),await(0,W.writeFile)(ne(),t.toString(On),"utf8")}',
+  },
+  {
+    id: "agent-level-run",
+    find: 'function Qu(n,e,t){let s=e.agents[n==="lede"?z:n]?.harness;return t[s||t.default]}',
+    replace: 'function Qu(n,e,t){let a=e.agents[n==="lede"?z:n];return xrvCursor().agentHarness(t[a?.harness||t.default],a?.effort)}',
+  },
+  {
     id: "settings-no-pi-thinking",
     find: 'extraArgs:n.get(`${i}.extraArgs`)||[],...i==="pi"?{thinking:n.get("pi.thinking")||""}:{}',
     replace: 'extraArgs:n.get(`${i}.extraArgs`)||[]',
@@ -182,15 +216,15 @@ export const PATCHES = [
     id: "model-picker",
     find: "let P=async m=>{let v=Yt().harnesses.pi,A=m?`the ${Ue(m.name).toLowerCase()} agent`:\"agents on Pi\",E=`the other Pi agents' model (${v.model||\"Pi's default\"})`,M=(B=>_e(B)?B.replace(/:[a-z]+$/,\"\"):B)(m?m.model:v.model),J=await C.window.withProgress({location:C.ProgressLocation.Window,title:\"Listing Pi's models\"},()=>Ca(v)),_,$=!0;if(J===null){let B=await C.window.showInputBox({title:`Pi model for ${A}`,prompt:`Pi couldn't list its models. Type one as provider/id or a name Pi knows, with an optional :<thinking> suffix. Empty uses ${m?E:\"Pi's default\"}.`,placeHolder:\"anthropic/claude-sonnet-5-5\",value:m?m.model:v.model});if(B===void 0)return!1;_=B.trim()}else if(J.length){let B=[{label:m?\"Same as the other Pi agents\":\"Pi's default\",description:[m?v.model||\"Pi's default\":\"\",M?\"\":\"in use\"].filter(Boolean).join(\" \\xB7 \"),detail:m?\"Uses xrayviewer.pi.model.\":\"The model you set in Pi, else its first signed-in provider's.\",value:\"\",thinking:!0},...J.map(j=>{let ce=`${j.provider}/${j.id}`;return{label:j.id,description:[j.provider,j.thinking?\"\":\"no thinking\",ce===M?\"in use\":\"\"].filter(Boolean).join(\" \\xB7 \"),value:ce,thinking:j.thinking}})],se=await C.window.showQuickPick(B,{title:`Pi model for ${A}`,placeHolder:\"Models Pi is signed in to\",matchOnDescription:!0});if(!se)return!1;_=se.value,$=se.thinking}else return C.window.showWarningMessage(\"Pi has no models to use yet. Run pi in a terminal and use /login, or set a provider's API key, then choose again.\"),!1;let L=\"\";if($&&!_e(_)&&(_||!m)){let B=m?_e(m.model)||\"\":v.thinking||\"\",se=await C.window.showQuickPick([{label:m?\"Same as the other Pi agents\":\"Pi's default\",description:[m?v.thinking||\"Pi's default\":\"\",B?\"\":\"in use\"].filter(Boolean).join(\" \\xB7 \"),detail:m?\"Uses xrayviewer.pi.thinking.\":\"The level you set in Pi, else medium.\",value:\"\"},...Zn.map(j=>({label:j,description:j===B?\"in use\":\"\",value:j}))],{title:`Thinking for ${A}`,placeHolder:\"Pi lowers a level the model doesn't support\"});if(!se)return!1;L=se.value}if(m){let B=_&&L?`${_}:${L}`:_;await Cu(m.id,B),t(`${m.name} now runs on Pi with ${B||\"the other Pi agents' model\"}`)}else{let B=C.workspace.getConfiguration(\"xrayviewer\");await B.update(\"pi.model\",_,C.ConfigurationTarget.Global),await B.update(\"pi.thinking\",L,C.ConfigurationTarget.Global),t(`Pi agents now use ${_||\"Pi's default model\"}${L?`, thinking ${L}`:\"\"}`)}return!0},R=async()=>{let m=ji,",
     replace:
-      'let xrvScope=key=>xrvCursor().modelScope({key,harnesses:()=>Yt().harnesses,settings:$t,setAgentHarness:Eu,setAgentModel:Cu,saveSetting:(k,x)=>C.workspace.getConfiguration("xrayviewer").update(k,x,C.ConfigurationTarget.Global)}),' +
+      'let xrvScope=key=>xrvCursor().modelScope({key,harnesses:()=>Yt().harnesses,settings:$t,setAgentHarness:Eu,setAgentModel:Cu,setAgentEffort:xrvSetEffort,saveSetting:(k,x)=>C.workspace.getConfiguration("xrayviewer").update(k,x,C.ConfigurationTarget.Global)}),' +
       "xrvPick=(sc,m)=>xrvCursor().pickModel({vscode:C,readConfig:()=>sc.harnesses().cursor,setAgentModel:sc.setAgentModel,saveSetting:sc.saveSetting,log:t},m)," +
-      'xrvClaude=(sc,m)=>xrvCursor().pickCli({vscode:C,log:t,currentPath:()=>Yt().harnesses.claude.command,currentModel:()=>m&&m.model||sc.harnesses().claude.model,currentExtraArgs:()=>sc.harnesses().claude.extraArgs,setAgentModel:sc.setAgentModel,saveSetting:sc.saveSetting},"claude",m),' +
-      'xrvCodex=(sc,m)=>xrvCursor().pickCli({vscode:C,log:t,currentPath:()=>Yt().harnesses.codex.command,currentModel:()=>m&&m.model||sc.harnesses().codex.model,currentExtraArgs:()=>sc.harnesses().codex.extraArgs,setAgentModel:sc.setAgentModel,saveSetting:sc.saveSetting},"codex",m),' +
+      'xrvClaude=(sc,m)=>xrvCursor().pickCli({vscode:C,log:t,currentPath:()=>Yt().harnesses.claude.command,currentModel:()=>m&&m.model||sc.harnesses().claude.model,currentExtraArgs:()=>sc.harnesses().claude.extraArgs,setAgentModel:sc.setAgentModel,setAgentEffort:sc.setAgentEffort,saveSetting:sc.saveSetting},"claude",m),' +
+      'xrvCodex=(sc,m)=>xrvCursor().pickCli({vscode:C,log:t,currentPath:()=>Yt().harnesses.codex.command,currentModel:()=>m&&m.model||sc.harnesses().codex.model,currentExtraArgs:()=>sc.harnesses().codex.extraArgs,setAgentModel:sc.setAgentModel,setAgentEffort:sc.setAgentEffort,saveSetting:sc.saveSetting},"codex",m),' +
       'xrvModel=(sc,h,m)=>h==="cursor"?xrvPick(sc,m):h==="claude"?xrvClaude(sc,m):h==="codex"?xrvCodex(sc,m):Promise.resolve(!1),' +
-      'xrvDone=async(sc,h,a)=>{o.notifyModel();let E=sc.harnesses(),{settings:O}=await sc.settings(),g=a?O.agents[a]:null;await xrvCursor().announceChoice({vscode:C,log:t},{harness:h,settings:E[h],agent:g?{name:Ue(g.name),model:g.model||""}:null,inUse:Object.values(O.agents).some(x=>x.enabled&&(x.harness||E.default)===h),agents:O.agents,harnesses:E,scope:sc.label})},' +
+      'xrvDone=async(sc,h,a)=>{o.notifyModel();let E=sc.harnesses(),{settings:O}=await sc.settings(),g=a?O.agents[a]:null;await xrvCursor().announceChoice({vscode:C,log:t},{harness:h,settings:E[h],agent:g?{name:Ue(g.name),model:g.model||"",effort:g.effort||""}:null,inUse:Object.values(O.agents).some(x=>x.enabled&&(x.harness||E.default)===h),agents:O.agents,harnesses:E,scope:sc.label})},' +
       'xrvMove=async(sc,h)=>{let E=sc.harnesses(),{settings:O}=await sc.settings(),w=[];E.default!==h&&await sc.saveSetting("harness",h);' +
-      'for(let[d,x]of Object.entries(O.agents)){if(x.harness&&x.harness!==h){await sc.setAgentHarness(d,"");w.push(Ue(x.name))}else if(!x.harness&&x.model&&E.default!==h){await sc.setAgentModel(d,"");w.push(Ue(x.name))}}' +
-      '(E.default!==h||w.length)&&t(`Every agent now runs on ${Nt[h]}${sc.label?" for "+sc.label:""}${w.length?`. ${w.join(", ")} no longer ${w.length>1?"have":"has"} a harness or model of ${w.length>1?"their":"its"} own`:""}`)},' +
+      'for(let[d,x]of Object.entries(O.agents)){if(x.harness&&x.harness!==h){await sc.setAgentHarness(d,"");w.push(Ue(x.name))}else if(!x.harness&&(x.model||x.effort)&&E.default!==h){x.model&&await sc.setAgentModel(d,"");x.effort&&await sc.setAgentEffort(d,"");w.push(Ue(x.name))}}' +
+      '(E.default!==h||w.length)&&t(`Every agent now runs on ${Nt[h]}${sc.label?" for "+sc.label:""}${w.length?`. ${w.join(", ")} no longer ${w.length>1?"have":"has"} a harness, model or level of ${w.length>1?"their":"its"} own`:""}`)},' +
       "R=async xrvKey=>{let xrvSc=xrvScope(xrvKey),m=ji,",
   },
   {
@@ -208,7 +242,7 @@ export const PATCHES = [
       '{label:cv?"Cursor Agent "+cv:"Cursor Agent CLI",description:[cv?"":"Not found",cur==="cursor"?"in use":""].filter(Boolean).join(" \\u00b7 "),detail:cv?"Pick a model on your Cursor account. Then this agent runs on Cursor.":"Install it, or set xrayviewer.cursor.path to where it is.",value:"cursor"},' +
       '{label:co?"Codex "+co:"Install Codex\\u2026",description:[co?"":"Not installed",cur==="codex"?"in use":""].filter(Boolean).join(" \\u00b7 "),detail:co?"Pick a model and reasoning level. The run uses the newest Codex on this machine.":"Download the Codex CLI, then pick a model. Then this agent runs on Codex.",value:"codex"},' +
       '{label:cl?"Claude Code "+cl:"Install Claude Code\\u2026",description:[cl?"":"Not installed",cur==="claude"?"in use":""].filter(Boolean).join(" \\u00b7 "),detail:cl?"Pick a model and effort level. The run uses the newest Claude Code on this machine.":"Download Claude Code, then pick a model. Then this agent runs on Claude Code.",value:"claude"}' +
-      '],{title:`Which CLI runs the ${nm.toLowerCase()} agent?`,placeHolder:`Only the ${nm.toLowerCase()} agent changes. The other agents keep theirs, and they all still run together.`});if(!L)continue;let B=null;L.value!==own&&({clearedModel:B}=await xrvSc.setAgentHarness(_,L.value),t(`${ag.name} now runs on ${Nt[L.value]}${xrvSc.label?" for "+xrvSc.label:""}`));let se=await xrvModel(xrvSc,L.value,{id:_,name:nm,model:L.value===own?ag.model:""});if(se){await xrvDone(xrvSc,L.value,_);return}',
+      '],{title:`Which CLI runs the ${nm.toLowerCase()} agent?`,placeHolder:`Only the ${nm.toLowerCase()} agent changes. The other agents keep theirs, and they all still run together.`});if(!L)continue;let B=null;L.value!==own&&({clearedModel:B}=await xrvSc.setAgentHarness(_,L.value),t(`${ag.name} now runs on ${Nt[L.value]}${xrvSc.label?" for "+xrvSc.label:""}`));let se=await xrvModel(xrvSc,L.value,{id:_,name:nm,model:L.value===own?ag.model:"",effort:L.value===own?ag.effort||"":""});if(se){await xrvDone(xrvSc,L.value,_);return}',
   },
   {
     id: "harness-picker-rows",
@@ -565,7 +599,7 @@ export const PATCHES = [
 ];
 
 /** Names the patches add; the original bundle must not use them already. */
-export const ADDED_NAMES = ["xrvCursorHarness", "xrvCursor", "xrvReview", "xrvA", "xrvPick", "xrvClaude", "xrvCodex", "xrvModel", "xrvDone", "xrvRows", "xrvMove", "xrvSt", "xrvIcon", "xrvStatus", "xrvAgentState", "xrvTabs", "xrvSlot", "xrvHold", "xrvInstallNotices", "xrvScope", "xrvSc", "xrvKey", "xrvLine"];
+export const ADDED_NAMES = ["xrvCursorHarness", "xrvCursor", "xrvReview", "xrvA", "xrvPick", "xrvClaude", "xrvCodex", "xrvModel", "xrvDone", "xrvRows", "xrvMove", "xrvSt", "xrvIcon", "xrvStatus", "xrvAgentState", "xrvTabs", "xrvSlot", "xrvHold", "xrvInstallNotices", "xrvScope", "xrvSc", "xrvKey", "xrvLine", "xrvSetEffort"];
 
 const modelBit = '${modelSummary(AGENTS).line ? ` · ${esc(modelSummary(AGENTS).line)} <button type="button" class="link" data-act="choose-model">Change</button>` : ""}';
 

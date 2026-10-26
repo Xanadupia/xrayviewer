@@ -26,9 +26,9 @@ import { bindModelStore, modelScope, withModelChoice } from "./pr-models.ts";
 import { fixReply, unreadable } from "./reply-fix.ts";
 import { bindRunningView } from "./running-view.ts";
 import { armAutoPost, bindSelectionBar, checkedKeys, chosenPullRequests, clearAutoPost, clearChecked, isChecked, setChecked, sidebarBadge, wantsAutoPost } from "./sidebar-batch.ts";
-import { announceChoice, plannedAgents, type AgentSetting, type HarnessId, type HarnessTable, type NoticeDeps, type RunChoice } from "./run-confirm.ts";
+import { agentHarness, announceChoice, plannedAgents, type AgentSetting, type HarnessId, type HarnessTable, type NoticeDeps, type RunChoice } from "./run-confirm.ts";
 import { chooseTheme, saveTheme, themeChoice, themeTag } from "./theme.ts";
-import { officialInstallCommand, pickCliVersion, runOfficialInstall, type CliId, type VersionPickerDeps } from "./version-picker.ts";
+import { officialInstallCommand, pickCliVersion, runOfficialInstall, type CliId, type PickedAgent, type VersionPickerDeps } from "./version-picker.ts";
 
 /** What each agent runs on, with Claude Code models named with their versions. `all` includes agents turned off. */
 async function namedPlan(harnesses: HarnessTable, agents: Record<string, AgentSetting>, all = false) {
@@ -67,11 +67,12 @@ export function createCursorHarness(internals: BundleInternals) {
     codeReview: (config: ClaudeConfig, request: CodeReviewRequest, runClaude: (config: ClaudeConfig, request: AgentRequest) => Promise<AgentResult>) =>
       runCodeReview(internals, config, request, runClaude),
     resolveCommand: (command: string) => resolveCommand(command),
+    agentHarness,
     latestCommand: (id: InstalledCli, configured: string) => latestCommand(id, configured, homedir()),
     pickModel: (deps: Omit<PickerDeps, "listModels">, agent: AgentRef | null) =>
       pickCursorModel({ ...deps, listModels: () => listCursorModels(internals, deps.readConfig()) }, agent),
     installedSummary: (id: CliId) => installedSummary(id, homedir()),
-    pickCli: (deps: Omit<VersionPickerDeps, "list" | "install">, id: CliId, agent: { id?: string; name: string } | null) =>
+    pickCli: (deps: Omit<VersionPickerDeps, "list" | "install">, id: CliId, agent: PickedAgent | null) =>
       pickCliVersion({ ...deps, ...cliCatalog(id), install: () => runOfficialInstall(officialInstallCommand(id)) }, id, agent),
     announceChoice: async (deps: NoticeDeps, { agents, harnesses, ...choice }: RunChoice & { agents?: Record<string, AgentSetting>; harnesses?: HarnessTable }) => {
       const plan = agents && harnesses ? await namedPlan(harnesses, agents) : undefined;

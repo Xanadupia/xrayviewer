@@ -25,6 +25,8 @@ export interface ReviewAgent {
   runsWhen: string[];
   harness: string;
   model: string;
+  /** The agent's own level; empty follows its harness's. */
+  effort?: string;
   instructions: string;
   /** `agents`: the replaced agents whose instructions the run that shapes the report also checks. */
   codeReview?: { args: string; agents?: string[] };
@@ -62,6 +64,8 @@ export function codeReviewLevel(extraArgs: readonly string[]): string {
   return LEVELS.includes(effort) ? effort : "";
 }
 
+const highestLevel = (levels: readonly string[]) => levels.reduce((top, level) => (LEVELS.indexOf(level) > LEVELS.indexOf(top) ? level : top), "");
+
 export const CODE_REVIEW_INSTRUCTIONS = `Claude Code's /code-review has already reviewed this pull request. Its report is at the end of this prompt. It reviewed in place of the agents whose instructions follow.
 
 Return every finding it reported, in the shape below, with \`agent\` set to "${CODE_REVIEW_ID}". Leave one out only when no line this pull request changes shows it. For each finding, read the code at its file and line so that \`match\`, \`steps\` and \`fix\` point at the right lines, and rate its severity from the failure it describes.
@@ -90,8 +94,9 @@ function agentBrief(id: string, agent: ReviewAgent): string {
 /**
  * Replaces the selected reviewer agents that run on Claude Code with one agent that runs /code-review over `range`.
  * The run that shapes the report also checks each replaced agent's instructions, so it may return the report's
- * findings plus up to each agent's own limit. The guide keeps its own prompt. Without a range, or when agents.yml
- * already uses the agent's id, nothing changes.
+ * findings plus up to each agent's own limit. It runs at the highest level any replaced agent runs at, its own or the
+ * Claude Code setting. The guide keeps its own prompt. Without a range, or when agents.yml already uses the agent's
+ * id, nothing changes.
  */
 export function planCodeReview(
   selection: Selection,
@@ -106,7 +111,8 @@ export function planCodeReview(
   const agents = replaced.map((id) => settings.agents[id]);
   const limits = agents.reduce((sum, agent) => sum + agent.maxFindings, 0);
   const reported = Math.min(MAX_FINDINGS, limits);
-  const level = codeReviewLevel(claude?.extraArgs ?? []);
+  const shared = codeReviewLevel(claude?.extraArgs ?? []);
+  const level = highestLevel(agents.map((agent) => (agent.effort && LEVELS.includes(agent.effort) ? agent.effort : shared)));
   const agent: ReviewAgent = {
     name: CODE_REVIEW_NAME,
     focus: `Claude Code's /code-review, run once for the ${listNames(agents.map((a) => shortName(a.name)))} ${agents.length > 1 ? "agents" : "agent"}`,
@@ -117,6 +123,7 @@ export function planCodeReview(
     runsWhen: [],
     harness: "claude",
     model: agents[0].model,
+    effort: level,
     instructions: [CODE_REVIEW_INSTRUCTIONS, ...replaced.map((id) => agentBrief(id, settings.agents[id]))].join("\n\n"),
     codeReview: { args: [level, range, "--max-findings", String(reported)].filter(Boolean).join(" "), agents: replaced },
   };
@@ -135,9 +142,10 @@ export function plannedWithCodeReview(planned: PlannedAgent[], guideId: string):
   const replaced = planned.filter((agent) => agent.id !== guideId && agent.harness === "claude");
   if (!replaced.length || planned.some((agent) => agent.id === CODE_REVIEW_ID)) return planned;
   const first = replaced[0];
+  const thinking = highestLevel(replaced.map((agent) => agent.thinking)) || first.thinking;
   return [
     ...planned.filter((agent) => !replaced.includes(agent)),
-    { ...first, id: CODE_REVIEW_ID, name: CODE_REVIEW_NAME, short: shortName(CODE_REVIEW_NAME) },
+    { ...first, id: CODE_REVIEW_ID, name: CODE_REVIEW_NAME, short: shortName(CODE_REVIEW_NAME), thinking },
   ];
 }
 

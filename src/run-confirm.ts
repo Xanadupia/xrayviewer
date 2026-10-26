@@ -1,5 +1,5 @@
-import { claudeEffort } from "./claude-models.ts";
-import { reasoningEffort } from "./codex-models.ts";
+import { claudeEffort, withClaudeEffort } from "./claude-models.ts";
+import { reasoningEffort, withReasoningEffort } from "./codex-models.ts";
 
 export type HarnessId = "claude" | "codex" | "cursor";
 
@@ -13,8 +13,8 @@ export interface HarnessSettings {
 export interface RunChoice {
   harness: HarnessId;
   settings: HarnessSettings;
-  /** Set when one agent was changed. Its own model wins over the harness model. */
-  agent: { name: string; model: string } | null;
+  /** Set when one agent was changed. Its own model and level win over the harness's. */
+  agent: { name: string; model: string; effort?: string } | null;
   /** Whether any enabled agent runs on this harness. */
   inUse: boolean;
   /** A name with the version, such as "Opus 5.5", shown instead of the model setting. */
@@ -45,11 +45,34 @@ export function harnessName(id: HarnessId): string {
   }
 }
 
+/** A harness's settings with one agent's own level in place of the one every agent on it shares. Cursor has none. */
+export function withAgentLevel<S extends HarnessSettings>(harness: HarnessId, settings: S, effort: string | undefined): S {
+  if (!effort) return settings;
+  const extraArgs = settings.extraArgs ?? [];
+  switch (harness) {
+    case "claude":
+      return { ...settings, extraArgs: withClaudeEffort(extraArgs, effort) };
+    case "codex":
+      return { ...settings, extraArgs: withReasoningEffort(extraArgs, effort) };
+    case "cursor":
+      return settings;
+    default: {
+      const never: never = harness;
+      return never;
+    }
+  }
+}
+
+/** What one agent's CLI runs with: its harness's settings, with the agent's own level when it has one. */
+export function agentHarness<C extends HarnessSettings & { id: string }>(config: C | undefined, effort: string | undefined): C | undefined {
+  return config && isHarness(config.id) ? withAgentLevel(config.id, config, effort) : config;
+}
+
 /** The model and level a harness runs with, the way each CLI reads its settings. */
 export function chosenModel(choice: RunChoice): { model: string; level: string; levelWord: string } {
   const own = choice.agent?.model || "";
   const model = own || choice.settings.model;
-  const extraArgs = choice.settings.extraArgs ?? [];
+  const extraArgs = withAgentLevel(choice.harness, choice.settings, choice.agent?.effort).extraArgs ?? [];
   switch (choice.harness) {
     case "claude":
       return { model, level: claudeEffort(extraArgs), levelWord: "effort" };
@@ -68,6 +91,8 @@ export interface AgentSetting {
   name: string;
   harness?: string;
   model?: string;
+  /** The agent's own level; empty follows its harness's. */
+  effort?: string;
   enabled?: boolean;
 }
 
@@ -100,7 +125,7 @@ export function plannedAgents(
     const harness = isHarness(agent.harness) ? agent.harness : harnesses.default;
     const settings = harnesses[harness];
     if (!settings) return [];
-    const { model, level } = chosenModel({ harness, settings, agent: { name: agent.name, model: agent.model ?? "" }, inUse: true });
+    const { model, level } = chosenModel({ harness, settings, agent: { name: agent.name, model: agent.model ?? "", effort: agent.effort }, inUse: true });
     const short = agent.name.replace(/\s+agent$/i, "").trim() || agent.name;
     return [{ id, name: agent.name, short, harness, model: (model && nameOf(harness, model)) || model, thinking: level }];
   });

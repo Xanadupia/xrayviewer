@@ -24,10 +24,15 @@ export interface VersionPickerDeps {
   currentModel?: () => string;
   currentExtraArgs?: () => readonly string[];
   setAgentModel?: (id: string, model: string) => Promise<void>;
+  /** Saves one agent's own level. Without it, a level picked for one agent changes it for every agent on the CLI. */
+  setAgentEffort?: (id: string, effort: string) => Promise<void>;
   /** Saves a model or level setting under `xrayviewer`. Without it, the user's settings.json is written. */
   saveSetting?: (key: string, value: unknown) => PromiseLike<void>;
   listModels?: (command: string) => Promise<CliModel[] | null>;
 }
+
+/** The agent the picker changes; `effort` is its own level, empty when it follows the CLI's. */
+export type PickedAgent = { id?: string; name: string; effort?: string };
 
 interface CliSpec {
   title: string;
@@ -106,7 +111,7 @@ export function versionItems(versions: readonly CliVersion[], install: Pick<CliS
 async function pickModel(
   deps: VersionPickerDeps,
   chosen: CliSpec,
-  agent: { id?: string; name: string } | null,
+  agent: PickedAgent | null,
   versions: readonly { path: string }[],
   who: string,
 ): Promise<boolean | "version"> {
@@ -141,14 +146,27 @@ async function pickModel(
   if (picked.value === CHANGE_VERSION) return "version";
   const model = models.find((item) => item.slug === picked.value);
   const extraArgs = deps.currentExtraArgs?.() ?? [];
+  const agentId = agent?.id;
+  const setOwnLevel = agentId ? deps.setAgentEffort : undefined;
   let effort = "";
   if (model?.efforts.length) {
-    const currentEffort = chosen.readLevel(extraArgs);
+    const shared = chosen.readLevel(extraArgs);
+    const currentEffort = setOwnLevel ? (agent?.effort ?? "") : shared;
+    const first = setOwnLevel
+      ? [
+          {
+            label: `Same as the other ${chosen.title} agents`,
+            description: [shared || model.defaultEffort || fallback, currentEffort ? "" : "in use"].filter(Boolean).join(" · "),
+            detail: `Follows the ${chosen.levelWord} every agent on ${chosen.title} uses.`,
+            value: "",
+          },
+        ]
+      : model.defaultEffort
+        ? []
+        : [{ label: fallback, description: currentEffort ? "" : "in use", detail: `Leaves the ${chosen.levelWord} to the CLI.`, value: "" }];
     const level = await window.showQuickPick(
       [
-        ...(model.defaultEffort
-          ? []
-          : [{ label: fallback, description: currentEffort ? "" : "in use", detail: `Leaves the ${chosen.levelWord} to the CLI.`, value: "" }]),
+        ...first,
         ...model.efforts.map((item) => ({
           label: item.effort.slice(0, 1).toUpperCase() + item.effort.slice(1),
           description: [item.effort === model.defaultEffort ? "default" : "", item.effort === currentEffort ? "in use" : ""].filter(Boolean).join(" · "),
@@ -162,9 +180,9 @@ async function pickModel(
     effort = level.value;
   }
   const saveSetting = deps.saveSetting ?? ((key: string, value: unknown) => workspace.getConfiguration("xrayviewer").update(key, value, ConfigurationTarget.Global));
-  if (agent?.id && deps.setAgentModel) await deps.setAgentModel(agent.id, picked.value);
+  if (agentId && deps.setAgentModel) await deps.setAgentModel(agentId, picked.value);
   else await saveSetting(chosen.modelSetting, picked.value);
-  if (model) await saveSetting(chosen.argsSetting, chosen.writeLevel(extraArgs, effort));
+  if (model) await (agentId && setOwnLevel ? setOwnLevel(agentId, effort) : saveSetting(chosen.argsSetting, chosen.writeLevel(extraArgs, effort)));
   deps.log(`${who} now ${agent ? "uses" : "use"} ${picked.value || fallback}${effort ? `, ${chosen.levelWord} ${effort}` : ""}`);
   return true;
 }
@@ -174,7 +192,7 @@ async function pickModel(
  * Offers the official installer when none is installed, and also when some are, so a newer version can be added.
  * The run uses the newest installed binary. Choosing an older row does not pin it.
  */
-export async function pickCliVersion(deps: VersionPickerDeps, id: CliId, agent: { id?: string; name: string } | null): Promise<boolean> {
+export async function pickCliVersion(deps: VersionPickerDeps, id: CliId, agent: PickedAgent | null): Promise<boolean> {
   const { window, workspace, ProgressLocation, ConfigurationTarget } = deps.vscode;
   const chosen = spec(id);
   const who = agent ? `the ${agent.name.toLowerCase()} agent` : `agents on ${chosen.title}`;
