@@ -138,7 +138,7 @@ On Claude Code and Codex, pick a level last. It sets how long the model thinks b
 
 Picking the level saves the model and level together, and a note says what the agents will use, such as "Claude Code agents will use Opus 5.5 at high effort." Escape backs out without saving. Each agent's row in the picker shows its level, such as **Claude Code · Opus 5.5 · high**. The level every agent on a program uses is stored in `xrayviewer.claude.extraArgs` (`--effort high`) or `xrayviewer.codex.extraArgs`.
 
-A level picked for one agent is that agent's own, and the other agents keep theirs. The first row, such as **Same as the other Claude Code agents**, drops it again. It's saved as `effort` in `agents.yml`, and moving the agent to another program clears it. The agents that hand over to /code-review share one run, at the highest level among them.
+A model or level picked for one agent is that agent's own, and the other agents keep theirs. In both steps, the first row, such as **Same as the other Claude Code agents**, drops it again. The level is saved as `effort` in `agents.yml`, and moving the agent to another program clears it. The agents that hand over to /code-review share one run, at the highest level among them.
 
 On a review page, the picker is for that pull request only, so two pull requests can run on different models. **Use the default** drops that pull request's own choice, and **Change the default…** changes it for every other pull request.
 
