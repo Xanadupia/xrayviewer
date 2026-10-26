@@ -39,6 +39,9 @@ function defaults() {
       setAgentModel: async (id: string, model: string) => {
         writes.agents.push([id, "model", model]);
       },
+      setAgentEffort: async (id: string, effort: string) => {
+        writes.agents.push([id, "effort", effort]);
+      },
       saveSetting: async (name: string, value: unknown) => {
         writes.settings.push([name, value]);
       },
@@ -96,6 +99,26 @@ describe("per pull request models", () => {
     assert.equal(agents.security.harness, "claude", "the default is unchanged");
   });
 
+  test("one agent's own level is saved for the pull request, and moving the agent to another CLI drops it", async () => {
+    const { agents, writes, scope } = defaults();
+    agents.guide.effort = "low";
+    const pr = scope("acme/app#12");
+    const guide = () => withModelChoice("acme/app#12", harnesses, { agents }).settings.agents.guide;
+
+    await pr.setAgentEffort("security", "max");
+    assert.equal(withModelChoice("acme/app#12", harnesses, { agents }).settings.agents.security.effort, "max");
+    await pr.setAgentHarness("security", "claude");
+    assert.equal(withModelChoice("acme/app#12", harnesses, { agents }).settings.agents.security.effort, "max", "staying on the same CLI keeps the level");
+    await pr.setAgentHarness("security", "codex");
+    assert.equal(withModelChoice("acme/app#12", harnesses, { agents }).settings.agents.security.effort, "");
+
+    assert.equal(guide().effort, "low");
+    await pr.setAgentHarness("guide", "cursor");
+    assert.equal(guide().effort, "", "a level from agents.yml is dropped for this pull request too");
+    assert.equal(agents.guide.effort, "low", "agents.yml is unchanged");
+    assert.deepEqual(writes, { settings: [], agents: [] });
+  });
+
   test("a CLI's path is saved for every pull request, since it names the install on this machine", async () => {
     const { writes, scope } = defaults();
     await scope("acme/app#12").saveSetting("codex.path", "/usr/local/bin/codex");
@@ -114,7 +137,11 @@ describe("per pull request models", () => {
     await all.saveSetting("harness", "codex");
     await all.setAgentHarness("guide", "cursor");
     await all.setAgentModel("guide", "fake-model");
-    assert.deepEqual(writes, { settings: [["harness", "codex"]], agents: [["guide", "harness", "cursor"], ["guide", "model", "fake-model"]] });
+    await all.setAgentEffort("security", "high");
+    assert.deepEqual(writes, {
+      settings: [["harness", "codex"]],
+      agents: [["guide", "harness", "cursor"], ["guide", "model", "fake-model"], ["security", "effort", "high"]],
+    });
   });
 
   test("Use the default drops the pull request's own choice", async () => {

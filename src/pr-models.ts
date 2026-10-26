@@ -4,7 +4,7 @@ import type { AgentSetting, HarnessId, HarnessTable } from "./run-confirm.ts";
 export interface ModelChoice {
   /** Settings under `xrayviewer`: `harness`, and each CLI's `model` and `extraArgs`. */
   config: Record<string, unknown>;
-  agents: Record<string, { harness?: string; model?: string }>;
+  agents: Record<string, { harness?: string; model?: string; effort?: string }>;
 }
 
 /** The slice of `ExtensionContext.globalState` the choices are saved in. */
@@ -22,6 +22,7 @@ export interface ScopeDeps<L extends Loaded> {
   settings(): Promise<L>;
   setAgentHarness(agentId: string, harness: string): Promise<{ clearedModel?: string | null }>;
   setAgentModel(agentId: string, model: string): Promise<void>;
+  setAgentEffort(agentId: string, effort: string): Promise<void>;
   saveSetting(key: string, value: unknown): PromiseLike<void>;
 }
 
@@ -35,6 +36,7 @@ export interface ModelScope<L extends Loaded> {
   settings(): Promise<L>;
   setAgentHarness(agentId: string, harness: string): Promise<{ clearedModel: string | null }>;
   setAgentModel(agentId: string, model: string): Promise<void>;
+  setAgentEffort(agentId: string, effort: string): Promise<void>;
   saveSetting(key: string, value: unknown): Promise<void>;
   /** Drops the pull request's own choice and says so. */
   reset(): Promise<string>;
@@ -106,6 +108,7 @@ export function modelScope<L extends Loaded>(deps: ScopeDeps<L>): ModelScope<L> 
       settings: deps.settings,
       setAgentHarness: async (agentId, harness) => ({ clearedModel: (await deps.setAgentHarness(agentId, harness)).clearedModel ?? null }),
       setAgentModel: deps.setAgentModel,
+      setAgentEffort: deps.setAgentEffort,
       saveSetting: async (name, value) => deps.saveSetting(name, value),
       reset: async () => "",
     };
@@ -134,13 +137,18 @@ export function modelScope<L extends Loaded>(deps: ScopeDeps<L>): ModelScope<L> 
       const { base, own } = await ownAgent(agentId);
       const was = own.harness ?? base?.harness ?? "";
       const model = (own.model ?? base?.model ?? "").trim();
+      const effort = (own.effort ?? base?.effort ?? "").trim();
       const clearedModel = was !== harness && model ? model : null;
-      await saveAgent(agentId, { ...own, harness, ...(clearedModel ? { model: "" } : {}) });
+      await saveAgent(agentId, { ...own, harness, ...(clearedModel ? { model: "" } : {}), ...(was !== harness && effort ? { effort: "" } : {}) });
       return { clearedModel };
     },
     async setAgentModel(agentId, model) {
       const { own } = await ownAgent(agentId);
       await saveAgent(agentId, { ...own, model });
+    },
+    async setAgentEffort(agentId, effort) {
+      const { own } = await ownAgent(agentId);
+      await saveAgent(agentId, { ...own, effort });
     },
     async saveSetting(name, value) {
       if (!PER_PULL_REQUEST.test(name)) return deps.saveSetting(name, value);

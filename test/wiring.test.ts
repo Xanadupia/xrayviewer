@@ -312,6 +312,25 @@ describe("the patched extension", () => {
     assert.deepEqual(Yt().harnesses.cursor, { id: "cursor", command: state.settings["xrayviewer.cursor.path"], model: "", extraArgs: [] });
   });
 
+  test("agents.yml keeps one agent's own level until the agent moves to another harness", async () => {
+    const { Eu, xrvSetEffort, $t } = ext.__xrayviewer;
+    const [id] = Object.keys((await $t()).settings.agents);
+    const effort = async () => (await $t()).settings.agents[id].effort;
+    const fresh = await readFile(path.join(process.env.XRAYVIEWER_HOME!, "agents.yml"), "utf8");
+    assert.match(fresh, /^# effort: how long this agent's model thinks, /m);
+    assert.match(fresh.slice(fresh.indexOf(`\n  ${id}:`)), /^ {4}model: ""\n {4}effort: ""$/m, "every agent lists the field, empty");
+    assert.equal(await effort(), "");
+
+    await Eu(id, "claude");
+    await xrvSetEffort(id, "max");
+    assert.equal(await effort(), "max");
+    await Eu(id, "claude");
+    assert.equal(await effort(), "max", "staying on the same harness keeps it");
+    await Eu(id, "codex");
+    assert.equal(await effort(), "");
+    await Eu(id, "");
+  });
+
   test("a fresh install has the architecture agent check each file's paradigm, only in what the pull request changes", async () => {
     const { $t } = ext.__xrayviewer;
     const { instructions } = (await $t()).settings.agents.architecture;
@@ -389,11 +408,12 @@ describe("the patched extension", () => {
   });
 
   test("the Cursor row at the top lists the account's models, then moves every agent onto Cursor", async () => {
-    const { Eu, Cu, $t } = ext.__xrayviewer;
-    const [onClaude, withCodexModel] = Object.keys((await $t()).settings.agents);
+    const { Eu, Cu, xrvSetEffort, $t } = ext.__xrayviewer;
+    const [onClaude, withCodexModel, withLevel] = Object.keys((await $t()).settings.agents);
     await Eu(onClaude, "claude");
     await Cu(onClaude, "opus");
     await Cu(withCodexModel, "gpt-6-astra");
+    await xrvSetEffort(withLevel, "high");
     state.settings["xrayviewer.harness"] = "codex";
     state.picks = [];
     state.messages = [];
@@ -419,9 +439,10 @@ describe("the patched extension", () => {
     assert.equal(state.settings["xrayviewer.harness"], "cursor");
     assert.equal(state.settings["xrayviewer.cursor.model"], "fake-model");
     const { agents } = (await $t()).settings;
-    assert.deepEqual([agents[onClaude].harness, agents[onClaude].model, agents[withCodexModel].model], ["", "", ""]);
+    assert.deepEqual([agents[onClaude].harness, agents[onClaude].model, agents[withCodexModel].model, agents[withLevel].effort], ["", "", "", ""]);
     assert.ok(Object.values(agents).every((agent: any) => !agent.harness || agent.harness === "cursor"));
-    assert.ok(state.logs.includes(`Every agent now runs on Cursor Agent CLI. ${agents[onClaude].name.replace(/ agent$/i, "")}, ${agents[withCodexModel].name.replace(/ agent$/i, "")} no longer have a harness or model of their own`));
+    const short = (id: string) => agents[id].name.replace(/ agent$/i, "");
+    assert.ok(state.logs.includes(`Every agent now runs on Cursor Agent CLI. ${short(onClaude)}, ${short(withCodexModel)}, ${short(withLevel)} no longer have a harness, model or level of their own`));
     assert.equal(state.picks.length, 2, "the harness menu does not open again after the model");
     assert.deepEqual(state.messages, [`Saved. Cursor agents will use fake-model. Run agents starts all ${count} agents together.`]);
   });
@@ -532,6 +553,7 @@ describe("the patched extension", () => {
     });
 
     const { settings } = await $t();
+    settings.agents.tests = { ...settings.agents.tests, effort: "xhigh" };
     const harnesses = { ...Yt().harnesses, default: "claude" };
     harnesses.claude = { ...harnesses.claude, command: cli.file, model: "", extraArgs: ["--effort", "high"] };
     const progress: Array<Record<string, { state: string; error?: string; startedAt?: number }>> = [];
@@ -560,7 +582,9 @@ describe("the patched extension", () => {
     const calls = await cli.calls();
     assert.equal(calls.length, 3, "one /code-review run, the run that shapes its report, then the summary line");
     const [review, shape, lede] = calls;
-    assert.deepEqual(review.args.slice(0, 2), ["-p", `/code-review high ${data.mergeBase}...${head} --max-findings 10`]);
+    assert.deepEqual(review.args.slice(0, 2), ["-p", `/code-review xhigh ${data.mergeBase}...${head} --max-findings 10`], "the tests agent's own level is the highest");
+    const effortOf = (run: { args: string[] }) => run.args.filter((arg, i) => run.args[i - 1] === "--effort");
+    assert.deepEqual([effortOf(review), effortOf(shape), effortOf(lede)], [["xhigh"], ["xhigh"], ["high"]], "the summary line keeps the guide's level");
     assert.ok(!review.args.includes("--json-schema"));
     assert.equal(review.input, "");
     assert.match(shape.input, /^You are the Code review agent in X-RayViewer/);

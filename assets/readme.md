@@ -136,7 +136,9 @@ On Claude Code and Codex, pick a level last. It sets how long the model thinks b
 - **Codex** asks for a reasoning level from the ones that model supports, and marks its default.
 - **Cursor Agent** has no level step. The level is part of the model's name, such as **Claude Opus 5.5 1M High**.
 
-Picking the level saves the model and level together, and a note says what the agents will use, such as "Claude Code agents will use Opus 5.5 at high effort." Escape backs out without saving. Each agent's row in the picker shows its level, such as **Claude Code · Opus 5.5 · high**. The level is stored in `xrayviewer.claude.extraArgs` (`--effort high`) or `xrayviewer.codex.extraArgs`.
+Picking the level saves the model and level together, and a note says what the agents will use, such as "Claude Code agents will use Opus 5.5 at high effort." Escape backs out without saving. Each agent's row in the picker shows its level, such as **Claude Code · Opus 5.5 · high**. The level every agent on a program uses is stored in `xrayviewer.claude.extraArgs` (`--effort high`) or `xrayviewer.codex.extraArgs`.
+
+A level picked for one agent is that agent's own, and the other agents keep theirs. The first row, such as **Same as the other Claude Code agents**, drops it again. It's saved as `effort` in `agents.yml`, and moving the agent to another program clears it. The agents that hand over to /code-review share one run, at the highest level among them.
 
 On a review page, the picker is for that pull request only, so two pull requests can run on different models. **Use the default** drops that pull request's own choice, and **Change the default…** changes it for every other pull request.
 
@@ -160,6 +162,7 @@ agents:
     runs-when: ["**/migrations/**"]
     harness: ""
     model: ""
+    effort: ""
 ```
 
 | Field | What it does |
@@ -169,7 +172,7 @@ agents:
 | `min-confidence` | `minor` keeps all, `worth-asking` drops minor ones, `high` keeps only high confidence. |
 | `skip` | Files the agent ignores, such as `"**/*.lock"`. |
 | `runs-when` | Run only when a changed file matches. Empty means always. |
-| `harness`, `model` | `claude`, `codex`, or `cursor`, and a model it knows. Empty uses your picker choice. |
+| `harness`, `model`, `effort` | `claude`, `codex`, or `cursor`, a model it knows, and a level such as `high`. Empty uses your picker choice. |
 
 The same file says what **high**, **medium**, and **low** mean, and which parts a description needs for a feature or a fix. **X-RayViewer: Reset Agent Settings** restores the defaults.
 

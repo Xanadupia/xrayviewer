@@ -113,6 +113,26 @@ describe("planCodeReview", () => {
     const plan = planCodeReview(selection, settings, harnessOf, "guide", { extraArgs: [] }, range);
     assert.equal(plan.settings.agents[CODE_REVIEW_ID].codeReview!.args, "1111111...2222222 --max-findings 8");
   });
+
+  test("runs at the highest level a replaced agent runs at, its own or the one every Claude Code agent shares", () => {
+    const withLevels = (architecture: string, correctness: string, shared: string[]) => {
+      const own: ReviewSettings = {
+        agents: {
+          ...settings.agents,
+          architecture: { ...settings.agents.architecture, effort: architecture },
+          correctness: { ...settings.agents.correctness, effort: correctness },
+        },
+      };
+      const review = planCodeReview(selection, own, harnessOf, "guide", { extraArgs: shared }, range).settings.agents[CODE_REVIEW_ID];
+      return [review.effort, review.codeReview!.args.split(" ")[0]];
+    };
+
+    assert.deepEqual(withLevels("max", "", ["--effort", "high"]), ["max", "max"]);
+    assert.deepEqual(withLevels("low", "", ["--effort", "high"]), ["high", "high"], "an agent without its own level runs at the shared one");
+    assert.deepEqual(withLevels("low", "medium", ["--effort", "xhigh"]), ["medium", "medium"]);
+    assert.deepEqual(withLevels("turbo", "", ["--effort", "low"]), ["low", "low"], "a level /code-review doesn't know falls back to the shared one");
+    assert.deepEqual(withLevels("", "", []), ["", "1111111...2222222"], "none at all leaves the skill's own default");
+  });
 });
 
 describe("the agent on each code review finding", () => {
@@ -180,6 +200,14 @@ describe("plannedWithCodeReview", () => {
       ],
     );
     assert.equal(plannedWithCodeReview(planned.slice(3), "guide").length, 1);
+  });
+
+  test("shows the highest level among the reviewers it runs for", () => {
+    const row = (id: string, thinking: string): PlannedAgent => ({ id, name: `${id} agent`, short: id, harness: "claude", model: "Opus 5.5", thinking });
+    const shown = (...levels: string[]) => plannedWithCodeReview([row("guide", "low"), ...levels.map((level, i) => row(`r${i}`, level))], "guide").at(-1)!.thinking;
+    assert.equal(shown("high", "max", "low"), "max");
+    assert.equal(shown("", "medium"), "medium");
+    assert.equal(shown("turbo"), "turbo", "a level it doesn't know is shown as it is");
   });
 });
 
