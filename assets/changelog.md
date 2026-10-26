@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.5.2
+
+- **The guide and correctness agents are now the Overview and Bugs agents.** The lines under Architecture, Test, and Security in the picker say more plainly what each looks at. The ids stay `guide` and `correctness`. An `agents.yml` from an earlier version is upgraded once: a name or line that's still an earlier default gets the new one, and anything you wrote stays. Reviews saved before this keep the old names until they run again.
+- **One agent can keep its own level.** A level picked for one agent is saved on that agent as `effort` in `agents.yml`, or in the pull request's own choice on a review page, and the other agents keep theirs. Before, it changed the level of every agent on that program. Moving the agent to another program clears it. The agents that hand over to /code-review share one run, at the highest level among them.
+- **The first row for one agent says what it does.** It reads **Same as the other Claude Code agents** (or Codex) and shows the model they use, instead of "Claude Code's default".
+- **The guide shows the level step** of the model picker, with a screenshot.
+
 ## 0.5.1
 
 - **The guide walks through a real review.** It follows one pull request from the sidebar to the posted review, with a screenshot of each step, and a new diagram shows what runs during a review.
