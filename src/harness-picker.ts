@@ -18,8 +18,8 @@ export interface PickerRow {
   harness?: HarnessId;
   /** Install when the CLI is missing. Install update when a newer version is published. */
   action?: "install" | "update";
-  /** Picking the row runs this on `harness` instead of choosing anything. */
-  runs?: "update";
+  /** Picking the row downloads `harness` instead of choosing anything. */
+  runs?: "install" | "update";
   separator?: true;
 }
 
@@ -62,7 +62,7 @@ function cliRow(harness: HarnessId, installed: string, latest: string, usedBy: n
       return {
         ...base,
         label: "Cursor Agent",
-        detail: installed ? "Pick a model on your Cursor account." : "Install it, then pick a model on your Cursor account.",
+        detail: installed ? "Pick a model on your Cursor account." : "Picking it installs Cursor Agent, then you pick a model.",
         agent: "pick-cursor",
       };
     case "codex":
@@ -86,8 +86,18 @@ function cliRow(harness: HarnessId, installed: string, latest: string, usedBy: n
   }
 }
 
-function updateRow(cli: string, harness: HarnessId, latest: string): PickerRow {
-  return { label: "Install update", description: `${cli} ${shortVersion(latest)}`, icon: "cloud-download", harness, runs: "update" };
+function downloadRow(action: "install" | "update", cli: string, harness: HarnessId, latest: string): PickerRow {
+  const icon = "cloud-download";
+  switch (action) {
+    case "install":
+      return { label: "Install", description: cli, icon, harness, runs: "install" };
+    case "update":
+      return { label: "Install update", description: `${cli} ${shortVersion(latest)}`, icon, harness, runs: "update" };
+    default: {
+      const never: never = action;
+      return never;
+    }
+  }
 }
 
 function scopeRows(scope: NonNullable<PickerInput["scope"]>): PickerRow[] {
@@ -104,7 +114,8 @@ function scopeRows(scope: NonNullable<PickerInput["scope"]>): PickerRow[] {
  * The agent picker: move every agent to one CLI, or change one agent. It only saves the choice. Every agent that's
  * on runs together when Run agents is pressed, whichever row was changed, so the placeholder says so.
  * Install and Install update are the CLI row's button, which the editor only draws while the mouse is on the row, so
- * an update also gets a row of its own under that CLI. Picking the CLI row still chooses that CLI.
+ * a missing CLI gets an Install row under it and an update gets an Install update row. Picking a missing CLI installs
+ * it. Picking an installed CLI still chooses that CLI.
  * With a scope, the choice is for that pull request only, and the last rows lead back to the default.
  */
 export function harnessPicker(input: PickerInput): Picker {
@@ -115,7 +126,7 @@ export function harnessPicker(input: PickerInput): Picker {
   const clis = (["cursor", "codex", "claude"] as const).flatMap((harness) => {
     const latest = updates[harness] ?? "";
     const row = cliRow(harness, installed[harness], latest, usedBy(harness), running.length);
-    return row.action === "update" ? [row, updateRow(row.label, harness, latest)] : [row];
+    return row.action ? [row, downloadRow(row.action, row.label, harness, latest)] : [row];
   });
 
   const agentRows = plan.map((p): PickerRow => {

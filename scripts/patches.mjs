@@ -245,10 +245,10 @@ export const PATCHES = [
     replace:
       'let _=J.agent,ag=O.agents[_],nm=Ue(ag.name),own=ag.harness||"",cur=own||E.default,cv=v.get("cursor"),co=xrvCursor().installedSummary("codex"),cl=xrvCursor().installedSummary("claude"),' +
       'L=await C.window.showQuickPick([' +
-      '{label:cv?"Cursor Agent "+cv:"Cursor Agent CLI",description:[cv?"":"Not found",cur==="cursor"?"in use":""].filter(Boolean).join(" \\u00b7 "),detail:cv?"Pick a model on your Cursor account. Then this agent runs on Cursor.":"Install it, or set xrayviewer.cursor.path to where it is.",value:"cursor"},' +
+      '{label:cv?"Cursor Agent "+cv:"Cursor Agent CLI",description:[cv?"":"Not found",cur==="cursor"?"in use":""].filter(Boolean).join(" \\u00b7 "),detail:cv?"Pick a model on your Cursor account. Then this agent runs on Cursor.":"Picking it installs Cursor Agent, then this agent runs on Cursor.",value:"cursor"},' +
       '{label:co?"Codex "+co:"Install Codex\\u2026",description:[co?"":"Not installed",cur==="codex"?"in use":""].filter(Boolean).join(" \\u00b7 "),detail:co?"Pick a model and reasoning level. The run uses the newest Codex on this machine.":"Download the Codex CLI, then pick a model. Then this agent runs on Codex.",value:"codex"},' +
       '{label:cl?"Claude Code "+cl:"Install Claude Code\\u2026",description:[cl?"":"Not installed",cur==="claude"?"in use":""].filter(Boolean).join(" \\u00b7 "),detail:cl?"Pick a model and effort level. The run uses the newest Claude Code on this machine.":"Download Claude Code, then pick a model. Then this agent runs on Claude Code.",value:"claude"}' +
-      '],{title:`Which CLI runs the ${nm.toLowerCase()} agent?`,placeHolder:`Only the ${nm.toLowerCase()} agent changes. The other agents keep theirs, and they all still run together.`});if(!L)continue;let B=null;L.value!==own&&({clearedModel:B}=await xrvSc.setAgentHarness(_,L.value),t(`${ag.name} now runs on ${Nt[L.value]}${xrvSc.label?" for "+xrvSc.label:""}`));let se=await xrvModel(xrvSc,L.value,{id:_,name:nm,model:L.value===own?ag.model:"",effort:L.value===own?ag.effort||"":""});if(se){await xrvDone(xrvSc,L.value,_);return}',
+      '],{title:`Which CLI runs the ${nm.toLowerCase()} agent?`,placeHolder:`Only the ${nm.toLowerCase()} agent changes. The other agents keep theirs, and they all still run together.`});if(!L)continue;if((L.value==="cursor"&&!cv)||(L.value==="codex"&&!co)||(L.value==="claude"&&!cl)){if(!await xrvCursor().installCli({vscode:C,log:t},L.value))continue}let B=null;L.value!==own&&({clearedModel:B}=await xrvSc.setAgentHarness(_,L.value),t(`${ag.name} now runs on ${Nt[L.value]}${xrvSc.label?" for "+xrvSc.label:""}`));let se=await xrvModel(xrvSc,L.value,{id:_,name:nm,model:L.value===own?ag.model:"",effort:L.value===own?ag.effort||"":""});if(se){await xrvDone(xrvSc,L.value,_);return}',
   },
   {
     id: "harness-picker-rows",
@@ -314,7 +314,7 @@ export const PATCHES = [
     find: 'if(!J?.agent)return;if(J.agent==="default"){',
     replace:
       'if(!J?.agent)return;if(J.button){let id=J.agent.slice(J.agent.startsWith("update-")?7:8),ok=J.agent.startsWith("update-")?await xrvCursor().updateCli({vscode:C,log:t},id):await xrvCursor().installCli({vscode:C,log:t},id);if(ok)o.notifyModel();continue}if(J.agent==="scope-reset"){let note=await xrvSc.reset();o.notifyModel();t(note);C.window.showInformationMessage(note);return}if(J.agent==="scope-global"){xrvSc=xrvScope();continue}' +
-      'if(J.agent==="pick-cursor"||J.agent==="install-codex"||J.agent==="install-claude"){let h=J.agent.replace(/^(pick|install)-/,"");if(await xrvModel(xrvSc,h,null)){await xrvMove(xrvSc,h);await xrvDone(xrvSc,h,null);return}continue}if(J.agent==="default"){',
+      'if(J.agent==="pick-cursor"||J.agent==="install-codex"||J.agent==="install-claude"){let h=J.agent.replace(/^(pick|install)-/,"");if(J.action==="install"&&!await xrvCursor().installCli({vscode:C,log:t},h))continue;if(await xrvModel(xrvSc,h,null)){await xrvMove(xrvSc,h);await xrvDone(xrvSc,h,null);return}continue}if(J.agent==="default"){',
   },
   {
     id: "choose-model-host",
