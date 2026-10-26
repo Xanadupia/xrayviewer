@@ -452,9 +452,58 @@ describe("the patched extension", () => {
     assert.deepEqual(update, { label: "Install update", description: "Claude Code 2.1.310", icon: "cloud-download", harness: "claude", runs: "update" });
     assert.deepEqual(iconPath, new ThemeIcon("cloud-download"));
     assert.deepEqual(pick.items[claude].buttons?.map((button: { tooltip: string }) => button.tooltip), ["Install update"], "the CLI row keeps its button");
-    assert.equal(pick.items.filter((item) => item.runs).length, 1, "only the CLI with a newer release gets the row");
+    assert.deepEqual(
+      pick.items.filter((item) => item.runs).map((item) => `${item.runs}-${item.harness}`),
+      ["install-codex", "update-claude"],
+      "Codex is not installed here, so it gets Install; only Claude Code has a newer release",
+    );
     assert.deepEqual(state.messages, ["Install the update for Claude Code? X-RayViewer will download the latest version."]);
     assert.equal(state.picks.length, 2, "saying no goes back to the picker");
+  });
+
+  test("a CLI that is not installed gets an Install row, and picking the CLI or that row asks to install it", async () => {
+    const { $t } = ext.__xrayviewer;
+    const before = JSON.stringify((await $t()).settings.agents);
+    state.picks = [];
+    state.messages = [];
+    state.script = [(items) => items.find((item) => item.runs === "install" && item.harness === "codex")];
+
+    await state.commands.get("xrayviewer.selectHarness")!();
+
+    const codex = state.picks[0].items.findIndex((item) => item.agent === "install-codex");
+    const { iconPath, ...install } = state.picks[0].items[codex + 1];
+    assert.deepEqual(install, { label: "Install", description: "Codex", icon: "cloud-download", harness: "codex", runs: "install" });
+    assert.deepEqual(iconPath, new ThemeIcon("cloud-download"));
+    assert.deepEqual(state.picks[0].items[codex].buttons?.map((button: { tooltip: string }) => button.tooltip), ["Install"]);
+    assert.deepEqual(state.messages, ["Install Codex? X-RayViewer will download it."]);
+    assert.equal(state.picks[1].title, "What the agents run on", "saying no goes back to the picker");
+
+    state.picks = [];
+    state.messages = [];
+    state.script = [(items) => items.find((item) => item.agent === "install-claude")];
+    await state.commands.get("xrayviewer.selectHarness")!();
+    assert.deepEqual(state.messages, ["Install Claude Code? X-RayViewer will download it."]);
+    assert.equal(state.picks[1].title, "What the agents run on", "picking the CLI installs it instead of opening its models");
+    assert.equal(JSON.stringify((await $t()).settings.agents), before, "saying no leaves every agent where it is");
+  });
+
+  test("choosing a CLI that is not installed for one agent installs it before that agent switches", async () => {
+    const { $t } = ext.__xrayviewer;
+    const before = JSON.stringify((await $t()).settings.agents);
+    state.picks = [];
+    state.messages = [];
+    state.script = [
+      (items) => items.find((item) => item.agent === "architecture"),
+      (items) => items.find((item) => item.value === "codex"),
+    ];
+
+    await state.commands.get("xrayviewer.selectHarness")!();
+
+    const codex = state.picks[1]?.items.find((item) => item.value === "codex");
+    assert.equal(codex?.label, "Install Codex…");
+    assert.deepEqual(state.messages, ["Install Codex? X-RayViewer will download it."]);
+    assert.equal(state.picks.at(-1)!.title, "What the agents run on");
+    assert.equal(JSON.stringify((await $t()).settings.agents), before, "saying no leaves the agent on its CLI");
   });
 
   test("Choose Agent Harnesses can put one agent on Cursor with its own model, then confirm", async () => {

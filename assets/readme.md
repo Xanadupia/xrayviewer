@@ -142,7 +142,7 @@ A model or level picked for one agent is that agent's own, and the other agents 
 
 On a review page, the picker is for that pull request only, so two pull requests can run on different models. **Use the default** drops that pull request's own choice, and **Change the default…** changes it for every other pull request.
 
-A program that's missing says **Not installed**, and the download button that appears when you point at its row installs it. One with a newer release gets an **Install update** row under it. **Change installed version…** picks another installed copy of Claude Code or Codex.
+A program that's missing says **Not installed** and gets an **Install** row under it. Picking the program or that row installs it, then you pick a model. One with a newer release gets an **Install update** row under it. **Change installed version…** picks another installed copy of Claude Code or Codex.
 
 ## Change what the agents look for
 
@@ -179,7 +179,7 @@ The same file says what **high**, **medium**, and **low** mean, and which parts 
 ## If something looks wrong
 
 - **The sidebar is empty.** Run `gh auth status`, then `gh auth login`. Team requests and code owners also need `gh auth refresh -s read:org`.
-- **An agent program isn't found.** **Choose Agent Harnesses…** says so and can install Claude Code or Codex. Set `xrayviewer.claude.path`, `xrayviewer.codex.path`, or `xrayviewer.cursor.path` only when it lives somewhere unusual. Sign in by running the program once.
+- **An agent program isn't found.** **Choose Agent Harnesses…** says so, and picking it installs Claude Code, Codex, or Cursor Agent. Set `xrayviewer.claude.path`, `xrayviewer.codex.path`, or `xrayviewer.cursor.path` only when it lives somewhere unusual. Sign in by running the program once.
 - **Cursor can't use a model.** Pick one by name in the picker instead of the first row.
 - **Agents fail or find nothing.** **X-RayViewer: Show Agent Log** lists each agent's errors, tokens, and cost.
 - **An agent's reply wasn't valid JSON.** X-RayViewer already sent it back once to be fixed. If the error says **even when asked to fix it**, run the agents again, or pick a specific model.
