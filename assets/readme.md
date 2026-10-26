@@ -122,11 +122,21 @@ Open the picker from the arrow beside **Run agents**, from **Change** on the pag
 
 ![Model for agents on Claude Code: Claude Code's default, Fable 5.1, Opus 5.5 in use, Sonnet 5.5, Haiku 5.5, and Change installed version](docs/picker-models.png)
 
-Then pick a model, and for Claude Code and Codex a level, such as high effort.
+Then pick a model.
 
 - **Claude Code** rows use its short names, such as `opus`, so they follow the newest version. To keep one version, set `xrayviewer.claude.model` to its full id, such as `claude-opus-5-5`.
-- **Codex** lists the models that CLI provides, then a reasoning level.
+- **Codex** lists the models that CLI provides.
 - **Cursor Agent** lists the models on your Cursor account. The first row keeps whatever it used last.
+
+![Effort for Opus 5.5: Claude Code's default, Low, Medium, High in use, Xhigh, and Max, each with a line on how long it thinks](docs/picker-level.png)
+
+On Claude Code and Codex, pick a level last. It sets how long the model thinks before it answers, so a higher level is slower and costs more.
+
+- **Claude Code** asks for an effort: Low, Medium, High, Xhigh, or Max. **Claude Code's default** leaves it to the CLI.
+- **Codex** asks for a reasoning level from the ones that model supports, and marks its default.
+- **Cursor Agent** has no level step. The level is part of the model's name, such as **Claude Opus 5.5 1M High**.
+
+Picking the level saves the model and level together, and a note says what the agents will use, such as "Claude Code agents will use Opus 5.5 at high effort." Escape backs out without saving. Each agent's row in the picker shows its level, such as **Claude Code · Opus 5.5 · high**. The level is stored in `xrayviewer.claude.extraArgs` (`--effort high`) or `xrayviewer.codex.extraArgs`.
 
 On a review page, the picker is for that pull request only, so two pull requests can run on different models. **Use the default** drops that pull request's own choice, and **Change the default…** changes it for every other pull request.
 
