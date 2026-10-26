@@ -85,23 +85,23 @@
       <g transform="translate(690 326)" stroke="#4FD1B5" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
         <rect x="0" y="0" width="7" height="7" rx="1.6"/><path d="M3.5 7v3.5a1.8 1.8 0 0 0 1.8 1.8H9"/><rect x="9" y="9" width="7" height="7" rx="1.6"/>
       </g>
-      <text x="716" y="339" fill="#EEF5F3" font-size="16" font-weight="650">Guide</text>
-      <text x="690" y="364" fill="#9CC9BE" font-size="13">Sets the reading order, checks the</text>
-      <text x="690" y="382" fill="#9CC9BE" font-size="13">description, and draws how the</text>
+      <text x="716" y="339" fill="#EEF5F3" font-size="16" font-weight="650">Overview</text>
+      <text x="690" y="364" fill="#9CC9BE" font-size="13">Checks the description, suggests a</text>
+      <text x="690" y="382" fill="#9CC9BE" font-size="13">reading order, and draws how the</text>
       <text x="690" y="400" fill="#9CC9BE" font-size="13">change runs</text>
 
       <rect x="672" y="418" width="280" height="50" rx="12" fill="#152220" stroke="#243833"/>
       <text x="690" y="448" fill="#EEF5F3" font-size="14.5" font-weight="650">Architecture</text>
-      <text x="934" y="448" fill="#7E948E" font-size="12.5" text-anchor="end">boundaries, patterns</text>
+      <text x="934" y="448" fill="#7E948E" font-size="12.5" text-anchor="end">modules, duplicates</text>
       <rect x="672" y="476" width="280" height="50" rx="12" fill="#152220" stroke="#243833"/>
-      <text x="690" y="506" fill="#EEF5F3" font-size="14.5" font-weight="650">Correctness</text>
+      <text x="690" y="506" fill="#EEF5F3" font-size="14.5" font-weight="650">Bugs</text>
       <text x="934" y="506" fill="#7E948E" font-size="12.5" text-anchor="end">logic, races, edges</text>
       <rect x="672" y="534" width="280" height="50" rx="12" fill="#152220" stroke="#243833"/>
-      <text x="690" y="564" fill="#EEF5F3" font-size="14.5" font-weight="650">Tests</text>
-      <text x="934" y="564" fill="#7E948E" font-size="12.5" text-anchor="end">behavior no test covers</text>
+      <text x="690" y="564" fill="#EEF5F3" font-size="14.5" font-weight="650">Test</text>
+      <text x="934" y="564" fill="#7E948E" font-size="12.5" text-anchor="end">untested behavior</text>
       <rect x="672" y="592" width="280" height="50" rx="12" fill="#152220" stroke="#243833"/>
       <text x="690" y="622" fill="#EEF5F3" font-size="14.5" font-weight="650">Security</text>
-      <text x="934" y="622" fill="#7E948E" font-size="12.5" text-anchor="end">money, sign-in, input</text>
+      <text x="934" y="622" fill="#7E948E" font-size="12.5" text-anchor="end">input, auth, secrets</text>
 
       <rect x="672" y="654" width="280" height="152" rx="14" fill="#111B19" stroke="#22332F"/>
       <text x="690" y="680" fill="#C9D8D4" font-size="13" font-weight="650">Each finding has</text>

@@ -312,6 +312,54 @@ describe("the patched extension", () => {
     assert.deepEqual(Yt().harnesses.cursor, { id: "cursor", command: state.settings["xrayviewer.cursor.path"], model: "", extraArgs: [] });
   });
 
+  test("a fresh install has the Overview, Architecture, Bugs, Test and Security agents, each with a line on what it looks at", async () => {
+    const { $t } = ext.__xrayviewer;
+    const agents = (await $t()).settings.agents as Record<string, { name: string; focus: string }>;
+    assert.deepEqual(
+      Object.entries(agents).map(([id, agent]) => [id, agent.name, agent.focus]),
+      [
+        ["guide", "Overview agent", "Checks the description, suggests a reading order and draws the flow it touches"],
+        ["architecture", "Architecture agent", "Code in the wrong module, duplicated helpers and code that breaks the patterns around it"],
+        ["correctness", "Bugs agent", "Logic errors, races and edge cases"],
+        ["tests", "Test agent", "Changed behavior that no test covers, and tests that wouldn't catch a bug"],
+        ["security", "Security agent", "Untrusted input, auth, secrets and data leaks"],
+      ],
+    );
+  });
+
+  test("an agents.yml from an earlier version gets the new names and lines, and keeps the ones someone wrote", async () => {
+    const { ut, $t } = ext.__xrayviewer;
+    const file = path.join(process.env.XRAYVIEWER_HOME!, "agents.yml");
+    const fresh = await readFile(file, "utf8");
+    const swap = (text: string, now: string, was: string) => {
+      assert.ok(text.includes(now), now);
+      return text.replace(now, was);
+    };
+    let earlier = swap(fresh, '"Overview agent"', '"Guide agent"');
+    earlier = swap(earlier, `"Checks the description, suggests a reading order and draws the flow it touches"`, '"Checks the description, sets the reading order and draws the flow the change touches"');
+    earlier = swap(earlier, '"Bugs agent"', '"Logic agent"');
+    earlier = swap(earlier, `"Changed behavior that no test covers, and tests that wouldn't catch a bug"`, '"Payments that no test covers"');
+    earlier = swap(earlier, '"Untrusted input, auth, secrets and data leaks"', '"Money movement, sign-in and input validation"');
+    try {
+      await writeFile(file, earlier);
+      await ut();
+
+      const agents = (await $t()).settings.agents as Record<string, { name: string; focus: string }>;
+      assert.deepEqual(
+        ["guide", "correctness", "tests", "security"].map((id) => [agents[id].name, agents[id].focus]),
+        [
+          ["Overview agent", "Checks the description, suggests a reading order and draws the flow it touches"],
+          ["Logic agent", "Logic errors, races and edge cases"],
+          ["Test agent", "Payments that no test covers"],
+          ["Security agent", "Untrusted input, auth, secrets and data leaks"],
+        ],
+      );
+      assert.match(await readFile(file, "utf8"), /^ {4}name: "Overview agent"$/m, "the file keeps its quotes");
+    } finally {
+      await writeFile(file, fresh);
+    }
+  });
+
   test("agents.yml keeps one agent's own level until the agent moves to another harness", async () => {
     const { Eu, xrvSetEffort, $t } = ext.__xrayviewer;
     const [id] = Object.keys((await $t()).settings.agents);
@@ -361,7 +409,7 @@ describe("the patched extension", () => {
     assert.deepEqual(pick.items.filter((item) => item.agent).map((item) => item.agent), ["pick-cursor", "install-codex", "install-claude", ...ids]);
     assert.ok(pick.items.filter((item) => item.agent).every((item) => item.iconPath instanceof ThemeIcon && item.iconPath.id === item.icon), "every row draws its icon");
     const guide = pick.items.find((item) => item.agent === "guide")!;
-    assert.equal(guide.label, "Guide");
+    assert.equal(guide.label, "Overview");
     assert.equal(guide.detail, `${agents.guide.focus}.`);
     assert.equal(guide.iconPath.id, "compass");
     assert.ok(!pick.items.some((item) => item.agent === "run" || item.agent === "default"), "the picker only saves; Run agents runs");
@@ -613,7 +661,7 @@ describe("the patched extension", () => {
 
     assert.deepEqual(result.file.agents.map((a: { id: string; short: string }) => [a.id, a.short]), [
       ["claude-code-review", "Code review"],
-      ["correctness", "Correctness"],
+      ["correctness", "Bugs"],
       ["tests", "Test"],
     ]);
     assert.deepEqual(result.file.findings.map((f: { agent: string; title: string; severity: string }) => [f.agent, f.title, f.severity]), [

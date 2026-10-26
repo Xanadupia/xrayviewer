@@ -9,6 +9,7 @@
  * reviewer's output into findings, x is the diff index, xn matches skip patterns, t writes run.log and $ is the agent.
  */
 import { activityGroups, activityHTML, activitySummary, activityTime } from "./activity-ui.mjs";
+import { AGENT_NAME_PATCHES, AGENT_NAME_UI_PATCHES } from "./agent-names.mjs";
 import { CHROME_NAMES, CHROME_PATCHES } from "./chrome-ui.mjs";
 import { commentLevel, findingDrafts, readTag, tagBadge, withTag } from "./comment-tags.mjs";
 import { modelSummary } from "./model-line.mjs";
@@ -596,6 +597,7 @@ export const PATCHES = [
     find: "architecture:`## Look for\n\nCheck that each change sits in the module that owns it and follows the patterns around it. Flag business logic in request handlers, modules that reach into another module's storage, helpers that duplicate existing ones, and new abstractions without a clear owner.\n\n## Leave alone\n\nNaming, formatting and style. Linters handle those.\n`,correctness:`",
     replace: "architecture:`" + ARCHITECTURE_INSTRUCTIONS + "`,correctness:`",
   },
+  ...AGENT_NAME_PATCHES,
 ];
 
 /** Names the patches add; the original bundle must not use them already. */
@@ -1241,6 +1243,7 @@ function statusLineHTML() {
   ...THEME_PATCHES,
   ...CHROME_PATCHES,
   ...NAV_PATCHES,
+  ...AGENT_NAME_UI_PATCHES,
 ];
 
 export const UI_ADDED_NAMES = [

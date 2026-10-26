@@ -51,7 +51,7 @@ export function stubModule(name: string, overrides: Record<string, unknown>): ob
 export async function loadExtension(distDir: string, vscode: object) {
   const original = path.join(distDir, "extension.cjs");
   const copy = path.join(distDir, "extension.test.cjs");
-  await writeFile(copy, `${await readFile(original, "utf8")}\n;module.exports.__xrayviewer={Na,Yt,Xt,Nt,ji,zu,Mo,$t,ui,Eu,Cu,xrvSetEffort};\n`);
+  await writeFile(copy, `${await readFile(original, "utf8")}\n;module.exports.__xrayviewer={Na,Yt,Xt,Nt,ji,zu,Mo,$t,ui,Eu,Cu,xrvSetEffort,ut};\n`);
   const loader = Module as unknown as { _load: (request: string, ...rest: unknown[]) => unknown };
   const load = loader._load;
   loader._load = function (this: unknown, request: string, ...rest: unknown[]) {
