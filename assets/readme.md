@@ -45,7 +45,7 @@ Leave **Post all findings when finished** unchecked for now. When it's checked, 
 
 **Ongoing Reviews** in the sidebar lists every pull request under review, and every review page that is open, with its progress and how long it has run. A finished run stays until you refresh that list. An open page leaves when its tab closes. **Agent Activity** below it lists the agents the way GitHub lists checks: each one's status, program, model, time, and cost. Click an agent for its log: what it said, and the commands, reads, and searches it ran.
 
-On Claude Code, the four agents that look for problems hand over to Claude Code's own **/code-review**, which runs once. Claude Code then checks the pull request against each agent's own instructions for anything /code-review missed. That's why those agents say **Covered by Code review agent**.
+On Claude Code, the four agents that look for problems hand over to Claude Code's own **/code-review**, which runs once. Claude Code then checks the pull request against each agent's own instructions for anything /code-review missed. That's why those agents say **Covered by Code review agent**. Each of those two runs gets the whole `xrayviewer.agents.timeoutMinutes`, so the Code review agent can take up to twice that.
 
 ### 4. Read the briefing
 
