@@ -111,12 +111,14 @@ describe("harnessPicker", () => {
   test("says Update and the new version on a CLI that has one, and keeps the download button on that row", () => {
     const picker = harnessPicker({
       ...input,
+      shade: true,
       updates: { claude: "2.1.308", codex: "0.163.0", cursor: "2026.10.22-27dcf5f" },
     });
     const [, cursor, codex, claude, next] = picker.rows;
 
-    assert.deepEqual([cursor.description, cursor.action, cursor.actionTip], ["2026.10.19 · $(cloud-download) Update 2026.10.22", "update", "Install update to 2026.10.22"]);
-    assert.deepEqual([codex.description, codex.actionTip], ["1 of 3 agents · 0.162.1 · $(cloud-download) Update 0.163.0", "Install update to 0.163.0"]);
+    assert.equal(cursor.label, "Cursor Agent $(cloud-download#usage-pricing-option-selected) Update 2026.10.22");
+    assert.deepEqual([cursor.description, cursor.action, cursor.actionTip], ["2026.10.19", "update", "Install update to 2026.10.22"]);
+    assert.deepEqual([codex.label, codex.description, codex.actionTip], ["Codex $(cloud-download#usage-pricing-option-selected) Update 0.163.0", "1 of 3 agents · 0.162.1", "Install update to 0.163.0"]);
     assert.equal(claude.agent, "install-claude", "picking the CLI row still chooses that CLI");
     assert.equal(next.label, "One agent");
     assert.equal(picker.rows.some((row) => row.runs === "update"), false, "the update stays on the CLI row");
