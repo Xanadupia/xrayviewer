@@ -45,7 +45,7 @@ Leave **Post all findings when finished** unchecked for now. When it's checked, 
 
 **Ongoing Reviews** in the sidebar lists every pull request under review, and every review page that is open, with its progress and how long it has run. A finished run stays until you refresh that list. An open page leaves when its tab closes. **Agent Activity** below it lists the agents the way GitHub lists checks: each one's status, program, model, time, and cost. Click an agent for its log: what it said, and the commands, reads, and searches it ran.
 
-On Claude Code, the four agents that look for problems hand over to Claude Code's own **/code-review**, which runs once. Claude Code then checks the pull request against each agent's own instructions for anything /code-review missed. That's why those agents say **Covered by Code review agent**. Each of those two runs gets the whole `xrayviewer.agents.timeoutMinutes`, so the Code review agent can take up to twice that.
+On Claude Code, the four agents that look for problems hand over to Claude Code's own **/code-review**, which runs once. Claude Code then checks the pull request against each agent's own instructions for anything /code-review missed. That's why those agents say **Covered by Code review agent**. A large pull request can keep /code-review busy for a long time, so the Code review agent isn't stopped at `xrayviewer.agents.timeoutMinutes`. It's stopped when Claude Code goes 5 minutes without doing anything, or at three times that setting (an hour by default).
 
 ### 4. Read the briefing
 
@@ -262,7 +262,7 @@ Claude Code, Codex, and Cursor Agent run the newest version installed on this ma
 | `xrayviewer.agents.skipDrafts` | on | No automatic runs on drafts |
 | `xrayviewer.agents.autoRunMaxFiles` / `autoRunMaxLines` | 100 / 5000 | Larger pull requests wait for **Run agents** |
 | `xrayviewer.agents.approvedPullRequests` | `ask` | `ask`, `skip`, or `run` |
-| `xrayviewer.agents.timeoutMinutes` | 20 | Stop an agent that runs longer |
+| `xrayviewer.agents.timeoutMinutes` | 20 | Stop an agent that runs longer. The Code review agent gets three times this while it keeps working |
 | `xrayviewer.watch.repositories` | none | Also list open pull requests in these `owner/name` repositories |
 | `xrayviewer.watch.pollSeconds` | 60 | How often to check GitHub. At least 15 |
 | `xrayviewer.watch.recentlyClosedDays` | 3 | How long merged or closed pull requests stay listed. 0 hides them |

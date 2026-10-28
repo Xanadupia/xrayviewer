@@ -1,6 +1,7 @@
 import { readFileSync, realpathSync } from "node:fs";
 import { homedir } from "node:os";
 import path from "node:path";
+import type { AgentHandle } from "./activity.ts";
 import { claudeEffort } from "./claude-models.ts";
 import type { AgentRequest, AgentResult, BundleInternals, ErrorKind, Tokens } from "./cursor-harness.ts";
 import { addTokens, withEarlierUsage } from "./reply-fix.ts";
@@ -365,32 +366,96 @@ export function withReport(prompt: string, report: string): string {
   return `${prompt}\n\n## What Claude Code's /code-review reported\n\n${report}\n`;
 }
 
+/** A Code review run that sends no event for this long has stalled. */
+export const STALL_MS = 5 * 60_000;
+/** How many times the agent time limit a Code review agent that keeps making progress may run, both runs together. */
+const HARD_CAP_TIMES = 3;
+
+export interface ProgressWatch {
+  /** Aborts when the run stalls or the review is stopped. */
+  signal: AbortSignal;
+  stalled: boolean;
+  /** The agent's activity handle, with each event it's fed counted as progress. */
+  activity(handle: AgentHandle | undefined): AgentHandle;
+  stop(): void;
+}
+
+/** Watches one run: it stalls when `stallMs` passes with no event, and it stops when `parent` aborts. */
+export function watchProgress(parent: AbortSignal | undefined, stallMs: number): ProgressWatch {
+  const controller = new AbortController();
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const cancel = () => controller.abort();
+  const arm = () => {
+    clearTimeout(timer);
+    timer = setTimeout(() => {
+      watch.stalled = true;
+      controller.abort();
+    }, stallMs);
+  };
+  const watch: ProgressWatch = {
+    signal: controller.signal,
+    stalled: false,
+    activity: (handle) => ({
+      stream(harness) {
+        const feed = handle?.stream(harness);
+        return (chunk) => {
+          arm();
+          feed?.(chunk);
+        };
+      },
+    }),
+    stop() {
+      clearTimeout(timer);
+      parent?.removeEventListener("abort", cancel);
+    },
+  };
+  if (parent?.aborted) controller.abort();
+  else parent?.addEventListener("abort", cancel, { once: true });
+  arm();
+  return watch;
+}
+
+const minutes = (ms: number) => Math.round(ms / 60_000);
+
 /**
  * Runs /code-review, then hands its report to the bundle's own Claude Code runner, which turns it into X-RayViewer's
- * findings with its usual read-only tools and JSON schema. Each run gets the agent's whole time limit, so a long
- * /code-review doesn't leave its report too little time to be shaped. Cost, tokens and time cover both runs.
+ * findings with its usual read-only tools and JSON schema. A large pull request can keep /code-review busy well past
+ * the agent time limit, so a run is stopped when it sends nothing for `stallMs`, and both runs together stop at three
+ * times the limit. Cost, tokens and time cover both runs.
  */
 export async function runCodeReview(
   internals: BundleInternals,
   config: ClaudeConfig,
   request: CodeReviewRequest,
   runClaude: (config: ClaudeConfig, request: AgentRequest) => Promise<AgentResult>,
+  stallMs: number = STALL_MS,
 ): Promise<AgentResult> {
   const { HarnessError } = internals;
   const started = Date.now();
-  const run = await internals.run(config.command, codeReviewArgs(config, request), {
-    cwd: request.cwd,
-    env: internals.baseEnv(),
-    timeoutMs: request.timeoutMs,
-    signal: request.signal,
-    onStdout: request.activity?.stream("claude"),
-    onStderr: (chunk) => request.onLog?.(chunk.trimEnd()),
-  });
-  if (run.killed) {
-    throw request.signal?.aborted
-      ? new HarnessError("cancelled", "Stopped.")
-      : new HarnessError("timeout", "Claude Code's /code-review took too long and was stopped.");
-  }
+  const capMs = request.timeoutMs === undefined ? undefined : request.timeoutMs * HARD_CAP_TIMES;
+  const left = () => (capMs === undefined ? undefined : Math.max(1, started + capMs - Date.now()));
+  const stopped = (watch: ProgressWatch, what: string) => {
+    if (request.signal?.aborted) return new HarnessError("cancelled", "Stopped.");
+    return new HarnessError(
+      "timeout",
+      watch.stalled
+        ? `${what} made no progress for ${minutes(stallMs)} minutes and was stopped.`
+        : `${what} took longer than ${minutes(capMs ?? 0)} minutes, three times xrayviewer.agents.timeoutMinutes, and was stopped.`,
+    );
+  };
+
+  const reviewing = watchProgress(request.signal, stallMs);
+  const run = await internals
+    .run(config.command, codeReviewArgs(config, request), {
+      cwd: request.cwd,
+      env: internals.baseEnv(),
+      timeoutMs: left(),
+      signal: reviewing.signal,
+      onStdout: reviewing.activity(request.activity).stream("claude"),
+      onStderr: (chunk) => request.onLog?.(chunk.trimEnd()),
+    })
+    .finally(() => reviewing.stop());
+  if (run.killed) throw stopped(reviewing, "Claude Code's /code-review");
   const review = readCodeReview(run.stdout);
   if (!review.result) throw internals.classifyFailure(run.stderr || run.stdout || `exit code ${run.code}`, run.code, "Claude Code");
   if (review.result.isError || review.result.subtype !== "success") {
@@ -402,12 +467,22 @@ export async function runCodeReview(
   if (!review.report) throw new HarnessError("badOutput", "Claude Code's /code-review didn't report anything.", internals.tail(run.stdout));
   request.onLog?.(`Claude Code's /code-review reported:\n${review.report}`);
 
-  const converted = await runClaude(config, { ...request, prompt: withReport(request.prompt, review.report) }).catch((error: unknown) => {
-    if ((error as { kind?: ErrorKind }).kind === "timeout") {
-      throw new HarnessError("timeout", "Claude Code's /code-review reported, but turning its report into findings took too long and was stopped.");
-    }
-    throw withEarlierUsage(error, review);
-  });
+  const shaping = watchProgress(request.signal, stallMs);
+  const converted = await runClaude(config, {
+    ...request,
+    prompt: withReport(request.prompt, review.report),
+    timeoutMs: left(),
+    signal: shaping.signal,
+    activity: shaping.activity(request.activity),
+  })
+    .catch((error: unknown) => {
+      const kind = (error as { kind?: ErrorKind }).kind;
+      if (kind === "timeout" || (kind === "cancelled" && shaping.stalled)) {
+        throw stopped(shaping, "Claude Code's /code-review reported, but turning its report into findings");
+      }
+      throw withEarlierUsage(error, review);
+    })
+    .finally(() => shaping.stop());
   return {
     output: converted.output,
     costUsd: review.costUsd === null && converted.costUsd === null ? null : (review.costUsd ?? 0) + (converted.costUsd ?? 0),
