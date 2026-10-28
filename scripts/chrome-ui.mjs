@@ -85,20 +85,95 @@ function hasShownText(el) {
   return false;
 }
 
-/** An icon-only control shows its accessible name on hover. Set on the way in, so it covers every control the page draws. */
-function tipOnHover(e) {
-  const el = e.target instanceof Element ? e.target.closest("button, a[href], summary, [role='button']") : null;
-  const label = el && el.getAttribute("aria-label");
-  if (!label || (el.title && !("tip" in el.dataset)) || hasShownText(el)) return;
-  el.title = label;
-  el.dataset.tip = "";
+/**
+ * The words an icon-only control should show. A title the page already wrote wins, then the accessible name.
+ * The webview never draws a title tooltip, so the title is taken off the element and drawn by bindIconTips instead.
+ */
+function iconTipText(el) {
+  if (!el || typeof el.getAttribute !== "function" || hasShownText(el)) return "";
+  const titled = el.getAttribute("title");
+  if (titled && el.setAttribute) {
+    el.setAttribute("data-tip", titled);
+    el.setAttribute("data-tip-owned", "1");
+    el.removeAttribute("title");
+  }
+  if (el.getAttribute("data-tip-owned") === "1") return el.getAttribute("data-tip") || "";
+  return el.getAttribute("aria-label") || "";
+}
+
+/** Draws the icon-only label next to the control. Native title tooltips do not appear in this webview. */
+function bindIconTips(signal) {
+  const target = "button, a[href], summary, [role='button']";
+  const listen = (type, fn, capture) => document.addEventListener(type, fn, signal ? { capture: !!capture, signal } : capture ? { capture: true } : undefined);
+  let node = null;
+  let timer = 0;
+  let current = null;
+  const hide = () => {
+    clearTimeout(timer);
+    timer = 0;
+    current = null;
+    if (node) node.hidden = true;
+  };
+  const place = (el, text) => {
+    if (!node) {
+      node = document.createElement("div");
+      node.className = "xrv-tip";
+      node.setAttribute("role", "tooltip");
+      document.body.appendChild(node);
+    }
+    node.textContent = text;
+    node.hidden = false;
+    node.style.visibility = "hidden";
+    const box = el.getBoundingClientRect();
+    const tip = node.getBoundingClientRect();
+    const gap = 6;
+    let top = box.bottom + gap;
+    if (top + tip.height > window.innerHeight - 8) top = Math.max(8, box.top - tip.height - gap);
+    let left = box.left + (box.width - tip.width) / 2;
+    left = Math.max(8, Math.min(left, window.innerWidth - tip.width - 8));
+    node.style.left = `${left}px`;
+    node.style.top = `${top}px`;
+    node.style.visibility = "";
+  };
+  const targetOf = (value) => (value instanceof Element ? value.closest(target) : null);
+  const arm = (el) => {
+    const text = el && iconTipText(el);
+    if (!text) return;
+    if (el === current) return;
+    clearTimeout(timer);
+    current = el;
+    timer = setTimeout(() => {
+      if (current !== el) return;
+      const next = iconTipText(el);
+      if (next) place(el, next);
+      else hide();
+    }, 400);
+  };
+  listen("pointerover", (e) => arm(targetOf(e.target)));
+  listen("pointerout", (e) => {
+    const el = targetOf(e.target);
+    if (!el || el !== current) return;
+    if (e.relatedTarget instanceof Node && el.contains(e.relatedTarget)) return;
+    hide();
+  });
+  listen("pointerdown", hide);
+  listen("focusin", (e) => arm(targetOf(e.target)));
+  listen("focusout", hide);
+  listen("scroll", hide, true);
+  listen("keydown", (e) => { if (e.key === "Escape") hide(); });
+  window.addEventListener("blur", hide, signal ? { signal } : undefined);
 }
 
 export function chromeSource() {
-  return `const SAVED_TIP = ${JSON.stringify(SAVED_TIP)};\nconst LOW_SHOWN = ${LOW_SHOWN};\nlet barDone = -1;\n${[syncHTML, ribbonHTML, miniLabel, reviewedShare, progressLineHTML, paintProgress, briefItemHTML, briefItemsHTML, hasShownText, tipOnHover].map(String).join("\n")}\n`;
+  return `const SAVED_TIP = ${JSON.stringify(SAVED_TIP)};\nconst LOW_SHOWN = ${LOW_SHOWN};\nlet barDone = -1;\n${[syncHTML, ribbonHTML, miniLabel, reviewedShare, progressLineHTML, paintProgress, briefItemHTML, briefItemsHTML, hasShownText, iconTipText, bindIconTips].map(String).join("\n")}\n`;
 }
 
-export const CHROME_NAMES = ["SAVED_TIP", "miniLabel", "barDone", "reviewedShare", "progressLineHTML", "paintProgress", "LOW_SHOWN", "briefItemHTML", "briefItemsHTML", "lowOpen", "hasShownText", "tipOnHover"];
+/** hasShownText, iconTipText, and bindIconTips, for a document that is not the review page. */
+export function iconTipSource() {
+  return [hasShownText, iconTipText, bindIconTips].map(String).join("\n");
+}
+
+export const CHROME_NAMES = ["SAVED_TIP", "miniLabel", "barDone", "reviewedShare", "progressLineHTML", "paintProgress", "LOW_SHOWN", "briefItemHTML", "briefItemsHTML", "lowOpen", "hasShownText", "iconTipText", "bindIconTips"];
 
 export const CHROME_PATCHES = [
   {
@@ -215,8 +290,7 @@ export const CHROME_PATCHES = [
     id: "chrome-tips",
     find: 'document.addEventListener("input", (e) => {',
     replace:
-      'document.addEventListener("pointerover", tipOnHover, { signal });\n' +
-      "new MutationObserver((records) => { for (const record of records) { if (record.type === \"attributes\" && record.target instanceof Element) tipOnHover({ target: record.target }); for (const node of record.addedNodes) if (node instanceof Element) { tipOnHover({ target: node }); node.querySelectorAll(\"button, a[href], summary, [role='button']\").forEach((el) => tipOnHover({ target: el })); } } }).observe(document.documentElement, { childList: true, subtree: true, attributes: true, attributeFilter: [\"aria-label\"] });\n\n" +
+      "bindIconTips(signal);\n\n" +
       'document.addEventListener("input", (e) => {',
   },
 ];

@@ -38,6 +38,8 @@ class Control {
     this.texts = texts;
   }
   getAttribute(name: string) { return this.attrs[name] ?? null; }
+  setAttribute(name: string, value: string) { this.attrs[name] = value; }
+  removeAttribute(name: string) { delete this.attrs[name]; }
   closest() { return this; }
 }
 
@@ -72,7 +74,7 @@ function page(env: Env = {}) {
     SEV: { high: "High", medium: "Medium", low: "Low" },
     S: env.S ?? {},
   };
-  return new Function(...Object.keys(globals), `${chromeSource()}; return { syncHTML, ribbonHTML, miniLabel, reviewedShare, progressLineHTML, briefItemsHTML, tipOnHover };`)(...Object.values(globals));
+  return new Function(...Object.keys(globals), `${chromeSource()}; return { syncHTML, ribbonHTML, miniLabel, reviewedShare, progressLineHTML, briefItemsHTML, iconTipText };`)(...Object.values(globals));
 }
 
 const finding = (id: number, severity: Finding["severity"], state: Finding["state"] = "open"): Finding => ({ id: `x${id}`, severity, title: `Finding ${id}`, f: 0, k: `n${id + 10}`, state });
@@ -126,25 +128,24 @@ describe("review page chrome", () => {
   });
 
   test("an icon-only button shows its accessible name on hover", () => {
-    const { tipOnHover } = page();
-    const hover = (el: Control) => { tipOnHover({ target: el }); return el.title; };
-    assert.equal(hover(new Control({ "aria-label": "Stop following the flow" })), "Stop following the flow");
-    assert.equal(hover(new Control({ "aria-label": "Collapse" }, [{ data: "X-RayViewer", hidden: true }, { data: "Collapse", srOnly: true }])), "Collapse", "hidden and screen-reader-only words aren't a visible label");
-    assert.equal(hover(new Control({ "aria-label": "Step 2: Passed" }, [{ data: "Build" }])), "", "a button with words on it needs no tooltip");
-    assert.equal(hover(new Control({})), "", "nothing to show without a name");
+    const { iconTipText } = page();
+    assert.equal(iconTipText(new Control({ "aria-label": "Stop following the flow" })), "Stop following the flow");
+    assert.equal(iconTipText(new Control({ "aria-label": "Collapse" }, [{ data: "X-RayViewer", hidden: true }, { data: "Collapse", srOnly: true }])), "Collapse", "hidden and screen-reader-only words aren't a visible label");
+    assert.equal(iconTipText(new Control({ "aria-label": "Step 2: Passed" }, [{ data: "Build" }])), "", "a button with words on it needs no tooltip");
+    assert.equal(iconTipText(new Control({})), "", "nothing to show without a name");
   });
 
-  test("a tooltip the page wrote stays, and one this added follows a renamed button", () => {
-    const { tipOnHover } = page();
-    const own = new Control({ "aria-label": "Theme: Dark" });
-    own.title = "Choose a theme";
-    tipOnHover({ target: own });
-    assert.equal(own.title, "Choose a theme");
+  test("a tooltip the page wrote stays, and one from the accessible name follows a renamed button", () => {
+    const { iconTipText } = page();
+    const own = new Control({ "aria-label": "Theme: Dark", title: "Choose a theme" });
+    assert.equal(iconTipText(own), "Choose a theme");
+    assert.equal(own.getAttribute("title"), null, "the title attribute is removed so the webview doesn't draw a second tooltip");
+    own.setAttribute("aria-label", "Theme: Light");
+    assert.equal(iconTipText(own), "Choose a theme");
 
     const toggle = new Control({ "aria-label": "Collapse the agent briefing" });
-    tipOnHover({ target: toggle });
-    toggle.attrs["aria-label"] = "Expand the agent briefing";
-    tipOnHover({ target: toggle });
-    assert.equal(toggle.title, "Expand the agent briefing");
+    assert.equal(iconTipText(toggle), "Collapse the agent briefing");
+    toggle.setAttribute("aria-label", "Expand the agent briefing");
+    assert.equal(iconTipText(toggle), "Expand the agent briefing");
   });
 });

@@ -381,6 +381,21 @@ body {
   color: var(--on-agent);
 }
 
+/* Drawn on the page: a title attribute never becomes a tooltip in this webview. */
+.xrv-tip {
+  position: fixed;
+  z-index: 120;
+  max-width: min(240px, calc(100vw - 16px));
+  padding: 4px 8px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--ink);
+  color: var(--ground);
+  font: 500 12px/1.35 var(--ui);
+  pointer-events: none;
+  box-shadow: 0 6px 18px rgb(0 0 0 / 0.18);
+}
+
 .icon-btn,
 .mini-track,
 .xray-pill,
