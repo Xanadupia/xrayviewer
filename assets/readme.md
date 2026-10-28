@@ -99,7 +99,7 @@ The agents read a local checkout at the pull request's head commit and change no
 
 Check up to five rows in the sidebar, then use the buttons under the list. **Open 2 pull requests** opens each in its own tab. **Review 2 and post** opens them, runs their agents, and posts each one's open findings as comments when its run finishes, as if **Post all findings when finished** were checked on each.
 
-**Ongoing Reviews** shows where each one is: **Queued**, **Starting soon**, **Waiting for a free agent**, **In another window**, or progress such as "2 of 6 agents done · 4 min". A finished run stays until you press **Refresh** on that section. A review page that is open shows as **Open** and leaves when its tab closes. Click a row to open its review, and **Agent Activity** follows it.
+**Ongoing Reviews** shows where each one is: **Queued**, **Starting soon**, **Waiting for a free agent**, **In another window**, or progress such as "2 of 6 agents done · 4 min". **Stop** on that section, and on a row that is still running, stops the agents. A finished run stays until you press **Refresh** on that section. A review page that is open shows as **Open** and leaves when its tab closes. In **Pull Requests**, the review in front has its title highlighted. Click a row to open its review, and **Agent Activity** follows it.
 
 ## Let agents start on their own
 

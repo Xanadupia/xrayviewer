@@ -44,6 +44,7 @@ describe("runningRows", () => {
       description: "#10137 · mondrian · 2 of 3 agents done · 4 min",
       tooltip: "Motion-Creative/mondrian#10137\nfix(runtime): patch Node.js pins\n2 of 3 agents done for 4 min. Click to open its review.",
       icon: "sync~spin",
+      stop: true,
     });
   });
 
@@ -132,7 +133,8 @@ describe("bindRunningView", () => {
     let records: RunningRecord[] = [];
     let changed = () => {};
     const disposables: Array<{ dispose(): unknown }> = [];
-    bindRunningView({ vscode, records: () => records, onChange: (listener) => (changed = listener), subscriptions: disposables, now: () => NOW });
+    const stopped: string[] = [];
+    bindRunningView({ vscode, records: () => records, onChange: (listener) => (changed = listener), stopRun: (key) => stopped.push(key), subscriptions: disposables, now: () => NOW });
 
     const [view] = views;
     assert.equal(view.id, "xrayviewer.running");
@@ -149,6 +151,10 @@ describe("bindRunningView", () => {
     assert.equal(item.description, "#7 · mondrian · 0 of 1 agent done · 2 min");
     assert.equal(item.iconPath.id, "sync~spin");
     assert.deepEqual(item.command, { command: "xrayviewer.open", title: "Open Review", arguments: ["Motion-Creative/mondrian#7"] });
+    assert.equal(item.contextValue, "running.stop");
+    commands.find((command) => command.id === "xrayviewer.stopOngoing")?.run();
+    assert.deepEqual(stopped, ["Motion-Creative/mondrian#7"]);
+    stopped.length = 0;
 
     const draws = fired.length;
     changed();
@@ -160,6 +166,9 @@ describe("bindRunningView", () => {
     assert.match(view.provider.getChildren()[0].description, /Finished/);
 
     assert.equal(commands[0]?.id, "xrayviewer.refreshOngoing");
+    assert.equal(commands[1]?.id, "xrayviewer.stopOngoing");
+    commands[1]?.run();
+    assert.deepEqual(stopped, [], "a finished row has no run to stop");
     commands[0]?.run();
     assert.deepEqual(view.provider.getChildren(), []);
     assert.equal(view.description, "");
