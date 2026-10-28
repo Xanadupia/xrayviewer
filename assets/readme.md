@@ -41,11 +41,11 @@ Leave **Post all findings when finished** unchecked for now. When it's checked, 
 
 ### 3. Watch them work
 
-![Agent Activity while a review runs: the overview agent finished in 59 seconds for $0.37, the code review agent is in progress, and the architecture, bugs, test, and security agents are covered by it](docs/agent-activity.png)
+![Agent Activity while a review runs, with the Code review agent listed among the agents](docs/agent-activity.png)
 
 **Ongoing Reviews** in the sidebar lists every pull request under review, and every review page that is open, with its progress and how long it has run. A finished run stays until you refresh that list. An open page leaves when its tab closes. **Agent Activity** below it lists the agents the way GitHub lists checks: each one's status, program, model, time, and cost. Click an agent for its log: what it said, and the commands, reads, and searches it ran.
 
-On Claude Code, the four agents that look for problems hand over to Claude Code's own **/code-review**, which runs once. Claude Code then checks the pull request against each agent's own instructions for anything /code-review missed. That's why those agents say **Covered by Code review agent**. Each of those two runs gets the whole `xrayviewer.agents.timeoutMinutes`, so the Code review agent can take up to twice that.
+On Claude Code, a **Code review** agent also runs Claude Code's **/code-review**, on every review, whether you run every agent or only one. It isn't listed in the agent menus. The other agents still run with their own instructions, and **Agent Activity** lists the Code review agent with them. Each of its two runs gets the whole `xrayviewer.agents.timeoutMinutes`, so it can take up to twice that.
 
 ### 4. Read the briefing
 
@@ -138,7 +138,7 @@ On Claude Code and Codex, pick a level last. It sets how long the model thinks b
 
 Picking the level saves the model and level together, and a note says what the agents will use, such as "Claude Code agents will use Opus 5.5 at high effort." Escape backs out without saving. Each agent's row in the picker shows its level, such as **Claude Code · Opus 5.5 · high**. The level every agent on a program uses is stored in `xrayviewer.claude.extraArgs` (`--effort high`) or `xrayviewer.codex.extraArgs`.
 
-A model or level picked for one agent is that agent's own, and the other agents keep theirs. In both steps, the first row, such as **Same as the other Claude Code agents**, drops it again. The level is saved as `effort` in `agents.yml`, and moving the agent to another program clears it. The agents that hand over to /code-review share one run, at the highest level among them.
+A model or level picked for one agent is that agent's own, and the other agents keep theirs. In both steps, the first row, such as **Same as the other Claude Code agents**, drops it again. The level is saved as `effort` in `agents.yml`, and moving the agent to another program clears it. The Code review agent uses the Claude Code level, not one agent's own.
 
 On a review page, the picker is for that pull request only, so two pull requests can run on different models. **Use the default** drops that pull request's own choice, and **Change the default…** changes it for every other pull request.
 

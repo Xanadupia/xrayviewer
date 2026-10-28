@@ -123,7 +123,12 @@ export function createCursorHarness(internals: BundleInternals) {
     withModelChoice,
     modelPlan: async (harnesses: HarnessTable, agents: Record<string, AgentSetting>, key = "") => {
       const chosen = withModelChoice(key, harnesses, { agents });
-      return plannedWithCodeReview(await namedPlan(chosen.harnesses, chosen.settings.agents), "guide");
+      const plan = await namedPlan(chosen.harnesses, chosen.settings.agents);
+      const claude = chosen.harnesses.claude;
+      const command = claude?.command;
+      const catalog = command ? await readClaudeCatalog(resolveCommand(command)) : null;
+      const model = claude?.model ?? "";
+      return plannedWithCodeReview(plan, { model: (model && claudeModelName(catalog, model)) || model, extraArgs: claude?.extraArgs });
     },
   };
 }

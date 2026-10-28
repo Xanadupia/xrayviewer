@@ -6,7 +6,7 @@ import type { AgentRequest, AgentResult, BundleInternals, ErrorKind, Tokens } fr
 import { addTokens, withEarlierUsage } from "./reply-fix.ts";
 import type { PlannedAgent } from "./run-confirm.ts";
 
-/** The agent that runs Claude Code's /code-review once in place of the reviewer agents on Claude Code. */
+/** Claude Code's /code-review, run on its own beside whatever agents were selected. It is not one of those agents. */
 export const CODE_REVIEW_ID = "claude-code-review";
 export const CODE_REVIEW_NAME = "Code review agent";
 
@@ -54,98 +54,68 @@ export type CodeReviewRequest = AgentRequest & { codeReview: { args: string } };
 
 const shortName = (name: string) => name.replace(/\s+agent$/i, "").trim() || name;
 
-function listNames(names: string[]): string {
-  return names.length > 1 ? `${names.slice(0, -1).join(", ")} and ${names[names.length - 1]}` : names[0];
-}
-
 /** The skill's level follows the Claude Code effort setting; anything else leaves the skill's own default. */
 export function codeReviewLevel(extraArgs: readonly string[]): string {
   const effort = claudeEffort(extraArgs);
   return LEVELS.includes(effort) ? effort : "";
 }
 
-const highestLevel = (levels: readonly string[]) => levels.reduce((top, level) => (LEVELS.indexOf(level) > LEVELS.indexOf(top) ? level : top), "");
+export const CODE_REVIEW_INSTRUCTIONS = `Claude Code's /code-review has already reviewed this pull request. Its report is at the end of this prompt. This run is only that review. The other agents review the pull request themselves.
 
-export const CODE_REVIEW_INSTRUCTIONS = `Claude Code's /code-review has already reviewed this pull request. Its report is at the end of this prompt. It reviewed in place of the agents whose instructions follow.
+Return every finding it reported, in the shape below. Leave one out only when no line this pull request changes shows it. For each finding, read the code at its file and line so that \`match\`, \`steps\` and \`fix\` point at the right lines, and rate its severity from the failure it describes. Leave out anything that belongs to another agent's instructions.
 
-Return every finding it reported, in the shape below, with \`agent\` set to "${CODE_REVIEW_ID}". Leave one out only when no line this pull request changes shows it. For each finding, read the code at its file and line so that \`match\`, \`steps\` and \`fix\` point at the right lines, and rate its severity from the failure it describes.
-
-Then check the pull request against each agent's instructions below. Add a finding for a problem they describe that the report missed, with \`agent\` set to that agent's id, only when you confirm it by reading the code. Keep to each agent's limit, confidence and skipped files. Leave out anything the report already has.
-
-Put what the report says was checked and found fine, and what you checked for the agents, in \`checked\`. When the report has no findings and you confirm none, return none.`;
-
-const CONFIDENCE_RULES: Record<string, string> = {
-  high: 'Only "High confidence" findings.',
-  "worth-asking": 'No "Minor" findings.',
-};
-
-/** One replaced agent's instructions, with its headings a level down so they sit under the agent's own heading. */
-function agentBrief(id: string, agent: ReviewAgent): string {
-  const rules = [
-    agent.focus && `Focus: ${agent.focus}.`,
-    `At most ${agent.maxFindings} ${agent.maxFindings === 1 ? "finding" : "findings"}.`,
-    CONFIDENCE_RULES[agent.minConfidence] ?? "",
-    agent.skip.length ? `Skip files matching ${agent.skip.map((glob) => `\`${glob}\``).join(", ")}.` : "",
-  ].filter(Boolean);
-  const instructions = agent.instructions.trim().replace(/^(#{1,5}) /gm, "#$1 ");
-  return [`## ${agent.name} (\`agent\`: "${id}")`, rules.join(" "), instructions].filter(Boolean).join("\n\n");
-}
+Put what the report says was checked and found fine in \`checked\`. When the report has no findings and you confirm none, return none.`;
 
 /**
- * Replaces the selected reviewer agents that run on Claude Code with one agent that runs /code-review over `range`.
- * The run that shapes the report also checks each replaced agent's instructions, so it may return the report's
- * findings plus up to each agent's own limit. It runs at the highest level any replaced agent runs at, its own or the
- * Claude Code setting. The guide keeps its own prompt. Without a range, or when agents.yml already uses the agent's
- * id, nothing changes.
+ * Adds the hidden /code-review agent to a run, whether every agent was selected or only one. The selected agents
+ * stay as they are. It uses Claude Code's own effort, not another agent's. Without a range, or when agents.yml
+ * already uses the agent's id, nothing is added.
  */
 export function planCodeReview(
   selection: Selection,
   settings: ReviewSettings,
-  harnessOf: (id: string) => string,
-  guideId: string,
-  claude: { extraArgs?: readonly string[] } | undefined,
+  _harnessOf: (id: string) => string,
+  _guideId: string,
+  claude: { extraArgs?: readonly string[]; model?: string } | undefined,
   range: string | null,
 ): Selection & { settings: ReviewSettings } {
-  const replaced = selection.run.filter((id) => id !== guideId && harnessOf(id) === "claude");
-  if (!replaced.length || !range || settings.agents[CODE_REVIEW_ID]) return { ...selection, settings };
-  const agents = replaced.map((id) => settings.agents[id]);
-  const limits = agents.reduce((sum, agent) => sum + agent.maxFindings, 0);
-  const reported = Math.min(MAX_FINDINGS, limits);
-  const shared = codeReviewLevel(claude?.extraArgs ?? []);
-  const level = highestLevel(agents.map((agent) => (agent.effort && LEVELS.includes(agent.effort) ? agent.effort : shared)));
+  if (!selection.run.length || !range || selection.run.includes(CODE_REVIEW_ID) || settings.agents[CODE_REVIEW_ID]) return { ...selection, settings };
+  const level = codeReviewLevel(claude?.extraArgs ?? []);
   const agent: ReviewAgent = {
     name: CODE_REVIEW_NAME,
-    focus: `Claude Code's /code-review, run once for the ${listNames(agents.map((a) => shortName(a.name)))} ${agents.length > 1 ? "agents" : "agent"}`,
+    focus: "Claude Code's /code-review, on its own",
     enabled: true,
-    maxFindings: reported + limits,
+    maxFindings: MAX_FINDINGS,
     minConfidence: "minor",
     skip: [],
     runsWhen: [],
     harness: "claude",
-    model: agents[0].model,
+    model: claude?.model ?? "",
     effort: level,
-    instructions: [CODE_REVIEW_INSTRUCTIONS, ...replaced.map((id) => agentBrief(id, settings.agents[id]))].join("\n\n"),
-    codeReview: { args: [level, range, "--max-findings", String(reported)].filter(Boolean).join(" "), agents: replaced },
+    instructions: CODE_REVIEW_INSTRUCTIONS,
+    codeReview: { args: [level, range, "--max-findings", String(MAX_FINDINGS)].filter(Boolean).join(" ") },
   };
   return {
-    run: [...selection.run.filter((id) => !replaced.includes(id)), CODE_REVIEW_ID],
-    skipped: [
-      ...selection.skipped,
-      ...replaced.map((id) => ({ id, why: "Claude Code's /code-review reviews in its place, with this agent's instructions", by: CODE_REVIEW_ID })),
-    ],
+    run: [...selection.run, CODE_REVIEW_ID],
+    skipped: selection.skipped,
     settings: { ...settings, agents: { ...settings.agents, [CODE_REVIEW_ID]: agent } },
   };
 }
 
-/** The same replacement for the review page's model line, which lists what runs next. */
-export function plannedWithCodeReview(planned: PlannedAgent[], guideId: string): PlannedAgent[] {
-  const replaced = planned.filter((agent) => agent.id !== guideId && agent.harness === "claude");
-  if (!replaced.length || planned.some((agent) => agent.id === CODE_REVIEW_ID)) return planned;
-  const first = replaced[0];
-  const thinking = highestLevel(replaced.map((agent) => agent.thinking)) || first.thinking;
+/** The review page's model line and Agent Activity. The agent menus do not use this list. */
+export function plannedWithCodeReview(planned: PlannedAgent[], claude?: { model?: string; extraArgs?: readonly string[] }): PlannedAgent[] {
+  if (!planned.length || planned.some((agent) => agent.id === CODE_REVIEW_ID)) return planned;
+  const level = codeReviewLevel(claude?.extraArgs ?? []);
   return [
-    ...planned.filter((agent) => !replaced.includes(agent)),
-    { ...first, id: CODE_REVIEW_ID, name: CODE_REVIEW_NAME, short: shortName(CODE_REVIEW_NAME), thinking },
+    ...planned,
+    {
+      id: CODE_REVIEW_ID,
+      name: CODE_REVIEW_NAME,
+      short: shortName(CODE_REVIEW_NAME),
+      harness: "claude",
+      model: claude?.model ?? "",
+      thinking: level,
+    },
   ];
 }
 

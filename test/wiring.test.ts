@@ -165,7 +165,7 @@ process.stdin.on("data", (chunk) => (input += chunk)).on("end", () => {
       total_cost_usd: 0.02, modelUsage: { "claude-fake": { inputTokens: 7, outputTokens: 3 } } });
     return;
   }
-  const output = input.includes("/code-review reported") ? ${JSON.stringify(outputs.review)} : ${JSON.stringify(outputs.lede)};
+  const output = input.includes("/code-review reported") ? ${JSON.stringify(outputs.review)} : input.startsWith("Write the opening line") ? ${JSON.stringify(outputs.lede)} : { findings: [], checked: [] };
   say({ type: "assistant", message: { content: [{ type: "text", text: "Shaping the report into findings." }] } });
   say({ type: "result", subtype: "success", is_error: false, result: "", structured_output: output,
     total_cost_usd: 0.01, usage: { input_tokens: 5, output_tokens: 2 }, modelUsage: { "claude-fake": {} } });
@@ -197,6 +197,11 @@ process.stdin.on("data", (chunk) => (input += chunk)).on("end", () => {
   if (args[1].startsWith("/code-review ")) {
     say({ type: "result", subtype: "success", is_error: false, result: "src/cart.js:3 divides by ten",
       total_cost_usd: 0.02, modelUsage: { "claude-fake": { inputTokens: 7, outputTokens: 3 } } });
+    return;
+  }
+  if (input.includes("/code-review reported")) {
+    say({ type: "result", subtype: "success", is_error: false, result: "", structured_output: { findings: [], checked: [] },
+      total_cost_usd: 0.01, usage: { input_tokens: 5, output_tokens: 2 }, modelUsage: { "claude-fake": {} } });
     return;
   }
   const broken = ${JSON.stringify(replies.broken)};
@@ -614,7 +619,8 @@ describe("the patched extension", () => {
     const agents = (await $t()).settings.agents as Record<string, { model?: string }>;
     const plan = await harness.modelPlan(Yt().harnesses, agents, "acme/app#7");
     assert.ok(plan.length);
-    for (const agent of plan) assert.equal(agent.model, agents[agent.id]?.model || "auto", `the review page shows ${agent.id}'s model on #7`);
+    for (const agent of plan) if (agents[agent.id]) assert.equal(agent.model, agents[agent.id]?.model || "auto", `the review page shows ${agent.id}'s model on #7`);
+    assert.ok(plan.some((agent: { id: string }) => agent.id === "claude-code-review"), "Agent Activity can name the Code review agent");
 
     state.picks = [];
     state.messages = [];
@@ -662,11 +668,10 @@ describe("the patched extension", () => {
     assert.match(record.input, /^Review\.\n\nReply with only a JSON object matching this JSON Schema:/);
   });
 
-  test("a review runs Claude Code's /code-review once in place of the reviewer agents on Claude Code, with their instructions", async () => {
+  test("a review runs Claude Code's /code-review beside the selected agents, and their own runs stay", async () => {
     const { zu, $t, ui, Yt } = ext.__xrayviewer;
     const { repo, head, data } = await cartCheckout("review-checkout");
     const finding = {
-      agent: "claude-code-review",
       severity: "high",
       confidence: "High confidence",
       label: "blocking",
@@ -680,7 +685,6 @@ describe("the patched extension", () => {
     };
     const untested = {
       ...finding,
-      agent: "tests",
       severity: "medium",
       confidence: "Worth asking",
       label: "question",
@@ -724,22 +728,22 @@ describe("the patched extension", () => {
     });
 
     const calls = await cli.calls();
-    assert.equal(calls.length, 3, "one /code-review run, the run that shapes its report, then the summary line");
-    const [review, shape, lede] = calls;
-    assert.deepEqual(review.args.slice(0, 2), ["-p", `/code-review xhigh ${data.mergeBase}...${head} --max-findings 10`], "the tests agent's own level is the highest");
+    const review = calls.find((call) => call.args[1]?.startsWith("/code-review "));
+    const shape = calls.find((call) => call.input.includes("/code-review reported"));
+    const lede = calls.find((call) => call.input.startsWith("Write the opening line"));
+    assert.ok(review && shape && lede);
+    assert.ok(calls.some((call) => call.input.startsWith(`You are the ${settings.agents.correctness.name}`)), "the bugs agent still runs");
+    assert.ok(calls.some((call) => call.input.startsWith(`You are the ${settings.agents.tests.name}`)), "the test agent still runs");
+    assert.deepEqual(review.args.slice(0, 2), ["-p", `/code-review high ${data.mergeBase}...${head} --max-findings 32`], "it uses Claude Code's effort, not one agent's");
     const effortOf = (run: { args: string[] }) => run.args.filter((arg, i) => run.args[i - 1] === "--effort");
-    assert.deepEqual([effortOf(review), effortOf(shape), effortOf(lede)], [["xhigh"], ["xhigh"], ["high"]], "the summary line keeps the guide's level");
+    assert.deepEqual([effortOf(review), effortOf(shape), effortOf(lede)], [["high"], ["high"], ["high"]], "the summary line keeps the guide's level");
     assert.ok(!review.args.includes("--json-schema"));
     assert.equal(review.input, "");
     assert.match(shape.input, /^You are the Code review agent in X-RayViewer/);
     assert.match(shape.input, /## What Claude Code's \/code-review reported\n\nsrc\/cart\.js:3 — a 10% discount takes the whole total off\n$/);
-    for (const id of ["correctness", "tests"]) {
-      const brief = new RegExp(`## ${settings.agents[id].name} \\(\`agent\`: "${id}"\\)\\n\\nFocus: ${settings.agents[id].focus}\\.`);
-      assert.match(shape.input, brief, `${id}'s own instructions reach the run that shapes the report`);
-      assert.ok(shape.input.includes(settings.agents[id].instructions.trim().replace(/^(#{1,5}) /gm, "#$1 ")));
-    }
+    assert.equal(shape.input.includes("## Bugs agent"), false, "the other agents' instructions stay on their own runs");
     const schema = JSON.parse(shape.args[shape.args.indexOf("--json-schema") + 1]);
-    assert.deepEqual(schema.properties.findings.items.properties.agent.enum, ["claude-code-review", "correctness", "tests"]);
+    assert.equal(schema.properties.findings.items.properties.agent, undefined);
     for (const run of [shape, lede]) {
       assert.ok(run.args.includes("--disable-slash-commands") && run.args.includes("--json-schema"), "the bundle's own read-only Claude Code flags");
       assert.ok(!run.args.includes("Bash"));
@@ -756,22 +760,26 @@ describe("the patched extension", () => {
     );
 
     assert.deepEqual(result.file.agents.map((a: { id: string; short: string }) => [a.id, a.short]), [
-      ["claude-code-review", "Code review"],
       ["correctness", "Bugs"],
       ["tests", "Test"],
+      ["claude-code-review", "Code review"],
     ]);
     assert.deepEqual(result.file.findings.map((f: { agent: string; title: string; severity: string }) => [f.agent, f.title, f.severity]), [
       ["claude-code-review", finding.title, "high"],
-      ["tests", untested.title, "medium"],
+      ["claude-code-review", untested.title, "medium"],
     ]);
     const first = progress[0];
-    assert.equal(first.correctness.state, "skipped");
-    assert.match(first.correctness.error ?? "", /\/code-review reviews in its place, with this agent's instructions/);
-    assert.deepEqual([(first.correctness as { by?: string }).by, (first.correctness as { name?: string }).name], ["claude-code-review", settings.agents.correctness.name], "the activity sheet lists it under the Code review agent");
-    assert.equal(first.tests.state, "skipped");
-    assert.deepEqual(agentRuns.filter((run) => run.id !== "lede").map((run) => [run.id, run.harness, run.findings, run.costUsd]), [
-      ["claude-code-review", "claude", 1, 0.03],
-    ]);
+    assert.equal(first.correctness.state, "queued");
+    assert.equal(first.tests.state, "queued");
+    assert.ok(progress.some((agents) => agents["claude-code-review"]), "Agent Activity includes the Code review agent");
+    assert.deepEqual(
+      agentRuns.filter((run) => run.id !== "lede").map((run) => [run.id, run.harness]).sort((a, b) => String(a[0]).localeCompare(String(b[0]))),
+      [
+        ["claude-code-review", "claude"],
+        ["correctness", "claude"],
+        ["tests", "claude"],
+      ],
+    );
     assert.equal(settings.agents["claude-code-review"], undefined, "agents.yml's settings are left as they were");
   });
 
@@ -785,7 +793,7 @@ describe("the patched extension", () => {
     test(`a review on ${harness} asks an agent whose JSON doesn't parse to fix it once, and uses the fixed reply`, async () => {
       const { zu, $t, ui, Yt } = ext.__xrayviewer;
       const { repo, data } = await cartCheckout(`fix-reply-checkout-${harness}`);
-      const agent = harness === "claude" ? "claude-code-review" : "correctness";
+      const agent = "correctness";
       const finding = {
         agent,
         severity: "high",
@@ -828,14 +836,18 @@ describe("the patched extension", () => {
       const calls = await cli.calls();
       const asked = calls.filter((call) => call.input.includes(broken));
       assert.equal(asked.length, 1, "asked once, with the whole reply");
-      assert.equal(calls.length, harness === "claude" ? 4 : 3, "the review, the request to fix it and the summary line, after Claude Code's /code-review");
+      assert.equal(calls.length, harness === "claude" ? 5 : 3, "the review, the request to fix it and the summary line, and on Claude Code also /code-review");
       assert.match(asked[0].input, /doesn't parse: \S/);
       assert.ok(asked[0].args.concat(asked[0].input).some((part) => part.includes(schemaOn[harness])), "the same schema");
       assert.ok(!asked[0].args.some((arg) => arg.startsWith("/code-review")), "/code-review doesn't run again");
       assert.deepEqual(result.file.findings.map((f: { agent: string; title: string }) => [f.agent, f.title]), [[agent, finding.title]]);
       const run = agentRuns.find((entry) => entry.id === agent);
-      assert.deepEqual(run?.tokens, tokensOn[harness], "the tokens cover every run of the agent");
-      if (harness === "claude") assert.equal((run?.costUsd as number).toFixed(2), "0.04");
+      if (harness === "claude") {
+        assert.equal((run?.costUsd as number).toFixed(2), "0.02", "the agent's own runs, not /code-review");
+        assert.ok(agentRuns.some((entry) => entry.id === "claude-code-review"), "Agent Activity includes the Code review agent");
+      } else {
+        assert.deepEqual(run?.tokens, tokensOn[harness], "the tokens cover every run of the agent");
+      }
       const log = await readFile(path.join(runDir, "run.log"), "utf8");
       assert.match(log, new RegExp(`${agent} sent JSON that doesn't parse, asking it to fix it: \\S`));
       assert.match(log, new RegExp(`${agent} done on ${harness}`));
