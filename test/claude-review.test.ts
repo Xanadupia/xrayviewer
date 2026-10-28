@@ -341,6 +341,35 @@ describe("runCodeReview", () => {
     assert.equal(result.model, "claude-opus-5-5");
   });
 
+  test("the run that shapes the report gets the full time limit, however long /code-review took", async (t) => {
+    t.mock.timers.enable({ apis: ["Date"], now: 0 });
+    const { internals } = fakeInternals(() => {
+      t.mock.timers.tick(45_000);
+      return ok(reviewStream);
+    });
+    const converted: AgentRequest[] = [];
+    await runCodeReview(internals, claude, request, async (_config, next) => {
+      converted.push(next);
+      return { output: { findings: [] }, costUsd: null, tokens: null, model: null, durationMs: 1 };
+    });
+
+    assert.equal(converted[0].timeoutMs, 60_000);
+  });
+
+  test("says /code-review reported when the run that shapes its report runs out of time", async () => {
+    const { internals } = fakeInternals(() => ok(reviewStream));
+    const slow = async (): Promise<never> => {
+      throw new HarnessError("timeout", "The agent took too long and was stopped.");
+    };
+
+    await assert.rejects(runCodeReview(internals, claude, request, slow), (error: unknown) => {
+      assert.ok(error instanceof HarnessError);
+      assert.equal(error.kind, "timeout");
+      assert.match(error.message, /\/code-review reported, but turning its report into findings took too long/);
+      return true;
+    });
+  });
+
   test("a shaped reply that doesn't parse is fixed without running /code-review again, and the total counts all three runs", async () => {
     const { internals, runs } = fakeInternals(() => ok(reviewStream));
     const shaped: AgentRequest[] = [];

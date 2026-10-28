@@ -2,7 +2,7 @@ import { readFileSync, realpathSync } from "node:fs";
 import { homedir } from "node:os";
 import path from "node:path";
 import { claudeEffort } from "./claude-models.ts";
-import type { AgentRequest, AgentResult, BundleInternals, Tokens } from "./cursor-harness.ts";
+import type { AgentRequest, AgentResult, BundleInternals, ErrorKind, Tokens } from "./cursor-harness.ts";
 import { addTokens, withEarlierUsage } from "./reply-fix.ts";
 import type { PlannedAgent } from "./run-confirm.ts";
 
@@ -367,7 +367,8 @@ export function withReport(prompt: string, report: string): string {
 
 /**
  * Runs /code-review, then hands its report to the bundle's own Claude Code runner, which turns it into X-RayViewer's
- * findings with its usual read-only tools and JSON schema. Cost, tokens and time cover both runs.
+ * findings with its usual read-only tools and JSON schema. Each run gets the agent's whole time limit, so a long
+ * /code-review doesn't leave its report too little time to be shaped. Cost, tokens and time cover both runs.
  */
 export async function runCodeReview(
   internals: BundleInternals,
@@ -401,8 +402,10 @@ export async function runCodeReview(
   if (!review.report) throw new HarnessError("badOutput", "Claude Code's /code-review didn't report anything.", internals.tail(run.stdout));
   request.onLog?.(`Claude Code's /code-review reported:\n${review.report}`);
 
-  const remaining = request.timeoutMs === undefined ? undefined : Math.max(1, request.timeoutMs - (Date.now() - started));
-  const converted = await runClaude(config, { ...request, prompt: withReport(request.prompt, review.report), timeoutMs: remaining }).catch((error: unknown) => {
+  const converted = await runClaude(config, { ...request, prompt: withReport(request.prompt, review.report) }).catch((error: unknown) => {
+    if ((error as { kind?: ErrorKind }).kind === "timeout") {
+      throw new HarnessError("timeout", "Claude Code's /code-review reported, but turning its report into findings took too long and was stopped.");
+    }
     throw withEarlierUsage(error, review);
   });
   return {
