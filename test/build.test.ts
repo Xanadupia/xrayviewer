@@ -262,6 +262,12 @@ describe("the built extension", () => {
       manifest.contributes.menus["view/title"].some((item: { command: string; when: string }) => item.command === "xrayviewer.refreshOngoing" && item.when === "view == xrayviewer.running"),
       "Ongoing Reviews has a refresh button",
     );
+    assert.ok(
+      manifest.contributes.menus["view/title"].some((item: { command: string; when: string }) => item.command === "xrayviewer.stopOngoing" && item.when === "view == xrayviewer.running && xrayviewer.ongoingCanStop"),
+      "Ongoing Reviews has a stop button while a review is running",
+    );
+    assert.ok(bundle.includes("xrvFront===i.toLowerCase()"), "the pull request in front is highlighted in the list");
+    assert.ok(bundle.includes('typeof m.key==="string"&&!m.record?Re(m.key)'), "Stop on an Ongoing Reviews row stops that review");
     assert.ok(bundle.includes("xrvCursor().bindRunningView({vscode:C,records:()=>r.all(),"), "Running Reviews reads every pull request's run");
     assert.ok(bundle.includes('setContext","xrayviewer.hasPullRequests"'), "the buttons stay hidden until the list has pull requests");
     assert.equal(bundle.includes('badge:"\\u2013"'), false, "a row that was never reviewed has no mark");

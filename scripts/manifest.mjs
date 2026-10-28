@@ -137,7 +137,18 @@ export function transformManifest(original) {
       category: "X-RayViewer",
       icon: "$(refresh)",
     },
+    {
+      command: "xrayviewer.stopOngoing",
+      title: "Stop",
+      category: "X-RayViewer",
+      icon: "$(debug-stop)",
+    },
   );
+  manifest.contributes.menus["view/item/context"].push({
+    command: "xrayviewer.cancelAgents",
+    when: "view == xrayviewer.running && viewItem == running.stop",
+    group: "inline@1",
+  });
   manifest.contributes.menus["view/title"].push(
     {
       command: "xrayviewer.filter",
@@ -148,6 +159,11 @@ export function transformManifest(original) {
       command: "xrayviewer.refreshOngoing",
       when: "view == xrayviewer.running",
       group: "navigation@1",
+    },
+    {
+      command: "xrayviewer.stopOngoing",
+      when: "view == xrayviewer.running && xrayviewer.ongoingCanStop",
+      group: "navigation@2",
     },
   );
   const sortBy = manifest.contributes.configuration.properties["xrayviewer.sidebar.sortBy"];

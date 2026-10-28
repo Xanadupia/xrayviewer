@@ -32,6 +32,8 @@ export interface RunningRow {
   description: string;
   tooltip: string;
   icon: string;
+  /** This window can stop the run. A finished row and one running in another window cannot. */
+  stop: boolean;
 }
 
 type RunningState = "running" | "elsewhere" | "queued" | "waiting";
@@ -101,6 +103,7 @@ interface Listed {
   startedAt: number;
   status: { text: string; icon: string };
   since: string;
+  stop: boolean;
 }
 
 /** Runs in progress, runs kept until a refresh, and review pages that are open. The longest running comes first. */
@@ -129,6 +132,7 @@ export function ongoingRows(records: readonly RunningRecord[], open: readonly Op
         startedAt: record.run.startedAt ?? now,
         status,
         since,
+        stop: live === "running" || live === "queued" || live === "waiting",
       });
       continue;
     }
@@ -144,6 +148,7 @@ export function ongoingRows(records: readonly RunningRecord[], open: readonly Op
         startedAt: record?.run.startedAt ?? 0,
         status,
         since: "",
+        stop: false,
       });
       continue;
     }
@@ -158,6 +163,7 @@ export function ongoingRows(records: readonly RunningRecord[], open: readonly Op
         startedAt: 0,
         status: { text: "Open", icon: "open-preview" },
         since: "",
+        stop: false,
       });
     }
   }
@@ -171,6 +177,7 @@ export function ongoingRows(records: readonly RunningRecord[], open: readonly Op
       description: [`#${row.number}`, row.name, row.status.text, row.since].filter(Boolean).join(" · "),
       tooltip: `${row.key}\n${row.title}\n${row.status.text}${row.since ? ` for ${row.since}` : ""}. Click to open its review.`,
       icon: row.status.icon,
+      stop: row.stop,
     }));
 }
 
@@ -191,7 +198,10 @@ interface TreeItemLike {
 /** The slice of the `vscode` API Ongoing Reviews uses. */
 export interface RunningVscode {
   window: { createTreeView(id: string, options: { treeDataProvider: object }): { description?: string; dispose(): unknown } };
-  commands: { registerCommand(id: string, handler: () => void): { dispose(): unknown } };
+  commands: {
+    registerCommand(id: string, handler: () => void): { dispose(): unknown };
+    executeCommand?(command: string, ...args: unknown[]): unknown;
+  };
   EventEmitter: new () => { event: unknown; fire(): void; dispose(): unknown };
   TreeItem: new (label: string, collapsibleState: number) => TreeItemLike;
   TreeItemCollapsibleState: { None: number };
@@ -205,6 +215,8 @@ export interface RunningViewDeps {
   /** Review pages that are open. A page leaves the list when its tab closes, unless its run is still kept. */
   openReviews?: () => readonly OpenReview[];
   onOpenChange?: (listener: () => void) => void;
+  /** Stops a review this window is running. `key` is `owner/name#number`. */
+  stopRun?: (key: string) => void;
   subscriptions: { push(...items: Array<{ dispose(): unknown }>): unknown };
   now?: () => number;
 }
@@ -234,7 +246,7 @@ export function bindRunningView(deps: RunningViewDeps): void {
         item.description = row.description;
         item.tooltip = row.tooltip;
         item.iconPath = new vscode.ThemeIcon(row.icon);
-        item.contextValue = "running";
+        item.contextValue = row.stop ? "running.stop" : "running";
         item.command = { command: "xrayviewer.open", title: "Open Review", arguments: [row.key] };
         return item;
       },
@@ -261,7 +273,11 @@ export function bindRunningView(deps: RunningViewDeps): void {
     if (next === drawn) return;
     drawn = next;
     view.description = rows.length ? String(rows.length) : "";
+    void vscode.commands.executeCommand?.("setContext", "xrayviewer.ongoingCanStop", rows.some((row) => row.stop));
     changed.fire();
+  };
+  const stopRuns = () => {
+    for (const row of rows) if (row.stop) deps.stopRun?.(row.key);
   };
   const releaseFinished = () => {
     for (const id of [...held.keys()]) {
@@ -271,8 +287,9 @@ export function bindRunningView(deps: RunningViewDeps): void {
     refresh();
   };
   const command = vscode.commands.registerCommand("xrayviewer.refreshOngoing", releaseFinished);
+  const stopCommand = vscode.commands.registerCommand("xrayviewer.stopOngoing", stopRuns);
   deps.onChange(refresh);
   deps.onOpenChange?.(refresh);
   refresh();
-  deps.subscriptions.push(view, changed, command, { dispose: stop });
+  deps.subscriptions.push(view, changed, command, stopCommand, { dispose: stop });
 }
