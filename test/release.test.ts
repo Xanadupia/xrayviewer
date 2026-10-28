@@ -18,6 +18,7 @@ describe("release notes", () => {
     assert.ok(notes.startsWith("- **New.** It works.\n\n## Install\n"));
     assert.equal(notes.includes("Old."), false);
     assert.match(notes, /download `xrayviewer-0\.6\.0\.vsix` below/);
+    assert.match(notes, /cursor --install-extension xrayviewer-0\.6\.0\.vsix/);
     assert.match(notes, /gh attestation verify xrayviewer-0\.6\.0\.vsix -R Xanadupia\/xrayviewer/);
   });
 
