@@ -35,6 +35,7 @@ describe("agent activity in the sidebar", () => {
     assert.match(html, /href="https:\/\/webview\.example\/styles\.css"/);
     assert.match(html, /id="i-chev"/);
     assert.match(html, /data-act/);
+    assert.match(html, /bindIconTips\(\)/);
     assert.equal(html.includes("ab'c"), false);
   });
 

@@ -1,4 +1,5 @@
 import { activityHTML } from "../scripts/activity-ui.mjs";
+import { iconTipSource } from "../scripts/chrome-ui.mjs";
 
 /** What the review page passes as a plan row. Names and models come from it when the run itself has none. */
 export interface ActivityPlan {
@@ -68,6 +69,8 @@ ${SPRITES}
 <script nonce="${id}">
   const vscode = acquireVsCodeApi();
   const root = document.getElementById("activity");
+  ${iconTipSource()}
+  bindIconTips();
   const followEditor = () => {
     const c = document.body.classList, html = document.documentElement;
     html.dataset.theme = c.contains("vscode-light") || c.contains("vscode-high-contrast-light") ? "light" : "dark";
@@ -90,10 +93,6 @@ ${SPRITES}
     const top = root.scrollTop;
     root.innerHTML = message.html;
     root.scrollTop = atEnd ? root.scrollHeight : top;
-    for (const el of root.querySelectorAll("button, a[href], summary, [role='button']")) {
-      const label = el.getAttribute("aria-label");
-      if (label && !el.getAttribute("title") && !el.textContent?.trim()) el.setAttribute("title", label);
-    }
   });
   root.addEventListener("click", (event) => {
     const target = event.target instanceof Element ? event.target.closest("[data-act]") : null;
