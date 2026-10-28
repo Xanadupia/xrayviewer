@@ -108,25 +108,23 @@ describe("harnessPicker", () => {
     assert.equal(picker.placeHolder, "Changes apply to the next run.");
   });
 
-  test("puts an Install update row under each CLI that has a newer version, and keeps the CLI row's button", () => {
+  test("says Update and the new version on a CLI that has one, and keeps the download button on that row", () => {
     const picker = harnessPicker({
       ...input,
       updates: { claude: "2.1.308", codex: "0.163.0", cursor: "2026.10.22-27dcf5f" },
     });
-    const [, cursor, cursorUpdate, codex, codexUpdate, claude, claudeUpdate, next] = picker.rows;
+    const [, cursor, codex, claude, next] = picker.rows;
 
-    assert.deepEqual(cursorUpdate, { label: "Install update", description: "Cursor Agent 2026.10.22", icon: "cloud-download", harness: "cursor", runs: "update" });
-    assert.deepEqual([codexUpdate.description, codexUpdate.harness, codexUpdate.runs], ["Codex 0.163.0", "codex", "update"]);
-    assert.deepEqual([claudeUpdate.description, claudeUpdate.harness, claudeUpdate.runs], ["Claude Code 2.1.308", "claude", "update"]);
-    assert.equal(next.label, "One agent");
-    assert.deepEqual([cursor.description, cursor.action], ["2026.10.19", "update"]);
-    assert.deepEqual([codex.description, codex.action], ["1 of 3 agents · 0.162.1", "update"]);
+    assert.deepEqual([cursor.description, cursor.action, cursor.actionTip], ["2026.10.19 · $(cloud-download) Update 2026.10.22", "update", "Install update to 2026.10.22"]);
+    assert.deepEqual([codex.description, codex.actionTip], ["1 of 3 agents · 0.162.1 · $(cloud-download) Update 0.163.0", "Install update to 0.163.0"]);
     assert.equal(claude.agent, "install-claude", "picking the CLI row still chooses that CLI");
+    assert.equal(next.label, "One agent");
+    assert.equal(picker.rows.some((row) => row.runs === "update"), false, "the update stays on the CLI row");
 
     const one = harnessPicker({ ...input, updates: { claude: "2.1.308" } });
     assert.deepEqual(
-      one.rows.slice(0, 6).map((row) => row.agent ?? (row.runs ? `${row.runs}-${row.harness}` : `-- ${row.label}`)),
-      ["-- All agents", "pick-cursor", "install-codex", "install-claude", "update-claude", "-- One agent"],
+      one.rows.slice(0, 5).map((row) => row.agent ?? `-- ${row.label}`),
+      ["-- All agents", "pick-cursor", "install-codex", "install-claude", "-- One agent"],
     );
   });
 

@@ -52,11 +52,15 @@ const vscode = stubModule("vscode", {
         onDidHide(fn: () => void) {
           qp._hide = fn;
         },
-        onDidTriggerItemButton() {},
+        _button: undefined as ((event: { item: Record<string, unknown> }) => void) | undefined,
+        onDidTriggerItemButton(fn: (event: { item: Record<string, unknown> }) => void) {
+          qp._button = fn;
+        },
         show() {
           state.picks.push({ title: qp.title, placeHolder: qp.placeholder, items: qp.items });
           const chosen = state.script.shift()?.(qp.items);
-          if (chosen) {
+          if (chosen?.button === true) qp._button?.({ item: chosen.item });
+          else if (chosen) {
             qp.selectedItems = [chosen];
             qp._accept?.();
           }
@@ -430,7 +434,7 @@ describe("the patched extension", () => {
     assert.ok(!pick.items.some((item) => item.agent === "run" || item.agent === "default"), "the picker only saves; Run agents runs");
   });
 
-  test("an Install update row under a CLI with a newer release asks to install it, then opens the picker again", async () => {
+  test("a CLI with a newer release says so on its own row, and its download button asks to install the update", async () => {
     const versions = path.join(root, ".local", "share", "claude", "versions");
     await mkdir(versions, { recursive: true });
     await writeFile(path.join(versions, "2.1.300"), "");
@@ -438,7 +442,7 @@ describe("the patched extension", () => {
     globalThis.fetch = (async (url: string) => ({ ok: true, text: async () => (url.includes("claude-code-releases") ? "2.1.310\n" : "") })) as unknown as typeof fetch;
     state.picks = [];
     state.messages = [];
-    state.script = [(items) => items.find((item) => item.runs === "update")];
+    state.script = [(items) => ({ button: true, item: items.find((item) => item.agent === "install-claude") })];
     try {
       await state.commands.get("xrayviewer.selectHarness")!();
     } finally {
@@ -447,18 +451,17 @@ describe("the patched extension", () => {
     }
 
     const [pick] = state.picks;
-    const claude = pick.items.findIndex((item) => item.agent === "install-claude");
-    const { iconPath, ...update } = pick.items[claude + 1];
-    assert.deepEqual(update, { label: "Install update", description: "Claude Code 2.1.310", icon: "cloud-download", harness: "claude", runs: "update" });
-    assert.deepEqual(iconPath, new ThemeIcon("cloud-download"));
-    assert.deepEqual(pick.items[claude].buttons?.map((button: { tooltip: string }) => button.tooltip), ["Install update"], "the CLI row keeps its button");
+    const claude = pick.items.find((item) => item.agent === "install-claude");
+    assert.ok(claude);
+    assert.equal(claude.description, "In use · 2.1.300 · $(cloud-download) Update 2.1.310");
     assert.deepEqual(
-      pick.items.filter((item) => item.runs).map((item) => `${item.runs}-${item.harness}`),
-      ["install-codex", "update-claude"],
-      "Codex is not installed here, so it gets Install; only Claude Code has a newer release",
+      claude.buttons?.map((button: { tooltip: string; iconPath: ThemeIcon }) => [button.tooltip, button.iconPath]),
+      [["Install update to 2.1.310", new ThemeIcon("cloud-download")]],
     );
+    assert.equal(pick.items.some((item) => item.runs === "update"), false, "there is no second row for the update");
     assert.deepEqual(state.messages, ["Install the update for Claude Code? X-RayViewer will download the latest version."]);
     assert.equal(state.picks.length, 2, "saying no goes back to the picker");
+    assert.equal(state.picks[1].title, "What the agents run on");
   });
 
   test("a CLI that is not installed gets an Install row, and picking the CLI or that row asks to install it", async () => {
