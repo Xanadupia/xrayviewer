@@ -51,7 +51,7 @@ export function releaseNotes(tag, changelog, version = VERSION) {
 ## Install
 
 - **VS Code:** search for **X-RayViewer** in the Extensions view, or run \`code --install-extension aliqaryan.xrayviewer\`.
-- **Cursor:** download \`${vsix}\` below, then run **Extensions: Install from VSIX…**.
+- **Cursor:** download \`${vsix}\` below, then run \`cursor --install-extension ${vsix}\`, or **Extensions: Install from VSIX…**.
 
 \`SHA256SUMS\` has the package's checksum. To check that this repository's release workflow built it: \`gh attestation verify ${vsix} -R ${REPOSITORY}\`.
 `;
