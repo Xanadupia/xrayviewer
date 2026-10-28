@@ -138,11 +138,10 @@ export function harnessPicker(input: PickerInput): Picker {
   const agentRows = plan.map((p): PickerRow => {
     const agent = agents[p.id];
     const off = agent?.enabled === false;
-    const viaReview = !off && p.harness === "claude" && p.id !== guideId;
     const model = p.model === "auto" ? "Auto" : p.model || "Default model";
     return {
       label: p.short,
-      description: [harnessName(p.harness), model, p.thinking, viaReview ? "via /code-review" : "", off ? "Off" : ""].filter(Boolean).join(" · "),
+      description: [harnessName(p.harness), model, p.thinking, off ? "Off" : ""].filter(Boolean).join(" · "),
       ...(agent?.focus ? { detail: sentence(agent.focus) } : {}),
       icon: off ? "circle-slash" : p.id === guideId ? "compass" : AGENT_ICONS[p.id] ?? "hubot",
       agent: p.id,

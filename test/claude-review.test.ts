@@ -50,56 +50,42 @@ const selection = { run: ["guide", "architecture", "correctness", "security"], s
 const range = "1111111...2222222";
 
 describe("planCodeReview", () => {
-  test("runs /code-review once in place of the reviewer agents on Claude Code; the guide and other harnesses stay", () => {
-    const plan = planCodeReview(selection, settings, harnessOf, "guide", { extraArgs: ["--effort", "xhigh"] }, range);
+  test("runs /code-review beside every selected agent, and beside a single one", () => {
+    const plan = planCodeReview(selection, settings, harnessOf, "guide", { extraArgs: ["--effort", "xhigh"], model: "opus" }, range);
 
-    assert.deepEqual(plan.run, ["guide", "security", CODE_REVIEW_ID]);
-    assert.deepEqual(plan.skipped.map((s) => s.id), ["tests", "architecture", "correctness"]);
-    assert.match(plan.skipped[1].why, /\/code-review reviews in its place, with this agent's instructions/);
+    assert.deepEqual(plan.run, ["guide", "architecture", "correctness", "security", CODE_REVIEW_ID]);
+    assert.deepEqual(plan.skipped, selection.skipped, "the selected agents are not handed over to it");
     const review = plan.settings.agents[CODE_REVIEW_ID];
     assert.equal(review.name, "Code review agent");
-    assert.equal(review.focus, "Claude Code's /code-review, run once for the Architecture and Correctness agents");
+    assert.equal(review.focus, "Claude Code's /code-review, on its own");
     assert.equal(review.harness, "claude");
-    assert.equal(review.model, "opus", "the first replaced agent's model");
-    assert.equal(review.maxFindings, 16, "the report's 8 plus each replaced agent's own limit");
+    assert.equal(review.model, "opus");
+    assert.equal(review.maxFindings, 32);
     assert.equal(review.minConfidence, "minor");
-    assert.deepEqual(review.codeReview, { args: "xhigh 1111111...2222222 --max-findings 8", agents: ["architecture", "correctness"] });
+    assert.deepEqual(review.codeReview, { args: "xhigh 1111111...2222222 --max-findings 32" });
     assert.equal(plan.settings.severity, settings.severity, "the rest of the settings carry over");
     assert.equal(settings.agents[CODE_REVIEW_ID], undefined, "the settings passed in are left as they were");
+
+    const one = planCodeReview({ run: ["security"], skipped: [] }, settings, harnessOf, "guide", { extraArgs: ["--effort", "high"] }, range);
+    assert.deepEqual(one.run, ["security", CODE_REVIEW_ID]);
   });
 
-  test("hands the run that shapes the report each replaced agent's instructions, limit, confidence and skipped files", () => {
+  test("the shaping instructions are only /code-review, not the other agents", () => {
     const { instructions } = planCodeReview(selection, settings, harnessOf, "guide", undefined, range).settings.agents[CODE_REVIEW_ID];
-    const [lead, architecture, correctness] = instructions.split(/^(?=## )/m);
-
-    assert.match(lead, /Return every finding it reported, in the shape below, with `agent` set to "claude-code-review"/);
-    assert.match(lead, /Add a finding for a problem they describe that the report missed, with `agent` set to that agent's id, only when you confirm it by reading the code/);
-    assert.equal(
-      architecture.trim(),
-      [
-        '## Architecture agent (`agent`: "architecture")',
-        'Focus: Where code lives. At most 3 findings. No "Minor" findings. Skip files matching `**/*.lock`, `docs/**`.',
-        "### Look for\n\nHelpers that duplicate existing ones.\n\n### Leave alone\n\nNaming.",
-      ].join("\n\n"),
-    );
-    assert.equal(correctness.trim(), '## Correctness agent (`agent`: "correctness")\n\nAt most 5 findings.\n\nOff-by-one errors.');
-    assert.ok(!instructions.includes("Security agent"), "an agent on another harness runs on its own");
+    assert.match(instructions, /This run is only that review/);
+    assert.match(instructions, /Leave out anything that belongs to another agent's instructions/);
+    assert.equal(instructions.includes("Architecture agent"), false);
+    assert.equal(instructions.includes("Correctness agent"), false);
   });
 
-  test("caps /code-review at the 32 findings it reports; the shaping run adds each agent's limit", () => {
-    const many: ReviewSettings = { agents: { a: agent("A agent", { maxFindings: 20 }), b: agent("B agent", { maxFindings: 20 }) } };
-    const plan = planCodeReview({ run: ["a", "b"], skipped: [] }, many, () => "claude", "guide", undefined, range);
-    assert.equal(plan.settings.agents[CODE_REVIEW_ID].maxFindings, 72);
+  test("caps /code-review at the 32 findings it reports", () => {
+    const plan = planCodeReview(selection, settings, harnessOf, "guide", undefined, range);
     assert.match(plan.settings.agents[CODE_REVIEW_ID].codeReview!.args, /--max-findings 32$/);
-    assert.equal(plan.settings.agents[CODE_REVIEW_ID].focus, "Claude Code's /code-review, run once for the A and B agents");
   });
 
-  test("changes nothing without a reviewer on Claude Code, without a range, or when agents.yml has the id", () => {
-    const codexOnly = planCodeReview(selection, settings, (id) => (id === "guide" ? "claude" : "codex"), "guide", undefined, range);
-    assert.deepEqual(codexOnly.run, selection.run);
-    assert.equal(codexOnly.settings, settings);
-
+  test("adds nothing without a range, with nothing selected, or when agents.yml has the id", () => {
     assert.deepEqual(planCodeReview(selection, settings, harnessOf, "guide", undefined, null).run, selection.run);
+    assert.deepEqual(planCodeReview({ run: [], skipped: [] }, settings, harnessOf, "guide", undefined, range).run, []);
 
     const taken: ReviewSettings = { agents: { ...settings.agents, [CODE_REVIEW_ID]: agent("Mine agent") } };
     assert.deepEqual(planCodeReview(selection, taken, harnessOf, "guide", undefined, range).run, selection.run);
@@ -111,32 +97,35 @@ describe("planCodeReview", () => {
     assert.equal(codeReviewLevel([]), "");
     assert.equal(codeReviewLevel(["--effort", "turbo"]), "");
     const plan = planCodeReview(selection, settings, harnessOf, "guide", { extraArgs: [] }, range);
-    assert.equal(plan.settings.agents[CODE_REVIEW_ID].codeReview!.args, "1111111...2222222 --max-findings 8");
+    assert.equal(plan.settings.agents[CODE_REVIEW_ID].codeReview!.args, "1111111...2222222 --max-findings 32");
   });
 
-  test("runs at the highest level a replaced agent runs at, its own or the one every Claude Code agent shares", () => {
-    const withLevels = (architecture: string, correctness: string, shared: string[]) => {
-      const own: ReviewSettings = {
-        agents: {
-          ...settings.agents,
-          architecture: { ...settings.agents.architecture, effort: architecture },
-          correctness: { ...settings.agents.correctness, effort: correctness },
-        },
-      };
-      const review = planCodeReview(selection, own, harnessOf, "guide", { extraArgs: shared }, range).settings.agents[CODE_REVIEW_ID];
-      return [review.effort, review.codeReview!.args.split(" ")[0]];
+  test("uses Claude Code's effort, not a level saved on one of the other agents", () => {
+    const own: ReviewSettings = {
+      agents: {
+        ...settings.agents,
+        architecture: { ...settings.agents.architecture, effort: "max" },
+        correctness: { ...settings.agents.correctness, effort: "low" },
+      },
     };
-
-    assert.deepEqual(withLevels("max", "", ["--effort", "high"]), ["max", "max"]);
-    assert.deepEqual(withLevels("low", "", ["--effort", "high"]), ["high", "high"], "an agent without its own level runs at the shared one");
-    assert.deepEqual(withLevels("low", "medium", ["--effort", "xhigh"]), ["medium", "medium"]);
-    assert.deepEqual(withLevels("turbo", "", ["--effort", "low"]), ["low", "low"], "a level /code-review doesn't know falls back to the shared one");
-    assert.deepEqual(withLevels("", "", []), ["", "1111111...2222222"], "none at all leaves the skill's own default");
+    const review = planCodeReview(selection, own, harnessOf, "guide", { extraArgs: ["--effort", "high"] }, range).settings.agents[CODE_REVIEW_ID];
+    assert.equal(review.effort, "high");
+    assert.equal(review.codeReview!.args.split(" ")[0], "high");
+    const skillDefault = planCodeReview(selection, own, harnessOf, "guide", { extraArgs: ["--effort", "turbo"] }, range).settings.agents[CODE_REVIEW_ID];
+    assert.equal(skillDefault.effort, "");
+    assert.match(skillDefault.codeReview!.args, /^1111111\.\.\.2222222 /);
   });
 });
 
 describe("the agent on each code review finding", () => {
-  const plan = planCodeReview(selection, settings, harnessOf, "guide", undefined, range);
+  const briefed: ReviewSettings = {
+    ...settings,
+    agents: {
+      ...settings.agents,
+      [CODE_REVIEW_ID]: { ...agent("Code review agent"), codeReview: { args: "", agents: ["architecture", "correctness"] } },
+    },
+  };
+  const plan = { settings: briefed };
   const item = { type: "object", properties: { path: { type: "string" }, title: { type: "string" } }, required: ["path", "title"], additionalProperties: false };
   const schema = { type: "object" as const, properties: { findings: { type: "array", items: item }, checked: { type: "array" } }, required: ["findings", "checked"] };
 
@@ -184,30 +173,28 @@ describe("the agent on each code review finding", () => {
 });
 
 describe("plannedWithCodeReview", () => {
-  test("shows one Code review agent on the model line for the Claude Code reviewers", () => {
+  test("adds the Code review agent after the selected ones, including a single agent", () => {
     const planned: PlannedAgent[] = [
       { id: "guide", name: "Guide agent", short: "Guide", harness: "claude", model: "Opus 5.5", thinking: "xhigh" },
       { id: "architecture", name: "Architecture agent", short: "Architecture", harness: "claude", model: "Opus 5.5", thinking: "xhigh" },
-      { id: "correctness", name: "Correctness agent", short: "Correctness", harness: "claude", model: "Opus 5.5", thinking: "xhigh" },
+      { id: "correctness", name: "Correctness agent", short: "Correctness", harness: "claude", model: "Opus 5.5", thinking: "low" },
       { id: "security", name: "Security agent", short: "Security", harness: "codex", model: "gpt-6.1-sol", thinking: "" },
     ];
     assert.deepEqual(
-      plannedWithCodeReview(planned, "guide").map((a) => [a.id, a.short, a.harness, a.model]),
+      plannedWithCodeReview(planned, { model: "Opus 5.5", extraArgs: ["--effort", "high"] }).map((a) => [a.id, a.short, a.harness, a.model, a.thinking]),
       [
-        ["guide", "Guide", "claude", "Opus 5.5"],
-        ["security", "Security", "codex", "gpt-6.1-sol"],
-        [CODE_REVIEW_ID, "Code review", "claude", "Opus 5.5"],
+        ["guide", "Guide", "claude", "Opus 5.5", "xhigh"],
+        ["architecture", "Architecture", "claude", "Opus 5.5", "xhigh"],
+        ["correctness", "Correctness", "claude", "Opus 5.5", "low"],
+        ["security", "Security", "codex", "gpt-6.1-sol", ""],
+        [CODE_REVIEW_ID, "Code review", "claude", "Opus 5.5", "high"],
       ],
     );
-    assert.equal(plannedWithCodeReview(planned.slice(3), "guide").length, 1);
-  });
-
-  test("shows the highest level among the reviewers it runs for", () => {
-    const row = (id: string, thinking: string): PlannedAgent => ({ id, name: `${id} agent`, short: id, harness: "claude", model: "Opus 5.5", thinking });
-    const shown = (...levels: string[]) => plannedWithCodeReview([row("guide", "low"), ...levels.map((level, i) => row(`r${i}`, level))], "guide").at(-1)!.thinking;
-    assert.equal(shown("high", "max", "low"), "max");
-    assert.equal(shown("", "medium"), "medium");
-    assert.equal(shown("turbo"), "turbo", "a level it doesn't know is shown as it is");
+    assert.deepEqual(
+      plannedWithCodeReview(planned.slice(3), { extraArgs: [] }).map((a) => a.id),
+      ["security", CODE_REVIEW_ID],
+    );
+    assert.equal(plannedWithCodeReview([], { extraArgs: ["--effort", "high"] }).length, 0);
   });
 });
 

@@ -72,7 +72,7 @@ describe("harnessPicker", () => {
       agent: "guide",
     });
     assert.deepEqual([byId.architecture.icon, byId.architecture.detail], ["layers", "Where code lives."]);
-    assert.deepEqual([byId.correctness.description, byId.correctness.detail], ["Claude Code · Opus 5.5 · xhigh · via /code-review", "Logic errors."]);
+    assert.deepEqual([byId.correctness.description, byId.correctness.detail], ["Claude Code · Opus 5.5 · xhigh", "Logic errors."]);
     assert.deepEqual([byId.security.description, byId.security.icon], ["Cursor · Default model · Off", "circle-slash"]);
   });
 
