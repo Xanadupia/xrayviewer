@@ -253,10 +253,14 @@ describe("the built extension", () => {
     assert.equal(manifest.contributes.views.xrayviewer.find((view: { id: string; name: string }) => view.id === "xrayviewer.agentActivity").name, "Agent Activity");
     assert.deepEqual(
       manifest.contributes.views.xrayviewer.map((view: { id: string; name: string }) => view.name),
-      ["Pull Requests", "Selection", "Running Reviews", "Agent Activity"],
-      "the selection buttons sit right under the list, then Running Reviews, then Agent Activity",
+      ["Pull Requests", "Selection", "Ongoing Reviews", "Agent Activity"],
+      "the selection buttons sit right under the list, then Ongoing Reviews, then Agent Activity",
     );
-    assert.ok(manifest.contributes.viewsWelcome.some((item: { view: string }) => item.view === "xrayviewer.running"), "an empty Running Reviews says what shows there");
+    assert.ok(manifest.contributes.viewsWelcome.some((item: { view: string }) => item.view === "xrayviewer.running"), "an empty Ongoing Reviews says what shows there");
+    assert.ok(
+      manifest.contributes.menus["view/title"].some((item: { command: string; when: string }) => item.command === "xrayviewer.refreshOngoing" && item.when === "view == xrayviewer.running"),
+      "Ongoing Reviews has a refresh button",
+    );
     assert.ok(bundle.includes("xrvCursor().bindRunningView({vscode:C,records:()=>r.all(),"), "Running Reviews reads every pull request's run");
     assert.ok(bundle.includes('setContext","xrayviewer.hasPullRequests"'), "the buttons stay hidden until the list has pull requests");
     assert.equal(bundle.includes('badge:"\\u2013"'), false, "a row that was never reviewed has no mark");

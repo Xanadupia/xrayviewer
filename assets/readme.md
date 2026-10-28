@@ -43,7 +43,7 @@ Leave **Post all findings when finished** unchecked for now. When it's checked, 
 
 ![Agent Activity while a review runs: the overview agent finished in 59 seconds for $0.37, the code review agent is in progress, and the architecture, bugs, test, and security agents are covered by it](docs/agent-activity.png)
 
-**Running Reviews** in the sidebar lists every pull request under review, with its progress and how long it has run. **Agent Activity** below it lists the agents the way GitHub lists checks: each one's status, program, model, time, and cost. Click an agent for its log: what it said, and the commands, reads, and searches it ran.
+**Ongoing Reviews** in the sidebar lists every pull request under review, and every review page that is open, with its progress and how long it has run. A finished run stays until you refresh that list. An open page leaves when its tab closes. **Agent Activity** below it lists the agents the way GitHub lists checks: each one's status, program, model, time, and cost. Click an agent for its log: what it said, and the commands, reads, and searches it ran.
 
 On Claude Code, the four agents that look for problems hand over to Claude Code's own **/code-review**, which runs once. Claude Code then checks the pull request against each agent's own instructions for anything /code-review missed. That's why those agents say **Covered by Code review agent**.
 
@@ -99,7 +99,7 @@ The agents read a local checkout at the pull request's head commit and change no
 
 Check up to five rows in the sidebar, then use the buttons under the list. **Open 2 pull requests** opens each in its own tab. **Review 2 and post** opens them, runs their agents, and posts each one's open findings as comments when its run finishes, as if **Post all findings when finished** were checked on each.
 
-**Running Reviews** shows where each one is: **Queued**, **Starting soon**, **Waiting for a free agent**, **In another window**, or progress such as "2 of 6 agents done · 4 min". Click a row to open its review, and **Agent Activity** follows it.
+**Ongoing Reviews** shows where each one is: **Queued**, **Starting soon**, **Waiting for a free agent**, **In another window**, or progress such as "2 of 6 agents done · 4 min". A finished run stays until you press **Refresh** on that section. A review page that is open shows as **Open** and leaves when its tab closes. Click a row to open its review, and **Agent Activity** follows it.
 
 ## Let agents start on their own
 

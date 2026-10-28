@@ -88,7 +88,7 @@ export function transformManifest(original) {
     },
     {
       id: "xrayviewer.running",
-      name: "Running Reviews",
+      name: "Ongoing Reviews",
       initialSize: 2,
     },
     {
@@ -105,7 +105,7 @@ export function transformManifest(original) {
     "Pull requests that need your review, and the ones you opened, show up here.\n[Refresh](command:xrayviewer.refresh)\n[Open a pull request](command:xrayviewer.openPullRequest)\nIf the list is empty, run `gh auth login` in a terminal, then Refresh.";
   manifest.contributes.viewsWelcome.push({
     view: "xrayviewer.running",
-    contents: "No reviews are running. A pull request shows here while its agents review it.",
+    contents: "Nothing is running or open. A pull request stays here after its agents run, until you refresh this list. An open review page stays until its tab is closed.",
   });
 
   manifest.contributes.commands.push(
@@ -131,12 +131,23 @@ export function transformManifest(original) {
       category: "X-RayViewer",
       icon: "$(color-mode)",
     },
+    {
+      command: "xrayviewer.refreshOngoing",
+      title: "Refresh",
+      category: "X-RayViewer",
+      icon: "$(refresh)",
+    },
   );
   manifest.contributes.menus["view/title"].push(
     {
       command: "xrayviewer.filter",
       when: "view == xrayviewer.pullRequests",
       group: "navigation@31",
+    },
+    {
+      command: "xrayviewer.refreshOngoing",
+      when: "view == xrayviewer.running",
+      group: "navigation@1",
     },
   );
   const sortBy = manifest.contributes.configuration.properties["xrayviewer.sidebar.sortBy"];
