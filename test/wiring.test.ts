@@ -34,6 +34,7 @@ class ThemeIcon {
 }
 
 const vscode = stubModule("vscode", {
+  env: { appName: "Cursor" },
   ThemeIcon,
   window: stub("vscode.window", {
     createOutputChannel: () => stub("output", { info: (line: string) => state.logs.push(line) }),
@@ -453,7 +454,8 @@ describe("the patched extension", () => {
     const [pick] = state.picks;
     const claude = pick.items.find((item) => item.agent === "install-claude");
     assert.ok(claude);
-    assert.equal(claude.description, "In use · 2.1.300 · $(cloud-download) Update 2.1.310");
+    assert.equal(claude.label, "Claude Code $(cloud-download#usage-pricing-option-selected) Update 2.1.310");
+    assert.equal(claude.description, "In use · 2.1.300");
     assert.deepEqual(
       claude.buttons?.map((button: { tooltip: string; iconPath: ThemeIcon }) => [button.tooltip, button.iconPath]),
       [["Install update to 2.1.310", new ThemeIcon("cloud-download")]],

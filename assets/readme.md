@@ -116,7 +116,7 @@ With several windows open, one window starts the automatic runs, and a pull requ
 
 ## Pick the program and model
 
-![What the agents run on: Cursor Agent, Codex with a download icon and Update 0.165.0, Claude Code with Update 2.1.312, then each agent with its program, model, and what it looks at](docs/picker.png)
+![What the agents run on: Codex and Claude Code show Update and the new version on the name, with the download icon on a soft highlight, then each agent with its program, model, and what it looks at](docs/picker.png)
 
 Open the picker from the arrow beside **Run agents**, from **Change** on the page's model line, or with **X-RayViewer: Choose Agent Harnesses…**. Pick a program under **All agents** to move every agent to it, or pick one agent to move only that one. Picking saves the choice. It never starts a run.
 
@@ -142,7 +142,7 @@ A model or level picked for one agent is that agent's own, and the other agents 
 
 On a review page, the picker is for that pull request only, so two pull requests can run on different models. **Use the default** drops that pull request's own choice, and **Change the default…** changes it for every other pull request.
 
-A program that's missing says **Not installed** and gets an **Install** row under it. Picking the program or that row installs it, then you pick a model. One with a newer release says **Update** and the new version on its own row, and the download button on the right of that row installs it. **Change installed version…** picks another installed copy of Claude Code or Codex.
+A program that's missing says **Not installed** and gets an **Install** row under it. Picking the program or that row installs it, then you pick a model. One with a newer release says **Update** and the new version on its name, on a soft highlight, and the download button on the right of that row installs it. **Change installed version…** picks another installed copy of Claude Code or Codex.
 
 ## Change what the agents look for
 

@@ -36,6 +36,8 @@ export interface PickerInput {
   guideId: string;
   /** Set when the picker changes one pull request: its label, and whether it has a choice of its own yet. */
   scope?: { label: string; custom: boolean };
+  /** The editor can paint a class on an icon. VS Code's icon syntax cannot, so only Cursor asks for this. */
+  shade?: boolean;
 }
 
 export interface Picker {
@@ -53,33 +55,42 @@ const shortVersion = (version: string) => version.replace(/-[0-9a-f]{7,}$/i, "")
 
 const AGENT_ICONS: Record<string, string> = { architecture: "layers", correctness: "bug", tests: "beaker", security: "shield" };
 
-function cliRow(harness: HarnessId, installed: string, latest: string, usedBy: number, running: number): PickerRow {
+/**
+ * Cursor paints this class as a soft mix of the button color. Only Cursor's icon syntax can carry a class,
+ * so the picker adds it when `shade` is set and leaves a plain icon otherwise.
+ */
+const UPDATE_SHADE = "usage-pricing-option-selected";
+
+function cliRow(harness: HarnessId, installed: string, latest: string, usedBy: number, running: number, shade: boolean): PickerRow {
   const action: PickerRow["action"] = !installed ? "install" : latest ? "update" : undefined;
   const all = Boolean(installed) && running > 0 && usedBy === running;
   const used = !installed || !usedBy ? "" : all ? "In use" : `${usedBy} of ${running} agents`;
   const version = installed ? shortVersion(installed) : "Not installed";
-  const description = [used, version, action === "update" ? `$(cloud-download) Update ${shortVersion(latest)}` : ""].filter(Boolean).join(" · ");
+  const description = [used, version].filter(Boolean).join(" · ");
+  const updateIcon = shade ? `$(cloud-download#${UPDATE_SHADE})` : "$(cloud-download)";
+  const update = action === "update" ? `${updateIcon} Update ${shortVersion(latest)}` : "";
   const actionTip = action === "install" ? "Install" : action === "update" ? `Install update to ${shortVersion(latest)}` : undefined;
   const base = { description, icon: all ? "pass-filled" : usedBy && installed ? "pass" : "circle-large-outline", harness, ...(action ? { action, actionTip } : {}) };
+  const titled = (name: string) => [name, update].filter(Boolean).join(" ");
   switch (harness) {
     case "cursor":
       return {
         ...base,
-        label: "Cursor Agent",
+        label: titled("Cursor Agent"),
         detail: installed ? "Pick a model on your Cursor account." : "Picking it installs Cursor Agent, then you pick a model.",
         agent: "pick-cursor",
       };
     case "codex":
       return {
         ...base,
-        label: "Codex",
+        label: titled("Codex"),
         detail: installed ? "Pick a model and reasoning level." : "Picking it installs Codex, then you pick a model.",
         agent: "install-codex",
       };
     case "claude":
       return {
         ...base,
-        label: "Claude Code",
+        label: titled("Claude Code"),
         detail: installed ? "Pick a model and effort level." : "Picking it installs Claude Code, then you pick a model.",
         agent: "install-claude",
       };
@@ -107,8 +118,9 @@ function scopeRows(scope: NonNullable<PickerInput["scope"]>): PickerRow[] {
 /**
  * The agent picker: move every agent to one CLI, or change one agent. It only saves the choice. Every agent that's
  * on runs together when Run agents is pressed, whichever row was changed, so the placeholder says so.
- * An update keeps to the CLI's own row: the row says Update and the new version, and the download button on its right
- * installs it. A missing CLI gets an Install row under it, and picking the CLI installs it too. Picking an installed
+ * An update keeps to the CLI's own row: the name line carries Update and the new version on a soft highlight, and
+ * the download button on the right installs it. A missing CLI gets an Install row under it, and picking the CLI
+ * installs it too. Picking an installed
  * CLI still chooses that CLI.
  * With a scope, the choice is for that pull request only, and the last rows lead back to the default.
  */
@@ -119,7 +131,7 @@ export function harnessPicker(input: PickerInput): Picker {
   const usedBy = (harness: HarnessId) => running.filter((p) => p.harness === harness).length;
   const clis = (["cursor", "codex", "claude"] as const).flatMap((harness) => {
     const latest = updates[harness] ?? "";
-    const row = cliRow(harness, installed[harness], latest, usedBy(harness), running.length);
+    const row = cliRow(harness, installed[harness], latest, usedBy(harness), running.length, Boolean(input.shade));
     return row.action === "install" ? [row, installRow(row.label, harness)] : [row];
   });
 
