@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.5.3
+
+- **A newer program shows on its own row.** The name line says **Update** and the new version, and in Cursor the download icon sits on a soft highlight. The button on the right installs it. A program that isn't on the machine gets an **Install** row, and picking the program installs it.
+- **Ongoing Reviews.** The sidebar lists a run after it finishes, until you press **Refresh** on that section or reload X-RayViewer. A review page that is open is listed too, and leaves when its tab closes.
+- **Icon-only buttons say their name.** Search, Refresh, Open on GitHub, Theme, and the other buttons that show only an icon have a tooltip.
+- **The extension icon uses the review button's blue.**
+- **Claude Code's /code-review and the follow-up each get the full time limit.** A long /code-review no longer uses up the time the second run needs to turn the report into findings.
+
 ## 0.5.2
 
 - **The guide and correctness agents are now the Overview and Bugs agents.** The lines under Architecture, Test, and Security in the picker say more plainly what each looks at. The ids stay `guide` and `correctness`. An `agents.yml` from an earlier version is upgraded once: a name or line that's still an earlier default gets the new one, and anything you wrote stays. Reviews saved before this keep the old names until they run again.
