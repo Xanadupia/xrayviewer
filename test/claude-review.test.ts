@@ -4,6 +4,7 @@ import { mkdtempSync, readFileSync, realpathSync, writeFileSync } from "node:fs"
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { describe, test } from "node:test";
+import { setTimeout as delay } from "node:timers/promises";
 import {
   CODE_REVIEW_ID,
   codeReviewArgs,
@@ -21,7 +22,7 @@ import {
   type ReviewAgent,
   type ReviewSettings,
 } from "../src/claude-review.ts";
-import type { AgentRequest, AgentResult } from "../src/cursor-harness.ts";
+import type { AgentRequest, AgentResult, RunResult } from "../src/cursor-harness.ts";
 import { fixReply, unreadable } from "../src/reply-fix.ts";
 import type { PlannedAgent } from "../src/run-confirm.ts";
 import { fakeInternals, HarnessError, ok, streamOf } from "./support/fake-internals.ts";
@@ -321,29 +322,97 @@ describe("runCodeReview", () => {
     assert.equal(runs[0].options.input, undefined);
     assert.equal(converted.length, 1);
     assert.equal(converted[0].prompt, "You are the Code review agent.\n\n## What Claude Code's /code-review reported\n\npay.js:3 — over-balance charge deducts nothing\n");
-    assert.ok(converted[0].timeoutMs! <= 60_000);
+    assert.ok(converted[0].timeoutMs! <= 180_000);
     assert.deepEqual(result.output, { findings: [] });
     assert.equal(result.costUsd, 0.03);
     assert.deepEqual(result.tokens, { input: 21, cachedInput: 6, output: 5 });
     assert.equal(result.model, "claude-opus-5-5");
   });
 
-  test("the run that shapes the report gets the full time limit, however long /code-review took", async (t) => {
+  const killedOnAbort = (signal: AbortSignal | undefined) =>
+    new Promise<RunResult>((resolve) => {
+      const killed = () => resolve({ code: 143, stdout: "", stderr: "", killed: true });
+      if (signal?.aborted) killed();
+      else signal?.addEventListener("abort", killed, { once: true });
+    });
+  const shaped: AgentResult = { output: { findings: [] }, costUsd: null, tokens: null, model: null, durationMs: 1 };
+
+  test("both runs share a hard cap of three times the agent time limit", async (t) => {
     t.mock.timers.enable({ apis: ["Date"], now: 0 });
-    const { internals } = fakeInternals(() => {
+    const { internals, runs } = fakeInternals(() => {
       t.mock.timers.tick(45_000);
       return ok(reviewStream);
     });
     const converted: AgentRequest[] = [];
     await runCodeReview(internals, claude, request, async (_config, next) => {
       converted.push(next);
-      return { output: { findings: [] }, costUsd: null, tokens: null, model: null, durationMs: 1 };
+      return shaped;
     });
 
-    assert.equal(converted[0].timeoutMs, 60_000);
+    assert.equal(runs[0].options.timeoutMs, 180_000);
+    assert.equal(converted[0].timeoutMs, 135_000);
   });
 
-  test("says /code-review reported when the run that shapes its report runs out of time", async () => {
+  test("a /code-review that keeps sending events runs past the stall limit", async () => {
+    const { internals } = fakeInternals(async ({ options }) => {
+      for (let i = 0; i < 6; i++) {
+        await delay(10);
+        options.onStdout?.(streamOf({ type: "assistant", message: { content: [] } }));
+      }
+      return ok(reviewStream);
+    });
+
+    const result = await runCodeReview(internals, claude, request, async () => shaped, 30);
+
+    assert.deepEqual(result.output, { findings: [] });
+  });
+
+  test("stops a /code-review that sends nothing for the stall limit", async () => {
+    const { internals } = fakeInternals(({ options }) => killedOnAbort(options.signal));
+
+    await assert.rejects(runCodeReview(internals, claude, request, async () => shaped, 20), (error: unknown) => {
+      assert.ok(error instanceof HarnessError);
+      assert.equal(error.kind, "timeout");
+      assert.match(error.message, /^Claude Code's \/code-review made no progress for \d+ minutes and was stopped\.$/);
+      return true;
+    });
+  });
+
+  test("stops the run that shapes the report when it sends nothing for the stall limit, and says /code-review reported", async () => {
+    const { internals } = fakeInternals(() => ok(reviewStream));
+    const silent = async (_config: ClaudeConfig, next: AgentRequest): Promise<never> => {
+      await killedOnAbort(next.signal);
+      throw new HarnessError("cancelled", "Stopped.");
+    };
+
+    await assert.rejects(runCodeReview(internals, claude, request, silent, 20), (error: unknown) => {
+      assert.ok(error instanceof HarnessError);
+      assert.equal(error.kind, "timeout");
+      assert.match(error.message, /\/code-review reported, but turning its report into findings made no progress for \d+ minutes/);
+      return true;
+    });
+  });
+
+  test("the run that shapes the report counts each event it sends as progress", async () => {
+    const { internals } = fakeInternals(() => ok(reviewStream));
+    const fed: string[] = [];
+    const busy = async (_config: ClaudeConfig, next: AgentRequest): Promise<AgentResult> => {
+      const feed = next.activity!.stream("claude");
+      for (let i = 0; i < 6; i++) {
+        await delay(10);
+        feed(`event ${i}\n`);
+      }
+      assert.equal(next.signal?.aborted, false);
+      return shaped;
+    };
+    const activity = { stream: () => (chunk: string) => fed.push(chunk) };
+
+    await runCodeReview(internals, claude, { ...request, activity }, busy, 30);
+
+    assert.equal(fed.length, 6, "events still reach the activity log");
+  });
+
+  test("says the hard cap was reached when the run that shapes the report runs out of time", async () => {
     const { internals } = fakeInternals(() => ok(reviewStream));
     const slow = async (): Promise<never> => {
       throw new HarnessError("timeout", "The agent took too long and was stopped.");
@@ -352,9 +421,27 @@ describe("runCodeReview", () => {
     await assert.rejects(runCodeReview(internals, claude, request, slow), (error: unknown) => {
       assert.ok(error instanceof HarnessError);
       assert.equal(error.kind, "timeout");
-      assert.match(error.message, /\/code-review reported, but turning its report into findings took too long/);
+      assert.match(error.message, /\/code-review reported, but turning its report into findings took longer than 3 minutes, three times xrayviewer\.agents\.timeoutMinutes/);
       return true;
     });
+  });
+
+  test("stopping the review still reads as cancelled in either run", async () => {
+    const first = new AbortController();
+    const { internals: whileReviewing } = fakeInternals(({ options }) => {
+      first.abort();
+      return killedOnAbort(options.signal);
+    });
+    await assert.rejects(runCodeReview(whileReviewing, claude, { ...request, signal: first.signal }, async () => shaped, 1_000), { kind: "cancelled" });
+
+    const second = new AbortController();
+    const { internals: whileShaping } = fakeInternals(() => ok(reviewStream));
+    const stopped = async (_config: ClaudeConfig, next: AgentRequest): Promise<never> => {
+      second.abort();
+      await killedOnAbort(next.signal);
+      throw new HarnessError("cancelled", "Stopped.");
+    };
+    await assert.rejects(runCodeReview(whileShaping, claude, { ...request, signal: second.signal }, stopped, 1_000), { kind: "cancelled" });
   });
 
   test("a shaped reply that doesn't parse is fixed without running /code-review again, and the total counts all three runs", async () => {
@@ -386,7 +473,7 @@ describe("runCodeReview", () => {
       { run: { code: 1, stdout: "", stderr: "boom", killed: false }, kind: "failed", message: /Claude Code failed \(1\): boom/ },
       { run: ok(streamOf({ type: "result", subtype: "success", is_error: true, result: "Not logged in · Please run /login" })), kind: "auth", message: /Not logged in/ },
       { run: ok(streamOf({ type: "result", subtype: "error_max_turns", is_error: false, result: "" })), kind: "failed", message: /error_max_turns/ },
-      { run: { code: 0, stdout: "", stderr: "", killed: true }, kind: "timeout", message: /took too long/ },
+      { run: { code: 0, stdout: "", stderr: "", killed: true }, kind: "timeout", message: /^Claude Code's \/code-review took longer than 3 minutes, three times xrayviewer\.agents\.timeoutMinutes, and was stopped\.$/ },
       { run: ok(streamOf({ type: "result", subtype: "success", is_error: false, result: "  " })), kind: "badOutput", message: /didn't report anything/ },
     ];
     for (const failure of cases) {
