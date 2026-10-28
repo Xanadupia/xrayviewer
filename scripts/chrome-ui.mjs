@@ -214,6 +214,9 @@ export const CHROME_PATCHES = [
   {
     id: "chrome-tips",
     find: 'document.addEventListener("input", (e) => {',
-    replace: 'document.addEventListener("pointerover", tipOnHover, { signal });\n\ndocument.addEventListener("input", (e) => {',
+    replace:
+      'document.addEventListener("pointerover", tipOnHover, { signal });\n' +
+      "new MutationObserver((records) => { for (const record of records) { if (record.type === \"attributes\" && record.target instanceof Element) tipOnHover({ target: record.target }); for (const node of record.addedNodes) if (node instanceof Element) { tipOnHover({ target: node }); node.querySelectorAll(\"button, a[href], summary, [role='button']\").forEach((el) => tipOnHover({ target: el })); } } }).observe(document.documentElement, { childList: true, subtree: true, attributes: true, attributeFilter: [\"aria-label\"] });\n\n" +
+      'document.addEventListener("input", (e) => {',
   },
 ];

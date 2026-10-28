@@ -90,6 +90,10 @@ ${SPRITES}
     const top = root.scrollTop;
     root.innerHTML = message.html;
     root.scrollTop = atEnd ? root.scrollHeight : top;
+    for (const el of root.querySelectorAll("button, a[href], summary, [role='button']")) {
+      const label = el.getAttribute("aria-label");
+      if (label && !el.getAttribute("title") && !el.textContent?.trim()) el.setAttribute("title", label);
+    }
   });
   root.addEventListener("click", (event) => {
     const target = event.target instanceof Element ? event.target.closest("[data-act]") : null;

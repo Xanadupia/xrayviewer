@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
-import { bindRunningView, runningRows, type RunningRecord, type RunningVscode } from "../src/running-view.ts";
+import { bindRunningView, ongoingRows, runningRows, type HeldReview, type OpenReview, type RunningRecord, type RunningVscode } from "../src/running-view.ts";
 
 const NOW = Date.parse("2026-10-23T16:00:00Z");
 const minutes = (n: number) => NOW - n * 60_000;
@@ -63,17 +63,40 @@ describe("runningRows", () => {
     const [row] = runningRows([{ key: { owner: "acme", name: "app", number: 7 }, summary: null, run: { state: "queued" } }], NOW);
     assert.equal(row.label, "acme/app#7");
   });
+
+  test("keeps a finished run until it is released, and lists an open review page until its tab is gone", () => {
+    const finished = pr(4, { state: "done", startedAt: minutes(30) });
+    const held = new Map<string, HeldReview>([["motion-creative/mondrian#4", { key: "Motion-Creative/mondrian#4", title: "Change 4", name: "mondrian", number: 4 }]]);
+    const open: OpenReview = { key: "acme/app#9", title: "Docs", name: "app", number: 9 };
+    const rows = ongoingRows([finished, pr(3, { state: "running", startedAt: minutes(2), progress: agents("running") })], [open], held, NOW);
+    assert.deepEqual(rows.map((row) => [row.key, row.description, row.icon]), [
+      ["Motion-Creative/mondrian#3", "#3 · mondrian · 0 of 1 agent done · 2 min", "sync~spin"],
+      ["Motion-Creative/mondrian#4", "#4 · mondrian · Finished", "pass"],
+      ["acme/app#9", "#9 · app · Open", "open-preview"],
+    ]);
+
+    const stillOpen = ongoingRows([finished], [open], new Map(), NOW);
+    assert.deepEqual(stillOpen.map((row) => row.key), ["acme/app#9"]);
+    assert.deepEqual(ongoingRows([finished], [], new Map(), NOW), []);
+  });
 });
 
 function fakeVscode() {
   const fired: number[] = [];
   const views: Array<{ id: string; description?: string; provider: any }> = [];
+  const commands: Array<{ id: string; run: () => void }> = [];
   const vscode: RunningVscode = {
     window: {
       createTreeView(id, options) {
         const view = { id, provider: options.treeDataProvider, description: undefined as string | undefined, dispose() {} };
         views.push(view);
         return view;
+      },
+    },
+    commands: {
+      registerCommand(id, run) {
+        commands.push({ id, run });
+        return { dispose() {} };
       },
     },
     EventEmitter: class {
@@ -100,12 +123,12 @@ function fakeVscode() {
       }
     },
   };
-  return { vscode, fired, views };
+  return { vscode, fired, views, commands };
 }
 
 describe("bindRunningView", () => {
   test("shows the running pull requests, counts them, opens one on click, and redraws only when a run changes", () => {
-    const { vscode, fired, views } = fakeVscode();
+    const { vscode, fired, views, commands } = fakeVscode();
     let records: RunningRecord[] = [];
     let changed = () => {};
     const disposables: Array<{ dispose(): unknown }> = [];
@@ -131,10 +154,47 @@ describe("bindRunningView", () => {
     changed();
     assert.equal(fired.length, draws, "nothing new to draw");
 
-    records = [];
+    records = [{ ...records[0], run: { state: "done", startedAt: minutes(2) } }];
     changed();
+    assert.equal(view.provider.getChildren().length, 1, "a finished run stays until Refresh");
+    assert.match(view.provider.getChildren()[0].description, /Finished/);
+
+    assert.equal(commands[0]?.id, "xrayviewer.refreshOngoing");
+    commands[0]?.run();
     assert.deepEqual(view.provider.getChildren(), []);
     assert.equal(view.description, "");
+    for (const item of disposables) item.dispose();
+  });
+
+  test("an open review page leaves as soon as its tab closes, and a running one stays", () => {
+    const { vscode, views, commands } = fakeVscode();
+    let records: RunningRecord[] = [pr(7, { state: "running", startedAt: minutes(2), progress: agents("running") })];
+    let open: OpenReview[] = [{ key: "acme/app#9", title: "Docs", name: "app", number: 9 }];
+    let opened = () => {};
+    const disposables: Array<{ dispose(): unknown }> = [];
+    bindRunningView({
+      vscode,
+      records: () => records,
+      onChange: () => {},
+      openReviews: () => open,
+      onOpenChange: (listener) => {
+        opened = listener;
+      },
+      subscriptions: disposables,
+      now: () => NOW,
+    });
+    opened();
+    assert.deepEqual(views[0]?.provider.getChildren().map((row: { key: string }) => row.key), ["Motion-Creative/mondrian#7", "acme/app#9"]);
+
+    open = [];
+    opened();
+    assert.deepEqual(views[0]?.provider.getChildren().map((row: { key: string }) => row.key), ["Motion-Creative/mondrian#7"]);
+
+    records = [{ ...records[0], run: { state: "done", startedAt: minutes(2) } }];
+    opened();
+    assert.equal(views[0]?.provider.getChildren().length, 1);
+    commands[0]?.run();
+    assert.deepEqual(views[0]?.provider.getChildren(), []);
     for (const item of disposables) item.dispose();
   });
 });
