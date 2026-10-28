@@ -995,11 +995,15 @@ function prHeadHTML() {`,
       "function setPostAll(on) {\n" +
       "  try { localStorage.setItem(\"xrv:postAll\", on ? \"1\" : \"0\"); } catch { /* optional */ }\n" +
       "  const live = [\"queued\", \"running\", \"waiting\", \"elsewhere\"].includes(runState);\n" +
-      "  if (on && agentsRunning && live) armPostAll();\n" +
+      "  if (on && agentsRunning && live && !codeReviewBlocked()) armPostAll();\n" +
       "  else if (!on) disarmPostAll();\n" +
       "}\n" +
       "function postAllHTML() {\n" +
       "  return `<label class=\"post-all\" title=\"After you run the agents, every open finding is added and posted to the pull request.\"><input type=\"checkbox\" id=\"post-all\"${postAllOn() ? \" checked\" : \"\"}><span>Post all findings when finished</span></label>`;\n" +
+      "}\n" +
+      "function codeReviewBlocked() {\n" +
+      "  const review = agentProgress && agentProgress.agents && agentProgress.agents[\"claude-code-review\"];\n" +
+      "  return !!(review && (review.state === \"failed\" || review.state === \"cancelled\"));\n" +
       "}\n" +
       "let postingAll = false;\n" +
       "function onHostRun(m) {\n" +
@@ -1009,8 +1013,15 @@ function prHeadHTML() {`,
       "  if (m.progress) agentProgress = m.progress;\n" +
       "  applyRunButton();\n" +
       "  refreshActivity();\n" +
-      "  if (m.autoPost) armPostAll();\n" +
-      "  if (postAllOn() && agentsRunning && !m.automatic) armPostAll();\n" +
+      "  if (codeReviewBlocked()) disarmPostAll();\n" +
+      "  else if (m.autoPost) armPostAll();\n" +
+      "  if (!codeReviewBlocked() && postAllOn() && agentsRunning && !m.automatic) armPostAll();\n" +
+      "  if (was && !agentsRunning && m.state === \"done\" && codeReviewBlocked()) {\n" +
+      "    disarmPostAll();\n" +
+      "    toast(\"Claude Code's /code-review didn't finish. The other agents' findings are ready to review.\");\n" +
+      "    if (typeof HOST.reload === \"function\") HOST.reload();\n" +
+      "    return;\n" +
+      "  }\n" +
       "  if (!postAllArmed()) return;\n" +
       "  if (was && !agentsRunning && m.state === \"done\" && typeof HOST.reload === \"function\") HOST.reload();\n" +
       "  if (was && !agentsRunning && (m.state === \"failed\" || m.state === \"cancelled\")) {\n" +
@@ -1039,6 +1050,7 @@ function prHeadHTML() {`,
       "  } finally { postingAll = false; }\n" +
       "}\n" +
       "function maybePostAll() {\n" +
+      "  if (codeReviewBlocked()) { disarmPostAll(); return; }\n" +
       "  if (!postAllArmed() || agentsRunning || runState !== \"done\") return;\n" +
       "  void postFinishedReview();\n" +
       "}\n" +
