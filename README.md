@@ -20,8 +20,8 @@ Building needs Node 26 or later: Volta picks it up from `package.json`, nvm from
 npm install
 npm test
 npm run package
-cursor --install-extension build/xrayviewer-0.5.4.vsix --force
-# or: code --install-extension build/xrayviewer-0.5.4.vsix --force
+cursor --install-extension build/xrayviewer-0.5.5.vsix --force
+# or: code --install-extension build/xrayviewer-0.5.5.vsix --force
 ```
 
 ## Develop
@@ -29,7 +29,7 @@ cursor --install-extension build/xrayviewer-0.5.4.vsix --force
 | Path | What it is |
 |---|---|
 | `vendor/base/` | The base extension bundle, review page, and manifest. SHA-256 sums are in `vendor/base.sha256`. |
-| `src/` | The Cursor agent runner, the model list, the model picker, Claude Code's /code-review, and the agent activity read from each CLI's event stream. Bundled to `dist/cursor-harness.cjs`. |
+| `src/` | The Cursor agent runner, the model list, the model picker, the built-in reviews (Claude Code's /code-review, Codex's `review --base`, and Cursor's /review-bugbot), and the agent activity read from each CLI's event stream. Bundled to `dist/cursor-harness.cjs`. |
 | `scripts/patches.mjs` | Edits to the base bundle and review page. Each anchor must appear once. |
 | `scripts/activity-ui.mjs` | The Agent activity sheet, copied into the review page. |
 | `scripts/manifest.mjs` | Turns `vendor/base/package.json` into the published manifest. The version lives here. |
@@ -45,7 +45,7 @@ cursor --install-extension build/xrayviewer-0.5.4.vsix --force
 npm test
 npm run typecheck
 npm run site             # rewrite docs/index.html after a guide edit
-npm run package          # build/xrayviewer-0.5.4.vsix
+npm run package          # build/xrayviewer-0.5.5.vsix
 ```
 
 `node test/live/review-e2e.ts [model] [report.json]` runs a real review with the signed-in Cursor Agent CLI. It uses account usage, so it is not part of `npm test`.
