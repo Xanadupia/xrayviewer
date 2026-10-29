@@ -751,7 +751,7 @@ describe("the patched extension", () => {
     assert.deepEqual([effortOf(review), effortOf(shape), effortOf(lede)], [["high"], ["high"], ["high"]], "the summary line keeps the guide's level");
     assert.ok(!review.args.includes("--json-schema"));
     assert.equal(review.input, "");
-    assert.match(shape.input, /^You are the Code review agent in X-RayViewer/);
+    assert.match(shape.input, /^You are the Claude Code Review in X-RayViewer/);
     assert.match(shape.input, /## What Claude Code's \/code-review reported\n\nsrc\/cart\.js:3 — a 10% discount takes the whole total off\n$/);
     assert.equal(shape.input.includes("## Bugs agent"), false, "the other agents' instructions stay on their own runs");
     const schema = JSON.parse(shape.args[shape.args.indexOf("--json-schema") + 1]);
@@ -774,7 +774,7 @@ describe("the patched extension", () => {
     assert.deepEqual(result.file.agents.map((a: { id: string; short: string }) => [a.id, a.short]), [
       ["correctness", "Bugs"],
       ["tests", "Test"],
-      ["claude-code-review", "Code review"],
+      ["claude-code-review", "Claude Code Review"],
     ]);
     assert.deepEqual(result.file.findings.map((f: { agent: string; title: string; severity: string }) => [f.agent, f.title, f.severity]), [
       ["claude-code-review", finding.title, "high"],
