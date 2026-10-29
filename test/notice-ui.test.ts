@@ -44,6 +44,8 @@ describe("review page banner marks", () => {
     assert.equal(toneOf("Write something first."), "warning");
     assert.equal(toneOf("The agents stopped, so the review was not posted."), "warning");
     assert.equal(toneOf("Claude Code's /code-review didn't finish. The other agents' findings are ready to review."), "info");
+    assert.equal(toneOf("Codex's review didn't finish. The other agents' findings are ready to review."), "info");
+    assert.equal(toneOf("Claude Code's /code-review and Codex's review didn't finish. The other agents' findings are ready to review."), "info");
     assert.equal(toneOf("Added 3 findings to your review. They post when you finish."), "success");
     assert.equal(toneOf("Copied the finding"), "success");
     assert.equal(toneOf("Theme: Dark"), "info");

@@ -54,7 +54,7 @@ export const PATCHES = [
       'var Nt={claude:"Claude Code CLI",codex:"Codex CLI",cursor:"Cursor Agent CLI"},xrvCursorHarness;' +
       'function xrvCursor(){return xrvCursorHarness??=require("./cursor-harness.cjs").createCursorHarness(' +
       "{run:Q,HarnessError:F,baseEnv:Yn,classifyFailure:Bi,parseJson:Qn,relativizePaths:Fi,tail:ve})}" +
-      "function xrvReview(n,r){let p=xrvCursor().planCodeReview(_w(n.data,n.settings,n.enabled),n.settings,$=>Qu($,n.settings,n.harnesses).id,z,n.harnesses.claude,n.data.mergeBase?`${n.data.mergeBase}...${n.data.head.sha}`:null);return n.settings=r.settings=p.settings,p}",
+      "function xrvReview(n,r){let p=xrvCursor().planCodeReview(_w(n.data,n.settings,n.enabled),n.settings,$=>Qu($,n.settings,n.harnesses).id,z,n.harnesses.claude,n.harnesses.codex,n.data.mergeBase?`${n.data.mergeBase}...${n.data.head.sha}`:null);return n.settings=r.settings=p.settings,p}",
   },
   {
     id: "code-review-plan",
@@ -116,6 +116,11 @@ export const PATCHES = [
     id: "dispatcher",
     find: 'case"claude":return await Jf(n,e);',
     replace: 'case"claude":return e.codeReview?await xrvCursor().codeReview(n,e,Jf):await Jf(n,e);',
+  },
+  {
+    id: "dispatcher-codex-review",
+    find: 'case"codex":return await Yf(n,e);',
+    replace: 'case"codex":return e.codeReview?await xrvCursor().codexReview(n,e,Yf):await Yf(n,e);',
   },
   {
     id: "dispatcher-cursor",
@@ -1007,9 +1012,20 @@ function prHeadHTML() {`,
       "function postAllHTML() {\n" +
       "  return `<label class=\"post-all\" title=\"After you run the agents, every open finding is added and posted to the pull request.\"><input type=\"checkbox\" id=\"post-all\"${postAllOn() ? \" checked\" : \"\"}><span>Post all findings when finished</span></label>`;\n" +
       "}\n" +
+      "function blockedReviews() {\n" +
+      "  const agents = agentProgress && agentProgress.agents;\n" +
+      "  if (!agents) return [];\n" +
+      "  const failed = (id) => {\n" +
+      "    const review = agents[id];\n" +
+      "    return review && (review.state === \"failed\" || review.state === \"cancelled\");\n" +
+      "  };\n" +
+      "  const names = [];\n" +
+      "  if (failed(\"claude-code-review\")) names.push(\"Claude Code's /code-review\");\n" +
+      "  if (failed(\"codex-review\")) names.push(\"Codex's review\");\n" +
+      "  return names;\n" +
+      "}\n" +
       "function codeReviewBlocked() {\n" +
-      "  const review = agentProgress && agentProgress.agents && agentProgress.agents[\"claude-code-review\"];\n" +
-      "  return !!(review && (review.state === \"failed\" || review.state === \"cancelled\"));\n" +
+      "  return blockedReviews().length > 0;\n" +
       "}\n" +
       "let postingAll = false;\n" +
       "function onHostRun(m) {\n" +
@@ -1024,7 +1040,7 @@ function prHeadHTML() {`,
       "  if (!codeReviewBlocked() && postAllOn() && agentsRunning && !m.automatic) armPostAll();\n" +
       "  if (was && !agentsRunning && m.state === \"done\" && codeReviewBlocked()) {\n" +
       "    disarmPostAll();\n" +
-      "    toast(\"Claude Code's /code-review didn't finish. The other agents' findings are ready to review.\");\n" +
+      "    toast(blockedReviews().join(\" and \") + \" didn't finish. The other agents' findings are ready to review.\");\n" +
       "    if (typeof HOST.reload === \"function\") HOST.reload();\n" +
       "    return;\n" +
       "  }\n" +
