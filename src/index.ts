@@ -25,6 +25,7 @@ import { agentUnavailable, comparePullRequests } from "./agent-pool.ts";
 import { activityBody, activityPanelHTML, bindActivity, onActivityMessage, publishActivity } from "./activity-panel.ts";
 import { answerNotice, bindNotice, cancelNotices, clearNotice, holdNotice, offerNotice } from "./page-notice.ts";
 import { prHoverMarkdown } from "./pr-hover.ts";
+import { nestStacks } from "./pr-stacks.ts";
 import { bindModelStore, modelScope, withModelChoice } from "./pr-models.ts";
 import { fixReply, unreadable } from "./reply-fix.ts";
 import { bindRunningView } from "./running-view.ts";
@@ -120,6 +121,7 @@ export function createCursorHarness(internals: BundleInternals) {
     bindSelectionBar,
     sidebarBadge,
     prHoverMarkdown,
+    nestStacks,
     bindRunningView,
     themeChoice,
     themeTag,

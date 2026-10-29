@@ -10,6 +10,8 @@ export interface PrHover {
   /** `owner/name#number`. */
   ref: string;
   author?: string;
+  /** The pull request this one builds on. */
+  stackedOn?: number;
   /** Missing until GitHub's details arrive. */
   state?: PrState;
   /** How long ago it merged or closed, like "3 days ago". */
@@ -188,7 +190,7 @@ export function prHoverMarkdown(h: PrHover): string {
   if (h.risk) rows.push(["Risk", riskCell(h.risk)]);
   if (h.state) rows.push(["Size", sizeCell(h)]);
   if (h.yours?.length) rows.push(["Your review", yoursCell(h.yours)]);
-  const byline = [h.ref, h.author ? `by ${h.author}` : ""].filter(Boolean).join(" · ");
+  const byline = [h.ref, h.author ? `by ${h.author}` : "", h.stackedOn ? `stacked on #${h.stackedOn}` : ""].filter(Boolean).join(" · ");
   const parts = [
     `**${plain(h.title)}**`,
     muted(byline),
