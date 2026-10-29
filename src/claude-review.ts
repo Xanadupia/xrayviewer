@@ -10,11 +10,11 @@ import type { PlannedAgent } from "./run-confirm.ts";
 
 /** Claude Code's /code-review, run on its own beside whatever agents were selected. It is not one of those agents. */
 export const CODE_REVIEW_ID = "claude-code-review";
-export const CODE_REVIEW_NAME = "Code review agent";
+export const CODE_REVIEW_NAME = "Claude Code Review";
 
 /** Codex's `review`, run on its own beside whatever agents were selected. It is not one of those agents. */
 export const CODEX_REVIEW_ID = "codex-review";
-export const CODEX_REVIEW_NAME = "Codex review agent";
+export const CODEX_REVIEW_NAME = "Codex Code Review";
 
 /** /code-review's ReportFindings tool takes at most 32 findings. */
 const MAX_FINDINGS = 32;

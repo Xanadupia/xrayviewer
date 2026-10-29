@@ -61,7 +61,7 @@ describe("planCodeReview", () => {
     assert.deepEqual(plan.run, ["guide", "architecture", "correctness", "security", CODE_REVIEW_ID, CODEX_REVIEW_ID]);
     assert.deepEqual(plan.skipped, selection.skipped, "the selected agents are not handed over to it");
     const review = plan.settings.agents[CODE_REVIEW_ID];
-    assert.equal(review.name, "Code review agent");
+    assert.equal(review.name, "Claude Code Review");
     assert.equal(review.focus, "Claude Code's /code-review, on its own");
     assert.equal(review.harness, "claude");
     assert.equal(review.model, "opus");
@@ -69,7 +69,7 @@ describe("planCodeReview", () => {
     assert.equal(review.minConfidence, "minor");
     assert.deepEqual(review.codeReview, { args: "xhigh 1111111...2222222 --max-findings 32" });
     const codex = plan.settings.agents[CODEX_REVIEW_ID];
-    assert.equal(codex.name, "Codex review agent");
+    assert.equal(codex.name, "Codex Code Review");
     assert.equal(codex.focus, "Codex's review, on its own");
     assert.equal(codex.harness, "codex");
     assert.equal(codex.model, "gpt-6.1-sol");
@@ -222,8 +222,8 @@ describe("plannedWithCodeReview", () => {
         ["architecture", "Architecture", "claude", "Opus 5.5", "xhigh"],
         ["correctness", "Correctness", "claude", "Opus 5.5", "low"],
         ["security", "Security", "codex", "gpt-6.1-sol", ""],
-        [CODE_REVIEW_ID, "Code review", "claude", "Opus 5.5", "high"],
-        [CODEX_REVIEW_ID, "Codex review", "codex", "gpt-6.1-sol", "xhigh"],
+        [CODE_REVIEW_ID, "Claude Code Review", "claude", "Opus 5.5", "high"],
+        [CODEX_REVIEW_ID, "Codex Code Review", "codex", "gpt-6.1-sol", "xhigh"],
       ],
     );
     assert.deepEqual(plannedWithCodeReview(planned.slice(0, 3), { claude: programs.claude }).map((a) => a.id), [
