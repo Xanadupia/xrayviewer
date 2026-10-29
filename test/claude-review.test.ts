@@ -8,6 +8,7 @@ import { setTimeout as delay } from "node:timers/promises";
 import {
   CODE_REVIEW_ID,
   CODEX_REVIEW_ID,
+  CURSOR_REVIEW_ID,
   codeReviewArgs,
   codeReviewLevel,
   codeReviewResults,
@@ -85,11 +86,18 @@ describe("planCodeReview", () => {
     assert.equal(oneCodex.settings.agents[CODE_REVIEW_ID], undefined);
   });
 
-  test("a Cursor selection adds neither review, even when its model is named Claude or Codex", () => {
+  test("a Cursor selection adds Cursor Code Review, even when its model is named Claude or Codex", () => {
     const cursor = () => "cursor";
-    const plan = planCodeReview({ run: ["guide", "security"], skipped: [] }, settings, cursor, "guide", { model: "claude-opus" }, { model: "gpt-6.1-sol" }, range);
-    assert.deepEqual(plan.run, ["guide", "security"]);
-    assert.equal(plan.settings, settings);
+    const plan = planCodeReview({ run: ["guide", "security"], skipped: [] }, settings, cursor, "guide", { model: "claude-opus" }, { model: "gpt-6.1-sol" }, range, { model: "composer" });
+    assert.deepEqual(plan.run, ["guide", "security", CURSOR_REVIEW_ID]);
+    const review = plan.settings.agents[CURSOR_REVIEW_ID];
+    assert.equal(review.name, "Cursor Code Review");
+    assert.equal(review.harness, "cursor");
+    assert.equal(review.model, "composer");
+    assert.deepEqual(review.codeReview, { args: "1111111" });
+    assert.equal(plan.settings.agents[CODE_REVIEW_ID], undefined);
+    assert.equal(plan.settings.agents[CODEX_REVIEW_ID], undefined);
+    assert.match(review.instructions, /This run is only that review/);
   });
 
   test("the shaping instructions are only that program's review, not the other agents", () => {
@@ -234,8 +242,11 @@ describe("plannedWithCodeReview", () => {
     ]);
     assert.deepEqual(plannedWithCodeReview(planned.slice(3), { codex: { extraArgs: [] } }).map((a) => a.id), ["security", CODEX_REVIEW_ID]);
     assert.deepEqual(
-      plannedWithCodeReview(planned.map((agent) => ({ ...agent, harness: "cursor" })), programs).map((a) => a.id),
-      planned.map((agent) => agent.id),
+      plannedWithCodeReview(
+        planned.map((agent) => ({ ...agent, harness: "cursor" })),
+        { cursor: { model: "Composer" } },
+      ).map((a) => [a.id, a.harness, a.model]),
+      [...planned.map((agent) => [agent.id, "cursor", agent.model] as const), [CURSOR_REVIEW_ID, "cursor", "Composer"]],
     );
     assert.equal(plannedWithCodeReview([], programs).length, 0);
   });

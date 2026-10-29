@@ -49,6 +49,8 @@ On Claude Code, **Claude Code Review** also runs Claude Code's **/code-review** 
 
 On Codex, **Codex Code Review** runs `codex review` the same way, when at least one selected agent runs on the Codex CLI. It isn't listed in the agent menus, and **Agent Activity** lists it as Codex Code Review. A Codex model on Cursor Agent does not run it. If it doesn't finish, the other findings stay open and are not posted on their own. It stops on the same rule: 5 minutes without activity, or three times that setting.
 
+On Cursor Agent, **Cursor Code Review** runs Cursor's **/review-bugbot** the same way, when at least one selected agent runs on Cursor Agent. It reviews the branch against the pull request's base. It isn't listed in the agent menus, and **Agent Activity** lists it as Cursor Code Review. If it doesn't finish, the other findings stay open and are not posted on their own. It stops on the same rule.
+
 ### 4. Read the briefing
 
 ![The briefing after a run: the flow drawn as 8 steps, then 2 medium and 10 low findings, Add all 12 to my review, and 10 things checked and fine](docs/findings.png)
@@ -140,7 +142,7 @@ On Claude Code and Codex, pick a level last. It sets how long the model thinks b
 
 Picking the level saves the model and level together, and a note says what the agents will use, such as "Claude Code agents will use Opus 5.5 at high effort." Escape backs out without saving. Each agent's row in the picker shows its level, such as **Claude Code · Opus 5.5 · high**. The level every agent on a program uses is stored in `xrayviewer.claude.extraArgs` (`--effort high`) or `xrayviewer.codex.extraArgs`.
 
-A model or level picked for one agent is that agent's own, and the other agents keep theirs. In both steps, the first row, such as **Same as the other Claude Code agents**, drops it again. The level is saved as `effort` in `agents.yml`, and moving the agent to another program clears it. Claude Code Review uses the Claude Code level, and Codex Code Review uses the Codex level, not one agent's own.
+A model or level picked for one agent is that agent's own, and the other agents keep theirs. In both steps, the first row, such as **Same as the other Claude Code agents**, drops it again. The level is saved as `effort` in `agents.yml`, and moving the agent to another program clears it. Claude Code Review uses the Claude Code level, and Codex Code Review uses the Codex level, not one agent's own. Cursor Code Review uses the Cursor model.
 
 On a review page, the picker is for that pull request only, so two pull requests can run on different models. **Use the default** drops that pull request's own choice, and **Change the default…** changes it for every other pull request.
 
@@ -264,7 +266,7 @@ Claude Code, Codex, and Cursor Agent run the newest version installed on this ma
 | `xrayviewer.agents.skipDrafts` | on | No automatic runs on drafts |
 | `xrayviewer.agents.autoRunMaxFiles` / `autoRunMaxLines` | 100 / 5000 | Larger pull requests wait for **Run agents** |
 | `xrayviewer.agents.approvedPullRequests` | `ask` | `ask`, `skip`, or `run` |
-| `xrayviewer.agents.timeoutMinutes` | 20 | Stop an agent that runs longer. Claude Code Review and Codex Code Review get three times this while they keep working |
+| `xrayviewer.agents.timeoutMinutes` | 20 | Stop an agent that runs longer. Claude Code Review, Codex Code Review, and Cursor Code Review get three times this while they keep working |
 | `xrayviewer.watch.repositories` | none | Also list open pull requests in these `owner/name` repositories |
 | `xrayviewer.watch.pollSeconds` | 60 | How often to check GitHub. At least 15 |
 | `xrayviewer.watch.recentlyClosedDays` | 3 | How long merged or closed pull requests stay listed. 0 hides them |

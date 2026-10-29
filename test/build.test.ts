@@ -78,6 +78,8 @@ describe("the built extension", () => {
     assert.match(page, /codeReviewBlocked\(\)\) \{ disarmPostAll\(\); return; \}/, "a failed built-in review leaves the other findings for you to review");
     assert.match(page, /if \(failed\("codex-review"\)\) names\.push\("Codex's review"\)/);
     assert.ok(bundle.includes('case"codex":return e.codeReview?await xrvCursor().codexReview(n,e,Yf):await Yf(n,e);'), "Codex's review uses the built-in command");
+    assert.ok(bundle.includes('case"cursor":return e.codeReview?await xrvCursor().cursorReview(n,e):await xrvCursor().run(n,e)}'), "Cursor's review uses /review-bugbot");
+    assert.match(page, /if \(failed\("cursor-code-review"\)\) names\.push\("Cursor's review"\)/);
     assert.match(page, /m\.state === "done" && typeof HOST\.reload === "function"\) HOST\.reload\(\);/, "a finished armed run reloads so the new findings are on the page");
     assert.match(page, /S\.pushDecision = "comment";\n\s+openFinish\(\);\n\s+S\.pushConfirm = true;/, "the finished run posts the findings as comments");
     assert.match(page, /if \(open\.length\) adoptAll\(true\);/);

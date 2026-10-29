@@ -209,6 +209,16 @@ process.stdin.on("data", (chunk) => (input += chunk)).on("end", () => {
     say({ type: "turn.completed", usage: { input_tokens: 5, cached_input_tokens: 1, output_tokens: 2 } });
     return;
   }
+  if (input.includes("Full Repository Path:")) {
+    say({ type: "assistant", message: { content: [{ type: "text", text: "src/cart.js:3 divides by ten" }] } });
+    say({ type: "result", is_error: false, result: "src/cart.js:3 divides by ten", usage: { inputTokens: 4, outputTokens: 1, cacheReadTokens: 0, cacheWriteTokens: 0 } });
+    return;
+  }
+  if (input.includes("Cursor's review reported")) {
+    say({ type: "assistant", message: { content: [{ type: "text", text: JSON.stringify({ findings: [], checked: [] }) }] } });
+    say({ type: "result", is_error: false, result: "", usage: { inputTokens: 5, outputTokens: 2, cacheReadTokens: 1, cacheWriteTokens: 0 } });
+    return;
+  }
   if (input.includes("/code-review reported")) {
     say({ type: "result", subtype: "success", is_error: false, result: "", structured_output: { findings: [], checked: [] },
       total_cost_usd: 0.01, usage: { input_tokens: 5, output_tokens: 2 }, modelUsage: { "claude-fake": {} } });
@@ -848,7 +858,7 @@ describe("the patched extension", () => {
       const calls = await cli.calls();
       const asked = calls.filter((call) => call.input.includes(broken));
       assert.equal(asked.length, 1, "asked once, with the whole reply");
-      assert.equal(calls.length, harness === "cursor" ? 3 : 5, "the review, the request to fix it and the summary line, and on Claude Code or Codex also its built-in review");
+      assert.equal(calls.length, 5, "the review, the request to fix it, the summary line, and the program's built-in review");
       assert.match(asked[0].input, /doesn't parse: \S/);
       assert.ok(asked[0].args.concat(asked[0].input).some((part) => part.includes(schemaOn[harness])), "the same schema");
       assert.ok(!asked[0].args.some((arg) => arg.startsWith("/code-review")), "/code-review doesn't run again");
@@ -866,7 +876,10 @@ describe("the patched extension", () => {
         assert.equal(agentRuns.some((entry) => entry.id === "claude-code-review"), false);
       } else {
         assert.deepEqual(run?.tokens, tokensOn[harness], "the tokens cover every run of the agent");
-        assert.equal(calls.some((call) => call.args[0] === "review" || call.args.some((arg) => arg.startsWith("/code-review"))), false);
+        const review = calls.find((call) => call.input.includes("Full Repository Path:"));
+        assert.match(review?.input ?? "", new RegExp(`Base Branch: ${data.mergeBase}`));
+        assert.ok(agentRuns.some((entry) => entry.id === "cursor-code-review"), "Agent Activity includes Cursor Code Review");
+        assert.equal(agentRuns.some((entry) => entry.id === "claude-code-review" || entry.id === "codex-review"), false);
       }
       const log = await readFile(path.join(runDir, "run.log"), "utf8");
       assert.match(log, new RegExp(`${agent} sent JSON that doesn't parse, asking it to fix it: \\S`));
