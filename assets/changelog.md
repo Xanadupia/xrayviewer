@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.5.5
+
+- **Cursor Code Review runs Cursor's /review-bugbot.** It runs when at least one selected agent is on Cursor Agent, whether you run every agent or only one. It isn't in the agent menus. Agent Activity lists it as **Cursor Code Review**. It reviews the branch against the pull request's base. If it doesn't finish, the other findings stay open and are not posted on their own. It gets the same extra time as the other built-in reviews: it stops after 5 minutes with nothing happening, or at three times `xrayviewer.agents.timeoutMinutes`.
+- **Codex Code Review uses `codex review --base`.** It reviews the pull request against its merge base. The command does not add a custom prompt, because Codex exits with code 2 when `--base` and a prompt are used together.
+
 ## 0.5.4
 
 - **Claude Code Review runs Claude Code's /code-review.** It runs when at least one selected agent is on Claude Code, whether you run every agent or only one. It isn't in the agent menus. The other agents still use their own instructions, and Agent Activity lists it as **Claude Code Review**. A Claude model on Cursor Agent doesn't run it.
