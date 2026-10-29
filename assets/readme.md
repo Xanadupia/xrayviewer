@@ -230,8 +230,10 @@ The view's menu groups the list by relationship, repository, author, or review s
 | Reviewed, not posted, 13 findings | X-RayViewer reviewed the latest commit, and the review isn't on GitHub yet. |
 | Reviewed, new commits | The review is of an older commit. **Rerun** reviews the latest. |
 | Reviewing 2/5, Reviewing, queued | A review is running or waiting to start. |
-| Review failed | The last review failed. The tooltip has the error. |
+| Review failed | The last review failed. Its hover card has the error. |
 | Nothing | X-RayViewer hasn't reviewed it yet. |
+
+Hover a row for its card. Under the title and who opened it, each line has a label: **Status** (open, draft, merged, or closed, with approvals, conflicts, and checks), **X-RayViewer** (where its review stands, with the commit, when it ran, and when it was posted), **Risk** (the score and its top reasons), **Size**, and **Your review** when you've reviewed it on GitHub. Color only marks what needs attention, and it follows your theme.
 
 ### Commands
 

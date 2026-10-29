@@ -24,6 +24,7 @@ import { harnessPicker, type PickerAgent } from "./harness-picker.ts";
 import { agentUnavailable, comparePullRequests } from "./agent-pool.ts";
 import { activityBody, activityPanelHTML, bindActivity, onActivityMessage, publishActivity } from "./activity-panel.ts";
 import { answerNotice, bindNotice, cancelNotices, clearNotice, holdNotice, offerNotice } from "./page-notice.ts";
+import { prHoverMarkdown } from "./pr-hover.ts";
 import { bindModelStore, modelScope, withModelChoice } from "./pr-models.ts";
 import { fixReply, unreadable } from "./reply-fix.ts";
 import { bindRunningView } from "./running-view.ts";
@@ -118,6 +119,7 @@ export function createCursorHarness(internals: BundleInternals) {
     wantsAutoPost,
     bindSelectionBar,
     sidebarBadge,
+    prHoverMarkdown,
     bindRunningView,
     themeChoice,
     themeTag,
