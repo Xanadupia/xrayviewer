@@ -3,6 +3,7 @@ import { homedir } from "node:os";
 import path from "node:path";
 import type { AgentHandle } from "./activity.ts";
 import { claudeEffort } from "./claude-models.ts";
+import { reasoningEffort } from "./codex-models.ts";
 import type { AgentRequest, AgentResult, BundleInternals, ErrorKind, Tokens } from "./cursor-harness.ts";
 import { addTokens, withEarlierUsage } from "./reply-fix.ts";
 import type { PlannedAgent } from "./run-confirm.ts";
@@ -10,6 +11,10 @@ import type { PlannedAgent } from "./run-confirm.ts";
 /** Claude Code's /code-review, run on its own beside whatever agents were selected. It is not one of those agents. */
 export const CODE_REVIEW_ID = "claude-code-review";
 export const CODE_REVIEW_NAME = "Code review agent";
+
+/** Codex's `review`, run on its own beside whatever agents were selected. It is not one of those agents. */
+export const CODEX_REVIEW_ID = "codex-review";
+export const CODEX_REVIEW_NAME = "Codex review agent";
 
 /** /code-review's ReportFindings tool takes at most 32 findings. */
 const MAX_FINDINGS = 32;
@@ -67,57 +72,124 @@ Return every finding it reported, in the shape below. Leave one out only when no
 
 Put what the report says was checked and found fine in \`checked\`. When the report has no findings and you confirm none, return none.`;
 
+export const CODEX_REVIEW_INSTRUCTIONS = `Codex's review has already reviewed this pull request. Its report is at the end of this prompt. This run is only that review. The other agents review the pull request themselves.
+
+Return every finding it reported, in the shape below. Leave one out only when no line this pull request changes shows it. For each finding, read the code at its file and line so that \`match\`, \`steps\` and \`fix\` point at the right lines, and rate its severity from the failure it describes. Leave out anything that belongs to another agent's instructions.
+
+Put what the report says was checked and found fine in \`checked\`. When the report has no findings and you confirm none, return none.`;
+
+interface ProgramSettings {
+  extraArgs?: readonly string[];
+  model?: string;
+}
+
+/** The commit `codex review --base` diffs against. A range is `base...head`. */
+export function reviewBase(range: string): string {
+  const base = range.split("...")[0];
+  return base || range;
+}
+
+const selectedOn = (run: readonly string[], harnessOf: (id: string) => string, harness: string) =>
+  run.some((id) => id !== CODE_REVIEW_ID && id !== CODEX_REVIEW_ID && harnessOf(id) === harness);
+
+const hiddenAgent = (name: string, focus: string, harness: string, model: string, effort: string, instructions: string, args: string): ReviewAgent => ({
+  name,
+  focus,
+  enabled: true,
+  maxFindings: MAX_FINDINGS,
+  minConfidence: "minor",
+  skip: [],
+  runsWhen: [],
+  harness,
+  model,
+  effort,
+  instructions,
+  codeReview: { args },
+});
+
 /**
- * Adds the hidden /code-review agent to a run, whether every agent was selected or only one. The selected agents
- * stay as they are. It uses Claude Code's own effort, not another agent's. Without a range, or when agents.yml
- * already uses the agent's id, nothing is added.
+ * Adds each program's hidden review when a selected agent runs on that program, whether every agent was selected or
+ * only one. A Claude model on Cursor Agent does not count, and neither does a Codex model there. The selected agents
+ * stay as they are. Each review uses its program's own level, not another agent's. Without a range, or when agents.yml
+ * already uses that agent's id, that one is not added.
  */
 export function planCodeReview(
   selection: Selection,
   settings: ReviewSettings,
-  _harnessOf: (id: string) => string,
+  harnessOf: (id: string) => string,
   _guideId: string,
-  claude: { extraArgs?: readonly string[]; model?: string } | undefined,
+  claude: ProgramSettings | undefined,
+  codex: ProgramSettings | undefined,
   range: string | null,
 ): Selection & { settings: ReviewSettings } {
-  if (!selection.run.length || !range || selection.run.includes(CODE_REVIEW_ID) || settings.agents[CODE_REVIEW_ID]) return { ...selection, settings };
-  const level = codeReviewLevel(claude?.extraArgs ?? []);
-  const agent: ReviewAgent = {
-    name: CODE_REVIEW_NAME,
-    focus: "Claude Code's /code-review, on its own",
-    enabled: true,
-    maxFindings: MAX_FINDINGS,
-    minConfidence: "minor",
-    skip: [],
-    runsWhen: [],
-    harness: "claude",
-    model: claude?.model ?? "",
-    effort: level,
-    instructions: CODE_REVIEW_INSTRUCTIONS,
-    codeReview: { args: [level, range, "--max-findings", String(MAX_FINDINGS)].filter(Boolean).join(" ") },
-  };
-  return {
-    run: [...selection.run, CODE_REVIEW_ID],
-    skipped: selection.skipped,
-    settings: { ...settings, agents: { ...settings.agents, [CODE_REVIEW_ID]: agent } },
-  };
+  if (!selection.run.length || !range) return { ...selection, settings };
+  let run = selection.run;
+  let agents = settings.agents;
+  if (selectedOn(selection.run, harnessOf, "claude") && !run.includes(CODE_REVIEW_ID) && !agents[CODE_REVIEW_ID]) {
+    const level = codeReviewLevel(claude?.extraArgs ?? []);
+    agents = {
+      ...agents,
+      [CODE_REVIEW_ID]: hiddenAgent(
+        CODE_REVIEW_NAME,
+        "Claude Code's /code-review, on its own",
+        "claude",
+        claude?.model ?? "",
+        level,
+        CODE_REVIEW_INSTRUCTIONS,
+        [level, range, "--max-findings", String(MAX_FINDINGS)].filter(Boolean).join(" "),
+      ),
+    };
+    run = [...run, CODE_REVIEW_ID];
+  }
+  if (selectedOn(selection.run, harnessOf, "codex") && !run.includes(CODEX_REVIEW_ID) && !agents[CODEX_REVIEW_ID]) {
+    const effort = reasoningEffort(codex?.extraArgs ?? []);
+    agents = {
+      ...agents,
+      [CODEX_REVIEW_ID]: hiddenAgent(
+        CODEX_REVIEW_NAME,
+        "Codex's review, on its own",
+        "codex",
+        codex?.model ?? "",
+        effort,
+        CODEX_REVIEW_INSTRUCTIONS,
+        reviewBase(range),
+      ),
+    };
+    run = [...run, CODEX_REVIEW_ID];
+  }
+  if (agents === settings.agents) return { ...selection, settings };
+  return { run, skipped: selection.skipped, settings: { ...settings, agents } };
 }
 
 /** The review page's model line and Agent Activity. The agent menus do not use this list. */
-export function plannedWithCodeReview(planned: PlannedAgent[], claude?: { model?: string; extraArgs?: readonly string[] }): PlannedAgent[] {
-  if (!planned.length || planned.some((agent) => agent.id === CODE_REVIEW_ID)) return planned;
-  const level = codeReviewLevel(claude?.extraArgs ?? []);
-  return [
-    ...planned,
-    {
+export function plannedWithCodeReview(
+  planned: PlannedAgent[],
+  programs: { claude?: ProgramSettings; codex?: ProgramSettings } = {},
+): PlannedAgent[] {
+  if (!planned.length) return planned;
+  const next = [...planned];
+  if (planned.some((agent) => agent.harness === "claude") && !planned.some((agent) => agent.id === CODE_REVIEW_ID)) {
+    const level = codeReviewLevel(programs.claude?.extraArgs ?? []);
+    next.push({
       id: CODE_REVIEW_ID,
       name: CODE_REVIEW_NAME,
       short: shortName(CODE_REVIEW_NAME),
       harness: "claude",
-      model: claude?.model ?? "",
+      model: programs.claude?.model ?? "",
       thinking: level,
-    },
-  ];
+    });
+  }
+  if (planned.some((agent) => agent.harness === "codex") && !planned.some((agent) => agent.id === CODEX_REVIEW_ID)) {
+    next.push({
+      id: CODEX_REVIEW_ID,
+      name: CODEX_REVIEW_NAME,
+      short: shortName(CODEX_REVIEW_NAME),
+      harness: "codex",
+      model: programs.codex?.model ?? "",
+      thinking: reasoningEffort(programs.codex?.extraArgs ?? []),
+    });
+  }
+  return next;
 }
 
 interface ObjectSchema {
@@ -338,8 +410,8 @@ export function withReport(prompt: string, report: string): string {
 
 /** A Code review run that sends no event for this long has stalled. */
 export const STALL_MS = 5 * 60_000;
-/** How many times the agent time limit a Code review agent that keeps making progress may run, both runs together. */
-const HARD_CAP_TIMES = 3;
+/** How many times the agent time limit a built-in review that keeps making progress may run, both runs together. */
+export const HARD_CAP_TIMES = 3;
 
 export interface ProgressWatch {
   /** Aborts when the run stalls or the review is stopped. */

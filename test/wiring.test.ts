@@ -180,7 +180,7 @@ process.stdin.on("data", (chunk) => (input += chunk)).on("end", () => {
 
 /**
  * A Claude Code, Codex or Cursor Agent stand-in that answers a review with `broken` until a request carries that
- * reply back, then with `fixed`. The summary line gets `lede`, and Claude Code's /code-review a one-line report.
+ * reply back, then with `fixed`. The summary line gets `lede`. Claude Code's /code-review and Codex's review each get a one-line report.
  */
 async function fakeAgentCli(name: string, harness: "claude" | "codex" | "cursor", replies: { broken: string; fixed: object; lede: object }) {
   const file = path.join(root, "bin", name);
@@ -194,9 +194,19 @@ let input = "";
 process.stdin.on("data", (chunk) => (input += chunk)).on("end", () => {
   fs.appendFileSync(${JSON.stringify(record)}, JSON.stringify({ args, input }) + "\\n");
   const say = (event) => console.log(JSON.stringify(event));
+  if (args[0] === "review") {
+    say({ type: "item.completed", item: { type: "agent_message", text: "src/cart.js:3 divides by ten" } });
+    say({ type: "turn.completed", usage: { input_tokens: 4, cached_input_tokens: 0, output_tokens: 1 } });
+    return;
+  }
   if (args[1].startsWith("/code-review ")) {
     say({ type: "result", subtype: "success", is_error: false, result: "src/cart.js:3 divides by ten",
       total_cost_usd: 0.02, modelUsage: { "claude-fake": { inputTokens: 7, outputTokens: 3 } } });
+    return;
+  }
+  if (input.includes("Codex's review reported")) {
+    fs.writeFileSync(args[args.indexOf("--output-last-message") + 1], JSON.stringify({ findings: [], checked: [] }));
+    say({ type: "turn.completed", usage: { input_tokens: 5, cached_input_tokens: 1, output_tokens: 2 } });
     return;
   }
   if (input.includes("/code-review reported")) {
@@ -620,7 +630,9 @@ describe("the patched extension", () => {
     const plan = await harness.modelPlan(Yt().harnesses, agents, "acme/app#7");
     assert.ok(plan.length);
     for (const agent of plan) if (agents[agent.id]) assert.equal(agent.model, agents[agent.id]?.model || "auto", `the review page shows ${agent.id}'s model on #7`);
-    assert.ok(plan.some((agent: { id: string }) => agent.id === "claude-code-review"), "Agent Activity can name the Code review agent");
+    const programs = new Set(plan.filter((agent: { id: string }) => agents[agent.id]).map((agent: { harness: string }) => agent.harness));
+    assert.equal(plan.some((agent: { id: string }) => agent.id === "claude-code-review"), programs.has("claude"), "Claude Code's /code-review is listed only when an agent runs on Claude Code");
+    assert.equal(plan.some((agent: { id: string }) => agent.id === "codex-review"), programs.has("codex"), "Codex's review is listed only when an agent runs on Codex");
 
     state.picks = [];
     state.messages = [];
@@ -836,7 +848,7 @@ describe("the patched extension", () => {
       const calls = await cli.calls();
       const asked = calls.filter((call) => call.input.includes(broken));
       assert.equal(asked.length, 1, "asked once, with the whole reply");
-      assert.equal(calls.length, harness === "claude" ? 5 : 3, "the review, the request to fix it and the summary line, and on Claude Code also /code-review");
+      assert.equal(calls.length, harness === "cursor" ? 3 : 5, "the review, the request to fix it and the summary line, and on Claude Code or Codex also its built-in review");
       assert.match(asked[0].input, /doesn't parse: \S/);
       assert.ok(asked[0].args.concat(asked[0].input).some((part) => part.includes(schemaOn[harness])), "the same schema");
       assert.ok(!asked[0].args.some((arg) => arg.startsWith("/code-review")), "/code-review doesn't run again");
@@ -845,8 +857,17 @@ describe("the patched extension", () => {
       if (harness === "claude") {
         assert.equal((run?.costUsd as number).toFixed(2), "0.02", "the agent's own runs, not /code-review");
         assert.ok(agentRuns.some((entry) => entry.id === "claude-code-review"), "Agent Activity includes the Code review agent");
+        assert.equal(agentRuns.some((entry) => entry.id === "codex-review"), false);
+      } else if (harness === "codex") {
+        assert.deepEqual(run?.tokens, tokensOn[harness], "the tokens cover every run of the agent");
+        const review = calls.find((call) => call.args[0] === "review");
+        assert.deepEqual(review?.args.slice(0, 3), ["review", "--base", data.mergeBase]);
+        assert.equal(review?.args.at(-1), "-");
+        assert.ok(agentRuns.some((entry) => entry.id === "codex-review"), "Agent Activity includes the Codex review agent");
+        assert.equal(agentRuns.some((entry) => entry.id === "claude-code-review"), false);
       } else {
         assert.deepEqual(run?.tokens, tokensOn[harness], "the tokens cover every run of the agent");
+        assert.equal(calls.some((call) => call.args[0] === "review" || call.args.some((arg) => arg.startsWith("/code-review"))), false);
       }
       const log = await readFile(path.join(runDir, "run.log"), "utf8");
       assert.match(log, new RegExp(`${agent} sent JSON that doesn't parse, asking it to fix it: \\S`));
