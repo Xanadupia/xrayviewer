@@ -54,7 +54,7 @@ export const PATCHES = [
       'var Nt={claude:"Claude Code CLI",codex:"Codex CLI",cursor:"Cursor Agent CLI"},xrvCursorHarness;' +
       'function xrvCursor(){return xrvCursorHarness??=require("./cursor-harness.cjs").createCursorHarness(' +
       "{run:Q,HarnessError:F,baseEnv:Yn,classifyFailure:Bi,parseJson:Qn,relativizePaths:Fi,tail:ve})}" +
-      "function xrvReview(n,r){let p=xrvCursor().planCodeReview(_w(n.data,n.settings,n.enabled),n.settings,$=>Qu($,n.settings,n.harnesses).id,z,n.harnesses.claude,n.harnesses.codex,n.data.mergeBase?`${n.data.mergeBase}...${n.data.head.sha}`:null);return n.settings=r.settings=p.settings,p}",
+      "function xrvReview(n,r){let p=xrvCursor().planCodeReview(_w(n.data,n.settings,n.enabled),n.settings,$=>Qu($,n.settings,n.harnesses).id,z,n.harnesses.claude,n.harnesses.codex,n.data.mergeBase?`${n.data.mergeBase}...${n.data.head.sha}`:null,n.harnesses.cursor);return n.settings=r.settings=p.settings,p}",
   },
   {
     id: "code-review-plan",
@@ -125,7 +125,7 @@ export const PATCHES = [
   {
     id: "dispatcher-cursor",
     find: 'case"pi":return await Qf(n,e)}',
-    replace: 'case"cursor":return await xrvCursor().run(n,e)}',
+    replace: 'case"cursor":return e.codeReview?await xrvCursor().cursorReview(n,e):await xrvCursor().run(n,e)}',
   },
   {
     id: "fix-reply",
@@ -1022,6 +1022,7 @@ function prHeadHTML() {`,
       "  const names = [];\n" +
       "  if (failed(\"claude-code-review\")) names.push(\"Claude Code's /code-review\");\n" +
       "  if (failed(\"codex-review\")) names.push(\"Codex's review\");\n" +
+      "  if (failed(\"cursor-code-review\")) names.push(\"Cursor's review\");\n" +
       "  return names;\n" +
       "}\n" +
       "function codeReviewBlocked() {\n" +

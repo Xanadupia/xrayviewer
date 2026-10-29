@@ -13,6 +13,7 @@ import {
   type CodeReviewRequest,
 } from "./claude-review.ts";
 import { runCodexReview, type CodexConfig } from "./codex-review.ts";
+import { runCursorReview } from "./cursor-review.ts";
 import { resolveCommand, runCursorAgent, type AgentRequest, type AgentResult, type BundleInternals, type CursorConfig } from "./cursor-harness.ts";
 import { pickCursorModel, type AgentRef, type PickerDeps } from "./cursor-model-picker.ts";
 import { listCursorModels } from "./cursor-models.ts";
@@ -69,6 +70,7 @@ export function createCursorHarness(internals: BundleInternals) {
       runCodeReview(internals, config, request, runClaude),
     codexReview: (config: CodexConfig, request: CodeReviewRequest, runCodex: (config: CodexConfig, request: AgentRequest) => Promise<AgentResult>) =>
       runCodexReview(internals, config, request, runCodex),
+    cursorReview: (config: CursorConfig, request: CodeReviewRequest) => runCursorReview(internals, config, request),
     resolveCommand: (command: string) => resolveCommand(command),
     agentHarness,
     latestCommand: (id: InstalledCli, configured: string) => latestCommand(id, configured, homedir()),
@@ -132,9 +134,11 @@ export function createCursorHarness(internals: BundleInternals) {
       const catalog = command ? await readClaudeCatalog(resolveCommand(command)) : null;
       const model = claude?.model ?? "";
       const codex = chosen.harnesses.codex;
+      const cursor = chosen.harnesses.cursor;
       return plannedWithCodeReview(plan, {
         claude: { model: (model && claudeModelName(catalog, model)) || model, extraArgs: claude?.extraArgs },
         codex: { model: codex?.model ?? "", extraArgs: codex?.extraArgs },
+        cursor: { model: cursor?.model ?? "", extraArgs: cursor?.extraArgs },
       });
     },
   };

@@ -16,6 +16,10 @@ export const CODE_REVIEW_NAME = "Claude Code Review";
 export const CODEX_REVIEW_ID = "codex-review";
 export const CODEX_REVIEW_NAME = "Codex Code Review";
 
+/** Cursor's `/review-bugbot`, run on its own beside whatever agents were selected. It is not one of those agents. */
+export const CURSOR_REVIEW_ID = "cursor-code-review";
+export const CURSOR_REVIEW_NAME = "Cursor Code Review";
+
 /** /code-review's ReportFindings tool takes at most 32 findings. */
 const MAX_FINDINGS = 32;
 const LEVELS = ["low", "medium", "high", "xhigh", "max"];
@@ -78,6 +82,12 @@ Return every finding it reported, in the shape below. Leave one out only when no
 
 Put what the report says was checked and found fine in \`checked\`. When the report has no findings and you confirm none, return none.`;
 
+export const CURSOR_REVIEW_INSTRUCTIONS = `Cursor's review has already reviewed this pull request. Its report is at the end of this prompt. This run is only that review. The other agents review the pull request themselves.
+
+Return every finding it reported, in the shape below. Leave one out only when no line this pull request changes shows it. For each finding, read the code at its file and line so that \`match\`, \`steps\` and \`fix\` point at the right lines, and rate its severity from the failure it describes. Leave out anything that belongs to another agent's instructions.
+
+Put what the report says was checked and found fine in \`checked\`. When the report has no findings and you confirm none, return none.`;
+
 interface ProgramSettings {
   extraArgs?: readonly string[];
   model?: string;
@@ -90,7 +100,7 @@ export function reviewBase(range: string): string {
 }
 
 const selectedOn = (run: readonly string[], harnessOf: (id: string) => string, harness: string) =>
-  run.some((id) => id !== CODE_REVIEW_ID && id !== CODEX_REVIEW_ID && harnessOf(id) === harness);
+  run.some((id) => id !== CODE_REVIEW_ID && id !== CODEX_REVIEW_ID && id !== CURSOR_REVIEW_ID && harnessOf(id) === harness);
 
 const hiddenAgent = (name: string, focus: string, harness: string, model: string, effort: string, instructions: string, args: string): ReviewAgent => ({
   name,
@@ -121,6 +131,7 @@ export function planCodeReview(
   claude: ProgramSettings | undefined,
   codex: ProgramSettings | undefined,
   range: string | null,
+  cursor?: ProgramSettings,
 ): Selection & { settings: ReviewSettings } {
   if (!selection.run.length || !range) return { ...selection, settings };
   let run = selection.run;
@@ -157,6 +168,21 @@ export function planCodeReview(
     };
     run = [...run, CODEX_REVIEW_ID];
   }
+  if (selectedOn(selection.run, harnessOf, "cursor") && !run.includes(CURSOR_REVIEW_ID) && !agents[CURSOR_REVIEW_ID]) {
+    agents = {
+      ...agents,
+      [CURSOR_REVIEW_ID]: hiddenAgent(
+        CURSOR_REVIEW_NAME,
+        "Cursor's /review-bugbot, on its own",
+        "cursor",
+        cursor?.model ?? "",
+        "",
+        CURSOR_REVIEW_INSTRUCTIONS,
+        reviewBase(range),
+      ),
+    };
+    run = [...run, CURSOR_REVIEW_ID];
+  }
   if (agents === settings.agents) return { ...selection, settings };
   return { run, skipped: selection.skipped, settings: { ...settings, agents } };
 }
@@ -164,7 +190,7 @@ export function planCodeReview(
 /** The review page's model line and Agent Activity. The agent menus do not use this list. */
 export function plannedWithCodeReview(
   planned: PlannedAgent[],
-  programs: { claude?: ProgramSettings; codex?: ProgramSettings } = {},
+  programs: { claude?: ProgramSettings; codex?: ProgramSettings; cursor?: ProgramSettings } = {},
 ): PlannedAgent[] {
   if (!planned.length) return planned;
   const next = [...planned];
@@ -187,6 +213,16 @@ export function plannedWithCodeReview(
       harness: "codex",
       model: programs.codex?.model ?? "",
       thinking: reasoningEffort(programs.codex?.extraArgs ?? []),
+    });
+  }
+  if (planned.some((agent) => agent.harness === "cursor") && !planned.some((agent) => agent.id === CURSOR_REVIEW_ID)) {
+    next.push({
+      id: CURSOR_REVIEW_ID,
+      name: CURSOR_REVIEW_NAME,
+      short: shortName(CURSOR_REVIEW_NAME),
+      harness: "cursor",
+      model: programs.cursor?.model ?? "",
+      thinking: "",
     });
   }
   return next;
