@@ -3,7 +3,7 @@ import { mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { describe, test } from "node:test";
-import { CODEX_REVIEW_INPUT, codexReviewArgs, readCodexReview, runCodexReview, withCodexReport, type CodexConfig } from "../src/codex-review.ts";
+import { codexReviewArgs, readCodexReview, runCodexReview, withCodexReport, type CodexConfig } from "../src/codex-review.ts";
 import type { AgentRequest, AgentResult, RunResult } from "../src/cursor-harness.ts";
 import type { CodeReviewRequest } from "../src/claude-review.ts";
 import { fakeInternals, HarnessError, ok, streamOf } from "./support/fake-internals.ts";
@@ -20,7 +20,7 @@ const request: CodeReviewRequest = {
 };
 
 describe("codex review", () => {
-  test("the command is codex review against the merge base, with the model, and the prompt on stdin", () => {
+  test("the command is codex review against the merge base, with no custom prompt", () => {
     assert.deepEqual(codexReviewArgs(codex, request), [
       "review",
       "--base",
@@ -29,9 +29,8 @@ describe("codex review", () => {
       'model_reasoning_effort="high"',
       "-c",
       'model="gpt-6.1-sol"',
-      "-",
     ]);
-    assert.deepEqual(codexReviewArgs({ ...codex, model: "", extraArgs: ["-c", 'model="already"'] }, request), ["review", "--base", "abc123", "-c", 'model="already"', "-"]);
+    assert.deepEqual(codexReviewArgs({ ...codex, model: "", extraArgs: ["-c", 'model="already"'] }, request), ["review", "--base", "abc123", "-c", 'model="already"']);
   });
 
   test("a plain report and a JSON event stream both become the review text", () => {
@@ -55,8 +54,8 @@ describe("codex review", () => {
     assert.equal(runs.length, 1);
     assert.equal(runs[0].command, "codex");
     assert.equal(runs[0].args[0], "review");
-    assert.equal(runs[0].args.at(-1), "-");
-    assert.equal(runs[0].options.input, CODEX_REVIEW_INPUT);
+    assert.equal(runs[0].args.includes("-"), false, "--base rejects a custom prompt");
+    assert.equal(runs[0].options.input, undefined);
     assert.ok(runs[0].options.timeoutMs! <= 180_000 && runs[0].options.timeoutMs! > 179_000);
     assert.equal(converted.length, 1);
     assert.equal(converted[0].prompt, withCodexReport(request.prompt, "pay.js:3 over-charges"));

@@ -861,8 +861,7 @@ describe("the patched extension", () => {
       } else if (harness === "codex") {
         assert.deepEqual(run?.tokens, tokensOn[harness], "the tokens cover every run of the agent");
         const review = calls.find((call) => call.args[0] === "review");
-        assert.deepEqual(review?.args.slice(0, 3), ["review", "--base", data.mergeBase]);
-        assert.equal(review?.args.at(-1), "-");
+        assert.deepEqual(review?.args, ["review", "--base", data.mergeBase]);
         assert.ok(agentRuns.some((entry) => entry.id === "codex-review"), "Agent Activity includes the Codex review agent");
         assert.equal(agentRuns.some((entry) => entry.id === "claude-code-review"), false);
       } else {
