@@ -325,13 +325,13 @@ export const PATCHES = [
     id: "choose-model-host",
     find: 'runAgents() { vscode.postMessage({ type: "runAgents", key }); },',
     replace:
-      'runAgents() { vscode.postMessage({ type: "runAgents", key }); },\n    chooseHarness() { vscode.postMessage({ type: "chooseHarness", key }); },\n    showActivity() { vscode.postMessage({ type: "showActivity", key }); },\n    setTheme(theme) { vscode.postMessage({ type: "setTheme", key, theme }); },',
+      'runAgents() { vscode.postMessage({ type: "runAgents", key }); },\n    chooseHarness() { vscode.postMessage({ type: "chooseHarness", key }); },\n    showActivity() { vscode.postMessage({ type: "showActivity", key }); },\n    stopAgents() { vscode.postMessage({ type: "stopAgents", key }); },\n    setTheme(theme) { vscode.postMessage({ type: "setTheme", key, theme }); },',
   },
   {
     id: "choose-model-command",
     find: 'else if(e.type==="runAgents")ee.commands.executeCommand("xrayviewer.runAgents",N(t));',
     replace:
-      'else if(e.type==="chooseHarness")ee.commands.executeCommand("xrayviewer.selectHarness",N(t));else if(e.type==="showActivity")ee.commands.executeCommand("xrayviewer.agentActivity.focus");else if(e.type==="setTheme")xrvCursor().saveTheme(ee,e.theme).catch(()=>{});else if(e.type==="runAgents")ee.commands.executeCommand("xrayviewer.runAgents",N(t));',
+      'else if(e.type==="chooseHarness")ee.commands.executeCommand("xrayviewer.selectHarness",N(t));else if(e.type==="showActivity")ee.commands.executeCommand("xrayviewer.agentActivity.focus");else if(e.type==="stopAgents")ee.commands.executeCommand("xrayviewer.cancelAgents",{key:N(t)});else if(e.type==="setTheme")xrvCursor().saveTheme(ee,e.theme).catch(()=>{});else if(e.type==="runAgents")ee.commands.executeCommand("xrayviewer.runAgents",N(t));',
   },
   {
     id: "theme-page-tag",
@@ -778,14 +778,31 @@ function adoptFinding(id) {`,
 function xrayPillHTML() {
   const s = xrayState();
   const marks = { running: '<span class="spin" aria-hidden="true"></span>', failed: icon("x-circle"), none: icon("circle"), behind: icon("clock"), current: icon("check-circle"), posted: icon("check-circle") };
-  return \`<button type="button" class="xray-pill is-\${s.kind}" id="xray-pill" data-act="agent-activity" title="\${esc(s.title)}">\${marks[s.kind]}<span>\${esc(s.label)}</span>\${s.sub ? \`<span class="xray-sub">\${esc(s.sub)}</span>\` : ""}</button>\`;
+  const stoppable = s.kind === "running" && typeof HOST.stopAgents === "function";
+  const pill = \`<button type="button" class="xray-pill is-\${s.kind}\${stoppable ? " has-stop" : ""}"\${stoppable ? "" : ' id="xray-pill"'} data-act="agent-activity" title="\${esc(s.title)}">\${marks[s.kind]}<span>\${esc(s.label)}</span>\${s.sub ? \`<span class="xray-sub">\${esc(s.sub)}</span>\` : ""}</button>\`;
+  if (!stoppable) return pill;
+  const square = '<svg class="i" viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="5" width="14" height="14" rx="3" fill="currentColor" stroke="none"/></svg>';
+  return \`<span class="xray-group" id="xray-pill">\${pill}<button type="button" class="xray-stop" data-act="xray-stop" aria-label="Stop the agents" title="Stop the agents">\${square}</button></span>\`;
 }
 function applyXrayPill() {
   const el = document.getElementById("xray-pill");
   if (!el) return;
-  const focused = document.activeElement === el;
+  const focused = el.contains(document.activeElement) ? document.activeElement.dataset.act : "";
   el.outerHTML = xrayPillHTML();
-  if (focused) document.getElementById("xray-pill").focus({ preventScroll: true });
+  const next = document.getElementById("xray-pill");
+  const target = next && (next.querySelector(\`[data-act="\${focused}"]\`) || next.querySelector("button") || next);
+  if (focused && target) target.focus({ preventScroll: true });
+}
+function xrayStopSheetHTML() {
+  return \`\${sheetHead("xray-stop", "Stop the agents?")}<div class="sheet-body"><p>The review of #\${PR.number} stops now. Nothing from this run is saved or posted.\${AG ? " The earlier review stays." : ""}</p></div>
+    <div class="sheet-foot"><button type="button" class="btn ghost" data-act="sheet-close" autofocus>Cancel</button>
+      <button type="button" class="btn ghost destructive" data-act="xray-stop-now">Stop agents</button></div>\`;
+}
+function stopAgentsNow() {
+  closeSheet();
+  if (!agentsRunning) return;
+  HOST.stopAgents();
+  toast("Stopping the agents.");
 }
 function prHeadHTML() {`,
   },
@@ -1091,6 +1108,7 @@ function prHeadHTML() {`,
       "  },\n" +
       '  "run-menu": () => runMenu(!runMenuOpen()),\n' +
       '  "agent-activity": () => { runMenu(false); if (typeof HOST.showActivity === "function") HOST.showActivity(); else openActivity(); },\n  "activity-detail": (el) => showActivity(el.dataset.id),\n  "activity-back": () => showActivity(""),\n' +
+      '  "xray-stop": () => openSheet("xray-stop", xrayStopSheetHTML(), "confirm"),\n  "xray-stop-now": () => stopAgentsNow(),\n' +
       '  "choose-model": () => { runMenu(false); if (typeof HOST.chooseHarness === "function") HOST.chooseHarness(); },',
   },
   {
@@ -1291,7 +1309,7 @@ export const UI_ADDED_NAMES = [
   "tagBadge", "commentLevel", "readTag", "withTag", "draftLevel", "levelChip", "levelRowHTML", "setLevel",
   "activityTime", "activityGroups", "activitySummary", "activityHTML", "agentProgress", "activityOpen", "activityTimer",
   "activityShown", "activityBodyHTML", "openActivity", "refreshActivity", "activityDetail", "showActivity",
-  "findingDrafts", "lastAdopted", "adoptAllHTML", "adoptAll", "undoAdoptAll", "adoptAllCardHTML", "syncAdoptAll", "xrayState", "xrayPillHTML", "applyXrayPill",
+  "findingDrafts", "lastAdopted", "adoptAllHTML", "adoptAll", "undoAdoptAll", "adoptAllCardHTML", "syncAdoptAll", "xrayState", "xrayPillHTML", "applyXrayPill", "xrayStopSheetHTML", "stopAgentsNow",
   "postAllKey", "postAllOn", "postAllArmed", "armPostAll", "disarmPostAll", "setPostAll", "postAllHTML", "postingAll", "onHostRun", "postFinishedReview", "maybePostAll", "runState",
   "TONE_ICONS", "toneOf", "toneHTML", "notePosted", "showPostedNotice", "bannerTimer", "bannerPin", "bannerNow", "bannerStay", "bannerHost", "bannerHTML", "paintBanner", "dropBanner", "releaseBanner", "showPinnedNotice", "showHostNotice",
   ...THEME_NAMES,
