@@ -7,6 +7,7 @@ export interface ActivityPlan {
   name?: string;
   harness?: string;
   model?: string;
+  thinking?: string | null;
 }
 
 export interface ActivityProgress {

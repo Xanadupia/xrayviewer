@@ -82,7 +82,7 @@ export function activitySummary(steps, live) {
  * reviewed inside that agent, such as the Code review agent's /code-review: it sits under that agent's row, with its
  * status and steps.
  * @param {{ agents?: Record<string, any>, activity?: Record<string, { steps: any[], dropped: number }> } | null | undefined} progress
- * @param {Array<{ id: string, name?: string, harness?: string, model?: string }> | null | undefined} plan
+ * @param {Array<{ id: string, name?: string, harness?: string, model?: string, thinking?: string | null }> | null | undefined} plan
  * @param {{ esc: (s: string) => string, icon: (name: string, cls?: string) => string, now: number, open: Map<string, boolean>, detail?: string, avatar?: string }} view
  */
 export function activityHTML(progress, plan, view) {
@@ -138,8 +138,10 @@ export function activityHTML(progress, plan, view) {
     const info = agents[id] || {};
     const entry = planned(id);
     const harness = info.harness || (entry && entry.harness) || "";
-    const model = entry && entry.harness === harness ? entry.model || "CLI default" : "";
-    return { harness, line: [harnesses[harness] || harness, model].filter(Boolean).join(" · ") };
+    const same = entry && entry.harness === harness;
+    const model = same ? entry.model || "CLI default" : "";
+    const level = same ? entry.thinking || "" : "";
+    return { harness, line: [harnesses[harness] || harness, model, level].filter(Boolean).join(" · ") };
   };
   const skippedMark = '<svg class="i" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="6.25" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M3.6 12.4l8.8-8.8" stroke="currentColor" stroke-width="1.5"/></svg>';
   const markHTML = (state) => {
@@ -249,7 +251,7 @@ export function activityHTML(progress, plan, view) {
     const name = nameOf(id);
     const meta = metaOf(id).line;
     const more = `<button type="button" class="check-more" data-act="activity-detail" data-id="${esc(id)}" aria-label="View details for ${esc(name)}" title="View details"><svg class="i" viewBox="0 0 16 16" aria-hidden="true"><circle cx="3" cy="8" r="1.4" fill="currentColor"/><circle cx="8" cy="8" r="1.4" fill="currentColor"/><circle cx="13" cy="8" r="1.4" fill="currentColor"/></svg></button>`;
-    return `<li class="check is-${esc(stateOf(id))}${sub ? " is-sub" : ""}">${markHTML(stateOf(id))}${view.avatar || ""}<button type="button" class="check-name" data-act="activity-detail" data-id="${esc(id)}"><b>${esc(name)}</b>${meta ? ` / ${esc(meta)}` : ""}</button><span class="check-status">${statusHTML(id)}</span>${costHTML(id)}${more}</li>`;
+    return `<li class="check is-${esc(stateOf(id))}${sub ? " is-sub" : ""}">${markHTML(stateOf(id))}${view.avatar || ""}<button type="button" class="check-name" data-act="activity-detail" data-id="${esc(id)}"${meta ? ` title="${esc(`${name} / ${meta}`)}"` : ""}><b>${esc(name)}</b>${meta ? ` / ${esc(meta)}` : ""}</button><span class="check-status">${statusHTML(id)}</span>${costHTML(id)}${more}</li>`;
   };
   const groups = buckets
     .filter((bucket) => bucket.ids.length)

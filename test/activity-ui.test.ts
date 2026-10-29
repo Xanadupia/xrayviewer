@@ -57,8 +57,9 @@ describe("activitySummary", () => {
 
 describe("activityHTML: the agents, like GitHub's checks", () => {
   const plan = [
-    { id: "correctness", name: "Correctness agent", harness: "codex", model: "gpt-5.5" },
-    { id: "tests", name: "Test agent", harness: "cursor", model: "" },
+    { id: "correctness", name: "Correctness agent", harness: "codex", model: "gpt-5.5", thinking: "high" },
+    { id: "tests", name: "Test agent", harness: "cursor", model: "", thinking: "" },
+    { id: "security", name: "Security", harness: "claude", model: "Opus 5.5", thinking: "max" },
   ];
 
   test("invites a run when there's no progress yet", () => {
@@ -81,7 +82,11 @@ describe("activityHTML: the agents, like GitHub's checks", () => {
     assert.deepEqual(text(html, "checks-tally"), ["1 failing, 1 in progress, 1 skipped, 1 successful agents"]);
     assert.deepEqual(text(html, "checks-group-name"), ["1 failing agent", "1 agent in progress", "1 skipped agent", "1 successful agent"]);
     assert.deepEqual(openKeys(html), ["c:failing", "c:progress", "c:skipped", "c:successful"]);
-    assert.deepEqual(text(html, "check-name"), ["Security / Codex", "Correctness agent / Codex · gpt-5.5", "Style", "Test agent / Cursor Agent · CLI default"]);
+    assert.deepEqual(
+      text(html, "check-name"),
+      ["Security / Codex", "Correctness agent / Codex · gpt-5.5 · high", "Style", "Test agent / Cursor Agent · CLI default"],
+      "each agent's level follows its model; a run on another CLI than planned shows neither",
+    );
     assert.deepEqual(text(html, "check-status"), ["Failed after 1m 05s", "In progress for 1m 12s", "Skipped: Turned off", "Successful in 41s"]);
     assert.match(html, /In progress for <span class="act-time" data-since="28000">1m 12s<\/span>/, "the running clock ticks");
     assert.match(html, /<span class="check-pill">\$0\.012<\/span>/);
@@ -91,7 +96,7 @@ describe("activityHTML: the agents, like GitHub's checks", () => {
   test("opens an agent's log from its name or its ⋯ button, without a menu", () => {
     const html = activityHTML({ agents: { correctness: { state: "done", harness: "codex", ms: 1_000 } }, activity: {} }, plan, view());
 
-    assert.match(html, /<button type="button" class="check-name" data-act="activity-detail" data-id="correctness">/);
+    assert.match(html, /<button type="button" class="check-name" data-act="activity-detail" data-id="correctness" title="Correctness agent \/ Codex · gpt-5\.5 · high">/, "a narrow sidebar cuts the line short, so its tooltip has it whole");
     assert.match(html, /<button type="button" class="check-more" data-act="activity-detail" data-id="correctness" aria-label="View details for Correctness agent" title="View details">/);
     assert.equal(html.includes("check-menu"), false);
     assert.equal(html.includes('role="menuitem"'), false);
@@ -126,7 +131,7 @@ describe("activityHTML: the agents, like GitHub's checks", () => {
     };
     const reviewPlan = [
       { id: "guide", name: "Guide agent", harness: "claude", model: "Opus 5.5" },
-      { id: "claude-code-review", name: "Code review agent", harness: "claude", model: "Opus 5.5" },
+      { id: "claude-code-review", name: "Code review agent", harness: "claude", model: "Opus 5.5", thinking: "xhigh" },
     ];
     const html = activityHTML(progress, reviewPlan, view());
 
@@ -134,16 +139,16 @@ describe("activityHTML: the agents, like GitHub's checks", () => {
     assert.deepEqual(text(html, "checks-group-name"), ["2 agents in progress", "1 skipped agent"]);
     assert.deepEqual(text(html, "check-name"), [
       "Guide agent / Claude Code · Opus 5.5",
-      "Code review agent / Claude Code · Opus 5.5",
-      "Architecture agent / Claude Code · Opus 5.5",
-      "Test agent / Claude Code · Opus 5.5",
+      "Code review agent / Claude Code · Opus 5.5 · xhigh",
+      "Architecture agent / Claude Code · Opus 5.5 · xhigh",
+      "Test agent / Claude Code · Opus 5.5 · xhigh",
       "Style",
     ]);
     assert.deepEqual(text(html, "check-status").slice(2, 4), ["Covered by Code review agent · In progress for 17s", "Covered by Code review agent · In progress for 17s"]);
     assert.equal(html.match(/class="check is-running is-sub"/g)?.length, 2);
 
     const detail = activityHTML(progress, reviewPlan, detailView("architecture"));
-    assert.match(detail, /<b class="job-name">Architecture agent<\/b><span class="job-meta">Claude Code · Opus 5\.5<\/span><span class="job-status">Covered by Code review agent · In progress/);
+    assert.match(detail, /<b class="job-name">Architecture agent<\/b><span class="job-meta">Claude Code · Opus 5\.5 · xhigh<\/span><span class="job-status">Covered by Code review agent · In progress/);
     assert.match(detail, /Code review agent reviews for this agent, using its instructions, and its findings for it show under Architecture agent\. Its steps:/);
     assert.match(detail, /git diff --stat/);
   });
