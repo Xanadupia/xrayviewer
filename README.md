@@ -29,7 +29,7 @@ cursor --install-extension build/xrayviewer-0.5.5.vsix --force
 | Path | What it is |
 |---|---|
 | `vendor/base/` | The base extension bundle, review page, and manifest. SHA-256 sums are in `vendor/base.sha256`. |
-| `src/` | The Cursor agent runner, the model list, the model picker, the built-in reviews (Claude Code's /code-review, Codex's `review --base`, and Cursor's /review-bugbot), and the agent activity read from each CLI's event stream. Bundled to `dist/cursor-harness.cjs`. |
+| `src/` | The Cursor agent runner, the model list, the model picker, the built-in reviews (Claude Code's /code-review, Codex's `review --base`, and Cursor's /review-bugbot), the sidebar's hover card, and the agent activity read from each CLI's event stream. Bundled to `dist/cursor-harness.cjs`. |
 | `scripts/patches.mjs` | Edits to the base bundle and review page. Each anchor must appear once. |
 | `scripts/activity-ui.mjs` | The Agent activity sheet, copied into the review page. |
 | `scripts/manifest.mjs` | Turns `vendor/base/package.json` into the published manifest. The version lives here. |
