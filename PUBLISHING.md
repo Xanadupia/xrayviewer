@@ -1,6 +1,6 @@
 # Publishing X-RayViewer
 
-A release is a version tag. Pushing `v0.5.4` runs `.github/workflows/release.yml`: it builds and tests that commit, creates the GitHub release with the package, then publishes the same file to the Visual Studio Marketplace and Open VSX once you approve.
+A release is a version tag. Pushing `v0.5.5` runs `.github/workflows/release.yml`: it builds and tests that commit, creates the GitHub release with the package, then publishes the same file to the Visual Studio Marketplace and Open VSX once you approve.
 
 The extension id is `aliqaryan.xrayviewer`. The publisher id is part of that id forever, so the publisher in both galleries is `aliqaryan`.
 
@@ -11,23 +11,23 @@ The listing stays marked **Preview** while `preview` is true in `scripts/manifes
 ## Cut a release
 
 1. Raise `VERSION` in `scripts/manifest.mjs`.
-2. Add a `## 0.5.4` section at the top of `assets/changelog.md`. It becomes the release notes.
+2. Add a `## 0.5.5` section at the top of `assets/changelog.md`. It becomes the release notes.
 3. Commit to `main`, and wait for CI to pass.
 4. Tag that commit and push the tag:
 
 ```sh
-git tag -a v0.5.4 -m "X-RayViewer 0.5.4"
-git push origin v0.5.4
+git tag -a v0.5.5 -m "X-RayViewer 0.5.5"
+git push origin v0.5.5
 ```
 
 5. Open the run under **Actions → Release**, press **Review deployments**, and approve `marketplace`. Both galleries publish from there.
 
 The workflow stops before building when the tag doesn't match `VERSION` or the changelog has no section for it. Rerunning a failed job reuses the same package: the GitHub release's files are replaced, and a gallery that already has the version skips it.
 
-Each release has `xrayviewer-0.5.4.vsix`, `SHA256SUMS`, and a build provenance attestation. Anyone can check that this workflow built the package:
+Each release has `xrayviewer-0.5.5.vsix`, `SHA256SUMS`, and a build provenance attestation. Anyone can check that this workflow built the package:
 
 ```sh
-gh attestation verify xrayviewer-0.5.4.vsix -R Xanadupia/xrayviewer
+gh attestation verify xrayviewer-0.5.5.vsix -R Xanadupia/xrayviewer
 ```
 
 ## One-time setup
@@ -62,7 +62,7 @@ npm test
 npm run package
 ```
 
-Then upload `build/xrayviewer-0.5.4.vsix` at the Marketplace management page, and run `npx ovsx publish build/xrayviewer-0.5.4.vsix -p <token>` for Open VSX.
+Then upload `build/xrayviewer-0.5.5.vsix` at the Marketplace management page, and run `npx ovsx publish build/xrayviewer-0.5.5.vsix -p <token>` for Open VSX.
 
 ## What the package already contains
 

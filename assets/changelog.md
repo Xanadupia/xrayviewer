@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.5.4
+
+- **Claude Code Review runs Claude Code's /code-review.** It runs when at least one selected agent is on Claude Code, whether you run every agent or only one. It isn't in the agent menus. The other agents still use their own instructions, and Agent Activity lists it as **Claude Code Review**. A Claude model on Cursor Agent doesn't run it.
+- **Codex Code Review runs `codex review`.** The same kind of hidden agent, when at least one selected agent is on the Codex CLI. Agent Activity lists it as **Codex Code Review**. A Codex model on Cursor Agent doesn't run it.
+- **A built-in review that doesn't finish leaves the other findings open.** They stay for you to review, and they are not posted on their own.
+- **A long built-in review stops when it stalls.** Claude Code Review and Codex Code Review keep going past `xrayviewer.agents.timeoutMinutes` while they are still working. Each stops after 5 minutes with nothing happening, or at three times that setting (an hour by default).
+- **Ongoing Reviews can stop a run.** **Stop** on that section stops every live run in this window, and each running row has its own stop. In Pull Requests, the review in front has its title highlighted.
+- **Icon-only buttons show their name.** The review page draws the tooltip, so Search, Refresh, Theme, and the other icon buttons say what they are in Cursor and VS Code.
+
 ## 0.5.3
 
 - **A newer program shows on its own row.** The name line says **Update** and the new version, and in Cursor the download icon sits on a soft highlight. The button on the right installs it. A program that isn't on the machine gets an **Install** row, and picking the program installs it.
