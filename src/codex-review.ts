@@ -9,9 +9,6 @@ export interface CodexConfig {
   extraArgs: string[];
 }
 
-/** `codex review` reads custom instructions from stdin when the prompt is `-`. The review itself is the command. */
-export const CODEX_REVIEW_INPUT = "Review the changes against the base.";
-
 /** `-c` pairs Codex already has. `codex review` does not take the flags `codex exec` uses. */
 function codexConfigs(extraArgs: readonly string[]): string[] {
   const configs: string[] = [];
@@ -22,14 +19,14 @@ function codexConfigs(extraArgs: readonly string[]): string[] {
 }
 
 /**
- * `codex review --base <merge-base> -`. The base is the start of the pull request. `-` is last because the command
- * reads the prompt from stdin, which is how the built-in review is attached.
+ * `codex review --base <merge-base>`. A prompt cannot be passed with `--base`: Codex exits with code 2 and does not
+ * start the review. The merge base is the start of the pull request.
  */
 export function codexReviewArgs(config: CodexConfig, request: CodeReviewRequest): string[] {
   const model = request.model || config.model;
   const configs = codexConfigs(config.extraArgs);
   const hasModel = configs.some((arg, index) => configs[index - 1] === "-c" && arg.startsWith("model="));
-  return ["review", "--base", request.codeReview.args, ...configs, ...(!hasModel && model ? ["-c", `model=${JSON.stringify(model)}`] : []), "-"];
+  return ["review", "--base", request.codeReview.args, ...configs, ...(!hasModel && model ? ["-c", `model=${JSON.stringify(model)}`] : [])];
 }
 
 function addCodexTokens(current: Tokens | null, usage: Record<string, unknown>): Tokens {
@@ -107,7 +104,6 @@ export async function runCodexReview(
     .run(config.command, codexReviewArgs(config, request), {
       cwd: request.cwd,
       env: internals.baseEnv(),
-      input: CODEX_REVIEW_INPUT,
       timeoutMs: left(),
       signal: reviewing.signal,
       onStdout: reviewing.activity(request.activity).stream("codex"),
