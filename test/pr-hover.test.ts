@@ -45,6 +45,10 @@ describe("pull request hover card", () => {
     assert.match(visible(tableRow(md, "Size")), /\+1,437 −125 in 13 files/);
   });
 
+  test("names the pull request a stacked one builds on", () => {
+    assert.equal(visible(card({ stackedOn: 28 }).split("\n\n")[1]), "acme/app#42 · by octocat · stacked on #28");
+  });
+
   test("says only what it knows before GitHub's details arrive", () => {
     const md = card({ state: undefined, approvals: undefined, title: "acme/app#42", author: undefined });
     assert.equal(tableRow(md, "Status"), "");

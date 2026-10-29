@@ -310,6 +310,21 @@ describe("the built extension", () => {
     assert.ok(bundle.includes("!0);return r.supportHtml=!0,r}"), "the hover card renders its icons and colors");
   });
 
+  test("nests stacked pull requests in the Pull Requests list, each row as it was", () => {
+    assert.ok(bundle.includes("rows:xrvCursor().nestStacks(s.rows.map(i=>({kind:\"pr\",...i})),groups.flatMap(g=>g===s?[]:g.rows))"), "each group nests its own rows and knows the others");
+    assert.ok(bundle.includes('return e.kind==="group"?e.rows:e.children||[]'), "a pull request lists the ones stacked on it");
+    assert.ok(bundle.includes("r=new oe.TreeItem(s?.title??i,e.children?.length?oe.TreeItemCollapsibleState.Expanded:oe.TreeItemCollapsibleState.None)"), "a stack starts open");
+    assert.ok(bundle.includes('r.description=e.stackedElsewhere?[bf(t,e),"on #"+e.stackedOn].filter(Boolean).join(" \\u00b7 "):bf(t,e);'), "a row built on one in another group names it");
+    assert.ok(bundle.includes("ref:N(s.key),author:i?.author?.login,stackedOn:e.stackedOn,"), "the hover card names it too");
+    assert.ok(bundle.includes("canSelectMany:!0,manageCheckboxStateManually:!0"), "checking a pull request doesn't check the ones stacked on it");
+    assert.ok(bundle.includes("  baseRefName headRefName headRefOid isCrossRepository\n  mergeable\n"), "the list asks GitHub which pull requests come from forks");
+    assert.ok(bundle.includes("headRefName:n.headRefName??null,isCrossRepository:!!n.isCrossRepository,"));
+    assert.ok(bundle.includes("      baseRefName headRefName baseRefOid headRefOid isCrossRepository\n"), "so does an opened pull request");
+    assert.ok(bundle.includes("headRefName:s.headRefName??null,isCrossRepository:!!s.isCrossRepository,baseRefOid"));
+    assert.ok(bundle.includes("headRefName:t.headRefName,isCrossRepository:t.isCrossRepository,headRefOid"), "and keeps it when its row is rebuilt from the details");
+    assert.equal(typeof createRequire(import.meta.url)(path.join(dir, "dist", "cursor-harness.cjs")).createCursorHarness({}).nestStacks, "function");
+  });
+
   test("shows X-RayViewer's review state beside the risk pill on the review page", async () => {
     const page = await readFile(path.join(dir, "media", "ui", "app.js"), "utf8");
     const source = page.slice(page.indexOf("function xrayState("), page.indexOf("function xrayPillHTML("));

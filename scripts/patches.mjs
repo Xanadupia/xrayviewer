@@ -496,7 +496,7 @@ export const PATCHES = [
     id: "review-decoration",
     find: 'l=C.window.createTreeView("xrayviewer.pullRequests",{treeDataProvider:a,showCollapseAll:!0});n.subscriptions.push(l,a,{dispose:()=>r.dispose()},{dispose:()=>o.dispose()});',
     replace:
-      'l=C.window.createTreeView("xrayviewer.pullRequests",{treeDataProvider:a,showCollapseAll:!0,canSelectMany:!0});r.xrvMarkList=()=>a.refresh();l.onDidChangeCheckboxState(ev=>{let blocked="";for(let [item,state] of ev.items||[]){if(!item||item.kind!=="pr"||!item.record?.key)continue;let res=xrvCursor().setChecked(N(item.record.key),state===1);if(!res.ok)blocked=res.reason||"Five is the most you can select."}blocked&&(xrvCursor().offerNotice(blocked,[],"warning")||C.window.showInformationMessage(blocked));a.refresh()});n.subscriptions.push(l,a,{dispose:()=>r.dispose()},{dispose:()=>o.dispose()},C.window.registerFileDecorationProvider({provideFileDecoration(u){if(u.scheme!=="xrayviewer")return;let f=u.query;return f==="ongoing"?{badge:"\\u25cf",tooltip:"Reviewing"}:f==="posted"?{badge:"\\u2713",tooltip:"Reviewed and posted by X-RayViewer"}:f==="reviewed"?{badge:"\\u2713",tooltip:"Reviewed by X-RayViewer, not posted yet"}:void 0}}));' +
+      'l=C.window.createTreeView("xrayviewer.pullRequests",{treeDataProvider:a,showCollapseAll:!0,canSelectMany:!0,manageCheckboxStateManually:!0});r.xrvMarkList=()=>a.refresh();l.onDidChangeCheckboxState(ev=>{let blocked="";for(let [item,state] of ev.items||[]){if(!item||item.kind!=="pr"||!item.record?.key)continue;let res=xrvCursor().setChecked(N(item.record.key),state===1);if(!res.ok)blocked=res.reason||"Five is the most you can select."}blocked&&(xrvCursor().offerNotice(blocked,[],"warning")||C.window.showInformationMessage(blocked));a.refresh()});n.subscriptions.push(l,a,{dispose:()=>r.dispose()},{dispose:()=>o.dispose()},C.window.registerFileDecorationProvider({provideFileDecoration(u){if(u.scheme!=="xrayviewer")return;let f=u.query;return f==="ongoing"?{badge:"\\u25cf",tooltip:"Reviewing"}:f==="posted"?{badge:"\\u2713",tooltip:"Reviewed and posted by X-RayViewer"}:f==="reviewed"?{badge:"\\u2713",tooltip:"Reviewed by X-RayViewer, not posted yet"}:void 0}}));' +
       'xrvCursor().bindRunningView({vscode:C,records:()=>r.all(),onChange:f=>r.on("change",f),openReviews:()=>[...o.xrvTabs.values()].flatMap(tab=>{let pr=tab.current;return pr?.key?[{key:N(pr.key),title:pr.summary?.title||"",name:pr.key.name,number:pr.key.number}]:[]}),onOpenChange:f=>{o.xrvOpenWatch=f},stopRun:key=>{let pr=Re(key);pr&&r.cancel(pr)},subscriptions:n.subscriptions});',
   },
   {
@@ -508,7 +508,7 @@ export const PATCHES = [
   {
     id: "sidebar-tooltip",
     find: "tooltip(e,t){let s=e.record,i=s.summary,r=new oe.MarkdownString;r.appendMarkdown(\"**\"),r.appendText(i?.title||N(s.key)),r.appendMarkdown(`**  \n`),r.appendText(`${N(s.key)}${i?.author?.login?` by ${i.author.login}`:\"\"}`),r.appendMarkdown(`  \n`);let o=(i?.reasons||[]).map(c=>hd[c]).filter(Boolean);if(o.length&&r.appendMarkdown(`Listed because ${o.join(\", \")}.  \n`),i&&r.appendMarkdown(`+${i.additions} \\u2212${i.deletions} in ${i.changedFiles} files${i.checks.failed?` \\xB7 ${i.checks.failed} checks failing`:i.checks.running?` \\xB7 ${i.checks.running} checks running`:\"\"}  \n`),i){r.appendMarkdown(`\n`);for(let c of[Sf(i),kf(i),...Rf(i)])r.appendText(c),r.appendMarkdown(`  \n`)}if(e.risk){r.appendMarkdown(`\n**${fi[e.risk.level]} risk, ${e.risk.score}/100**  \n`);for(let c of e.risk.factors.slice(0,4))r.appendMarkdown(\"- \"),r.appendText(`${c.label}${c.detail?`: ${c.detail}`:\"\"} (+${c.points})`),r.appendMarkdown(`\n`)}if([\"waiting\",\"queued\",\"running\",\"elsewhere\",\"held\",\"failed\"].includes(s.run.state)&&t&&r.appendMarkdown(`\nAgents: ${t}  \n`),$f(s).forEach((c,d)=>{r.appendMarkdown(d?`  \n`:`\n`),r.appendText(c)}),s.run.state===\"done\"&&(s.run.tokens||s.run.costUsd!=null)){let c=[s.run.tokens?wt(s.run.tokens):\"\",s.run.costUsd!=null?`$${s.run.costUsd.toFixed(2)}${s.run.tokens?\" for the agents that report one\":\"\"}`:\"\"];r.appendMarkdown(`  \nLast run: ${c.filter(Boolean).join(\", \")}`)}return s.run.note&&(r.appendMarkdown(`  \n`),r.appendText(s.run.note)),s.run.error&&(r.appendMarkdown(`  \n`),r.appendText(s.run.error.slice(0,300))),r}};",
-    replace: "tooltip(e,t){let s=e.record,i=s.summary,run=s.run||{},a=xrvAgentState(s),r=new oe.MarkdownString(xrvCursor().prHoverMarkdown({title:i?.title||N(s.key),ref:N(s.key),author:i?.author?.login,state:!i?void 0:i.state===\"MERGED\"?\"merged\":i.state===\"CLOSED\"?\"closed\":i.isDraft?\"draft\":\"open\",stateWhen:i?.state===\"MERGED\"&&i.mergedAt?ht(i.mergedAt):i?.state===\"CLOSED\"&&i.closedAt?ht(i.closedAt):\"\",approvals:i?kf(i):\"\",conflictsWith:yf(i)?i.baseRefName||\"its base branch\":\"\",checks:i?.checks,additions:i?.additions,deletions:i?.deletions,changedFiles:i?.changedFiles,yours:i?Rf(i):[],risk:e.risk?{level:e.risk.level,score:e.risk.score,factors:e.risk.factors.map(c=>c.label)}:void 0,review:{tone:a.tone,short:a.short,detail:a.detail},usage:run.state===\"done\"&&(run.tokens||run.costUsd!=null)?[run.tokens?wt(run.tokens):\"\",run.costUsd!=null?\"$\"+run.costUsd.toFixed(2):\"\"].filter(Boolean).join(\" · \"):\"\",note:run.note,error:run.error}),!0);return r.supportHtml=!0,r}};",
+    replace: "tooltip(e,t){let s=e.record,i=s.summary,run=s.run||{},a=xrvAgentState(s),r=new oe.MarkdownString(xrvCursor().prHoverMarkdown({title:i?.title||N(s.key),ref:N(s.key),author:i?.author?.login,stackedOn:e.stackedOn,state:!i?void 0:i.state===\"MERGED\"?\"merged\":i.state===\"CLOSED\"?\"closed\":i.isDraft?\"draft\":\"open\",stateWhen:i?.state===\"MERGED\"&&i.mergedAt?ht(i.mergedAt):i?.state===\"CLOSED\"&&i.closedAt?ht(i.closedAt):\"\",approvals:i?kf(i):\"\",conflictsWith:yf(i)?i.baseRefName||\"its base branch\":\"\",checks:i?.checks,additions:i?.additions,deletions:i?.deletions,changedFiles:i?.changedFiles,yours:i?Rf(i):[],risk:e.risk?{level:e.risk.level,score:e.risk.score,factors:e.risk.factors.map(c=>c.label)}:void 0,review:{tone:a.tone,short:a.short,detail:a.detail},usage:run.state===\"done\"&&(run.tokens||run.costUsd!=null)?[run.tokens?wt(run.tokens):\"\",run.costUsd!=null?\"$\"+run.costUsd.toFixed(2):\"\"].filter(Boolean).join(\" · \"):\"\",note:run.note,error:run.error}),!0);return r.supportHtml=!0,r}};",
   },
   {
         id: "sidebar-view-label",
@@ -565,7 +565,7 @@ export const PATCHES = [
   {
     id: "sidebar-actions",
     find: 'async getChildren(e){return e?e.kind==="group"?e.rows:[]:(await this.service.groups()).map(s=>({kind:"group",...s,rows:s.rows.map(i=>({kind:"pr",...i}))}))}',
-    replace: 'async getChildren(e){if(e)return e.kind==="group"?e.rows:[];let groups=await this.service.groups();C.commands.executeCommand("setContext","xrayviewer.hasPullRequests",groups.some(s=>(s.rows||[]).length>0));return groups.map(s=>({kind:"group",...s,rows:s.rows.map(i=>({kind:"pr",...i}))}))}',
+    replace: 'async getChildren(e){if(e)return e.kind==="group"?e.rows:e.children||[];let groups=await this.service.groups();C.commands.executeCommand("setContext","xrayviewer.hasPullRequests",groups.some(s=>(s.rows||[]).length>0));return groups.map(s=>({kind:"group",...s,rows:xrvCursor().nestStacks(s.rows.map(i=>({kind:"pr",...i})),groups.flatMap(g=>g===s?[]:g.rows))}))}',
   },
   {
     id: "sidebar-check-command",
@@ -581,12 +581,42 @@ export const PATCHES = [
     id: "sidebar-title-first",
     find: "i=N(t.key),r=new oe.TreeItem(`#${t.key.number} ${s?.title??i}`,oe.TreeItemCollapsibleState.None);",
     replace:
-      "i=N(t.key),r=new oe.TreeItem(s?.title??i,oe.TreeItemCollapsibleState.None);if(this.service.xrvFront===i.toLowerCase()){let xrvLabel=String(r.label||\"\");r.label={label:xrvLabel,highlights:[[0,xrvLabel.length]]}}",
+      "i=N(t.key),r=new oe.TreeItem(s?.title??i,e.children?.length?oe.TreeItemCollapsibleState.Expanded:oe.TreeItemCollapsibleState.None);if(this.service.xrvFront===i.toLowerCase()){let xrvLabel=String(r.label||\"\");r.label={label:xrvLabel,highlights:[[0,xrvLabel.length]]}}",
   },
   {
     id: "sidebar-repo-icon",
     find: "u.contextValue=\"group\",u.id=`group:${e.id}`,u}",
     replace: "u.contextValue=\"group\",u.id=`group:${e.id}`,String(e.id).startsWith(\"repo:\")&&(u.iconPath=new oe.ThemeIcon(\"repo\")),u}",
+  },
+  {
+    id: "stack-summary-query",
+    find: "  baseRefName headRefName headRefOid\n  mergeable\n",
+    replace: "  baseRefName headRefName headRefOid isCrossRepository\n  mergeable\n",
+  },
+  {
+    id: "stack-summary-fork",
+    find: "headRefName:n.headRefName??null,headRefOid:n.headRefOid??null,reviewDecision",
+    replace: "headRefName:n.headRefName??null,isCrossRepository:!!n.isCrossRepository,headRefOid:n.headRefOid??null,reviewDecision",
+  },
+  {
+    id: "stack-detail-query",
+    find: "      baseRefName headRefName baseRefOid headRefOid\n",
+    replace: "      baseRefName headRefName baseRefOid headRefOid isCrossRepository\n",
+  },
+  {
+    id: "stack-detail-fork",
+    find: "headRefName:s.headRefName??null,baseRefOid",
+    replace: "headRefName:s.headRefName??null,isCrossRepository:!!s.isCrossRepository,baseRefOid",
+  },
+  {
+    id: "stack-detail-summary-fork",
+    find: "headRefName:t.headRefName,headRefOid:t.headRefOid",
+    replace: "headRefName:t.headRefName,isCrossRepository:t.isCrossRepository,headRefOid:t.headRefOid",
+  },
+  {
+    id: "stack-row-description",
+    find: "r.description=bf(t,e);",
+    replace: 'r.description=e.stackedElsewhere?[bf(t,e),"on #"+e.stackedOn].filter(Boolean).join(" \\u00b7 "):bf(t,e);',
   },
   {
     id: "sidebar-badge",

@@ -222,6 +222,8 @@ A pull request appears in the first group it fits. The number on the activity ba
 
 The view's menu groups the list by relationship, repository, author, or review status instead, and **Filter…** narrows it by status and author.
 
+Stacked pull requests show as a tree. An open pull request whose base branch is another open pull request's branch in the same repository sits under that one, as deep as the stack goes. Each row still opens its review, shows its hover card, and has its own checkbox. When the pull request it builds on is in another group, the row stays at the top of its own group and says "on #28". A fork's branch is never treated as a parent, so pull requests opened from a fork's `main` don't collect the others.
+
 ### What a row says
 
 | Row says | What it means |
@@ -233,7 +235,7 @@ The view's menu groups the list by relationship, repository, author, or review s
 | Review failed | The last review failed. Its hover card has the error. |
 | Nothing | X-RayViewer hasn't reviewed it yet. |
 
-Hover a row for its card. Under the title and who opened it, each line has a label: **Status** (open, draft, merged, or closed, with approvals, conflicts, and checks), **X-RayViewer** (where its review stands, with the commit, when it ran, and when it was posted), **Risk** (the score and its top reasons), **Size**, and **Your review** when you've reviewed it on GitHub. Color only marks what needs attention, and it follows your theme.
+Hover a row for its card. Under the title and who opened it (and the pull request it's stacked on, if any), each line has a label: **Status** (open, draft, merged, or closed, with approvals, conflicts, and checks), **X-RayViewer** (where its review stands, with the commit, when it ran, and when it was posted), **Risk** (the score and its top reasons), **Size**, and **Your review** when you've reviewed it on GitHub. Color only marks what needs attention, and it follows your theme.
 
 ### Commands
 
