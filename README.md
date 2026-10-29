@@ -12,7 +12,7 @@ The user guide walks through a first review with screenshots, then covers automa
 
 You need VS Code 1.95 or later, or Cursor, plus `gh auth login`, `git`, and one of Claude Code, Codex, or Cursor Agent.
 
-In VS Code, search for **X-RayViewer** by Ali Qaryan in the Extensions view. The id is `aliqaryan.xrayviewer`. Cursor installs extensions from Open VSX, where it isn't listed yet, so download the `.vsix` from the [latest release](https://github.com/Xanadupia/xrayviewer/releases/latest), or build it below, and run **Extensions: Install from VSIX…**.
+Search for **X-RayViewer** by Ali Qaryan in the Extensions view of VS Code (Visual Studio Marketplace) or Cursor (Open VSX). The id is `aliqaryan.xrayviewer`. To install a `.vsix`, download it from the [latest release](https://github.com/Xanadupia/xrayviewer/releases/latest) or build it below, and run **Extensions: Install from VSIX…**.
 
 Building needs Node 26 or later: Volta picks it up from `package.json`, nvm from `.nvmrc`, and npm refuses older versions.
 

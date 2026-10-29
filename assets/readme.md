@@ -15,7 +15,7 @@ You need:
 - **git**
 - One program to run the agents, signed in: **Claude Code**, **Codex**, or **Cursor Agent** (`cursor-agent login`)
 
-In VS Code, search for **X-RayViewer** in the Extensions view and install it. The id is `aliqaryan.xrayviewer`. Cursor installs extensions from Open VSX, where X-RayViewer isn't listed yet. Until it is, download the `.vsix` from the [latest release](https://github.com/Xanadupia/xrayviewer/releases/latest) and run **Extensions: Install from VSIX…** in Cursor.
+Search for **X-RayViewer** in the Extensions view and install it. The id is `aliqaryan.xrayviewer`. VS Code installs it from the Visual Studio Marketplace, and Cursor from Open VSX. Each [release](https://github.com/Xanadupia/xrayviewer/releases/latest) also has the `.vsix`, for **Extensions: Install from VSIX…**.
 
 Click the X-RayViewer icon in the activity bar. Your pull requests load in a few seconds. If the list stays empty, run `gh auth login` in a terminal, then **X-RayViewer: Refresh**.
 
@@ -41,7 +41,7 @@ Leave **Post all findings when finished** unchecked for now. When it's checked, 
 
 ### 3. Watch them work
 
-![Agent Activity while a review runs, with Claude Code Review listed among the agents](docs/agent-activity.png)
+![Ongoing Reviews and Agent Activity while a review runs: each agent with its program, model, and effort level, Claude Code Review among them](docs/agent-activity.png)
 
 **Ongoing Reviews** in the sidebar lists every pull request under review, and every review page that is open, with its progress and how long it has run. A finished run stays until you refresh that list. An open page leaves when its tab closes. **Agent Activity** below it lists the agents the way GitHub lists checks: each one's status, program, model, effort level, time, and cost. Click an agent for its log: what it said, and the commands, reads, and searches it ran.
 

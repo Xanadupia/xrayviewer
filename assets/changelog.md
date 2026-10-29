@@ -7,6 +7,7 @@
 - **Stop the agents from the review page.** While they run, the **X-RayViewer reviewing** pill at the top ends in a stop button. It asks first, then stops the run the same way **Stop** in Ongoing Reviews does. Nothing from the stopped run is saved or posted, and an earlier review stays.
 - **Stacked pull requests show as a tree in Pull Requests.** An open pull request built on another open one in the same repository sits under it, and each row keeps its review, hover card, and checkbox. One built on a pull request in another group says "on #28", and the hover card says "stacked on #28".
 - **Agent Activity shows each agent's effort level.** The line under an agent's name reads like "Claude Code · Opus 5.5 · high", in the sidebar and on the review page. When the sidebar is too narrow for it, hovering the row shows the whole line. Cursor models name their level, so Cursor Agent rows show only the model.
+- **Cursor finds X-RayViewer in its Extensions view.** It's on Open VSX now, so Cursor installs and updates it like VS Code does from the Marketplace. The guide's setup steps say so.
 - **Codex Code Review uses `codex review --base`.** It reviews the pull request against its merge base. The command does not add a custom prompt, because Codex exits with code 2 when `--base` and a prompt are used together.
 
 ## 0.5.4
