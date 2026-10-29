@@ -807,6 +807,53 @@ body {
   font-variant-numeric: tabular-nums;
 }
 
+/* While the agents run, the pill ends in a stop segment, like the run button's split. */
+.xray-group {
+  display: inline-flex;
+  align-items: stretch;
+}
+
+.xray-pill.has-stop {
+  border-right-width: 0;
+  border-radius: 13px 0 0 13px;
+}
+
+.xray-stop {
+  display: inline-grid;
+  place-items: center;
+  width: 28px;
+  height: 26px;
+  padding: 0 2px 0 0;
+  border: 1px solid var(--line-2);
+  border-radius: 0 13px 13px 0;
+  background: var(--sheet);
+  color: var(--ink-2);
+  cursor: pointer;
+  transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease, transform 0.16s var(--ease-out);
+}
+
+.xray-stop:hover {
+  border-color: var(--ink-3);
+  color: var(--bad);
+}
+
+.xray-stop:active {
+  transform: scale(var(--press));
+}
+
+.xray-stop:focus-visible {
+  outline: 2px solid var(--blue);
+  outline-offset: 2px;
+}
+
+.sheet.confirm {
+  width: min(400px, calc(100% - 32px));
+}
+
+.btn.destructive {
+  color: var(--bad);
+}
+
 /* Agent activity: agents listed like GitHub's checks, each agent's log folded like the Claude app. */
 .sheet.side.activity-sheet {
   width: min(600px, 100%);

@@ -330,6 +330,54 @@ describe("the built extension", () => {
     assert.match(page, /btn\.outerHTML = runMainHTML\(runButtonLabel\); applyXrayPill\(\); \};/, "the pill follows the run as it starts, progresses and ends");
   });
 
+  test("the running pill ends in a stop button that asks first, then stops like the sidebar's Stop Agents", async () => {
+    const page = await readFile(path.join(dir, "media", "ui", "app.js"), "utf8");
+    const source = page.slice(page.indexOf("function xrayState("), page.indexOf("function prHeadHTML("));
+    const calls: string[] = [];
+    const make = (env: Record<string, unknown>) =>
+      new Function(...Object.keys(env), `${source}; return { xrayPillHTML, xrayStopSheetHTML, stopAgentsNow };`)(...Object.values(env));
+    const env = {
+      agentProgress: { agents: { a: { state: "running" } } },
+      agentsRunning: true,
+      AG: null,
+      AGENT_RUN_AT: null,
+      FINDINGS: [],
+      PR: { number: 42 },
+      HOST: { stopAgents: () => calls.push("stop") },
+      agentsBehind: () => false,
+      ago: () => "",
+      plural: (n: number, one: string) => `${n} ${one}s`,
+      esc: (s: string) => s,
+      icon: (name: string) => `<${name}>`,
+      sheetHead: (_id: string, title: string) => `<h2>${title}</h2>`,
+      closeSheet: () => calls.push("close"),
+      toast: (text: string) => calls.push(`toast: ${text}`),
+    };
+
+    const running = make(env).xrayPillHTML();
+    assert.match(running, /^<span class="xray-group" id="xray-pill"><button type="button" class="xray-pill is-running has-stop" data-act="agent-activity"/);
+    assert.match(running, /<button type="button" class="xray-stop" data-act="xray-stop" aria-label="Stop the agents" title="Stop the agents"><svg/);
+    assert.equal(make({ ...env, agentsRunning: false }).xrayPillHTML().includes("xray-stop"), false, "only while the agents run");
+    assert.equal(make({ ...env, HOST: {} }).xrayPillHTML().includes("xray-stop"), false, "only where the host can stop them");
+
+    const sheet = make(env).xrayStopSheetHTML();
+    assert.match(sheet, /<h2>Stop the agents\?<\/h2>/);
+    assert.match(sheet, /The review of #42 stops now\. Nothing from this run is saved or posted\.<\/p>/);
+    assert.match(make({ ...env, AG: { commit: "a9dca66" } }).xrayStopSheetHTML(), /The earlier review stays\./);
+    assert.match(sheet, /data-act="sheet-close" autofocus>Cancel<\/button>/, "Cancel has the focus, so Return doesn't stop them");
+    assert.match(sheet, /class="btn ghost destructive" data-act="xray-stop-now">Stop agents<\/button>/);
+
+    make(env).stopAgentsNow();
+    assert.deepEqual(calls.splice(0), ["close", "stop", "toast: Stopping the agents."]);
+    make({ ...env, agentsRunning: false }).stopAgentsNow();
+    assert.deepEqual(calls.splice(0), ["close"], "a run that ended while the question was open isn't stopped again");
+
+    assert.ok(page.includes('"xray-stop": () => openSheet("xray-stop", xrayStopSheetHTML(), "confirm"),'), "the stop button opens the question");
+    assert.ok(page.includes('"xray-stop-now": () => stopAgentsNow(),'));
+    assert.ok(bundle.includes('stopAgents() { vscode.postMessage({ type: "stopAgents", key }); },'), "the page asks the extension");
+    assert.ok(bundle.includes('else if(e.type==="stopAgents")ee.commands.executeCommand("xrayviewer.cancelAgents",{key:N(t)});'), "the extension runs the same Stop Agents command");
+  });
+
   test("ships a Cursor harness module the bundle can load", () => {
     const harness = createRequire(import.meta.url)(path.join(dir, "dist", "cursor-harness.cjs"));
 
