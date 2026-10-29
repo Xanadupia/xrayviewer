@@ -220,10 +220,12 @@ describe("the built extension", () => {
     const agent = { commit: "a9dca66f00", ranAt: "2026-10-21T09:00:00Z", findings: [{}, {}, {}] };
     const row = (run: Record<string, unknown>, extra: Record<string, unknown> = {}) => state({ run, summary: { headRefOid: "a9dca66f00" }, ...extra });
 
-    assert.deepEqual(row({ state: "idle" }), { short: "Not reviewed", long: "Not reviewed yet.", color: "#9AA0A6", flag: "never" });
-    assert.deepEqual(row({ state: "done" }, { agent }), { short: "Reviewed, not posted, 3 findings", long: "Reviewed a9dca66 3 hours ago: 3 findings. Not posted to GitHub yet.", color: "#E2C08D", flag: "reviewed" });
+    assert.deepEqual(row({ state: "idle" }), { short: "Not reviewed", detail: "", tone: "none", flag: "never" });
+    assert.deepEqual(row({ state: "done" }, { agent }), { short: "Reviewed, not posted, 3 findings", detail: "a9dca66 · 3 hours ago", tone: "unposted", flag: "reviewed" });
     const posted = { ...agent, postedAt: "2026-10-21T10:00:00Z" };
-    assert.deepEqual(row({ state: "done" }, { agent: posted }), { short: "Reviewed & posted, 3 findings", long: "Reviewed a9dca66 3 hours ago: 3 findings. Posted to GitHub 3 hours ago.", color: "#3FB950", flag: "posted" });
+    assert.deepEqual(row({ state: "done" }, { agent: posted }), { short: "Reviewed & posted, 3 findings", detail: "a9dca66 · 3 hours ago · posted 3 hours ago", tone: "posted", flag: "posted" });
+    assert.deepEqual(row({ state: "done" }, { agent: posted, summary: { headRefOid: "b000000" } }).detail, "a9dca66 · 3 hours ago · 3 findings · posted 3 hours ago");
+    assert.equal(row({ state: "done" }, { agent, summary: { headRefOid: "b000000" } }).tone, "stale");
     assert.equal(row({ state: "done" }, { agent, summary: { headRefOid: "b000000" } }).short, "Reviewed, new commits");
     assert.equal(row({ state: "done" }, { agent, summary: { headRefOid: "b000000" } }).flag, "reviewed");
     assert.equal(row({ state: "done" }, { agent: posted, summary: { headRefOid: "b000000" } }).short, "Reviewed & posted, new commits");
@@ -239,6 +241,8 @@ describe("the built extension", () => {
     assert.equal(row({ state: "running" }).flag, "ongoing");
     assert.equal(row({ state: "queued" }).short, "Reviewing, queued");
     assert.equal(row({ state: "running", progress: { agents: { a: { state: "queued" }, b: { state: "queued" } } } }).short, "Paused, waiting for an agent");
+    assert.equal(row({ state: "running", progress: { agents: { a: { state: "queued" }, b: { state: "queued" } } } }).tone, "paused");
+    assert.equal(row({ state: "running", progress: { agents: { a: { state: "done" }, b: { state: "running" } } } }).detail, "1 of 2 agents done");
     assert.ok(bundle.includes("canSelectMany:!0"), "the sidebar can select several pull requests");
     assert.ok(bundle.includes("r.checkboxState=xrvCursor().isChecked(i)?1:0"), "each pull request has a checkbox");
     assert.ok(bundle.includes("onDidChangeCheckboxState"), "checking a box selects that pull request");
@@ -288,8 +292,8 @@ describe("the built extension", () => {
     assert.equal(bundle.includes('.sort(cd("updated"))'), false);
     assert.ok(bundle.includes("agentUnavailable"), "a busy agent pauses the pull request instead of failing it");
     assert.equal(row({ state: "elsewhere" }).short, "Reviewing in another window");
-    assert.deepEqual(row({ state: "failed" }, { agent }), { short: "Review failed", long: "The last review failed. The one before found 3 findings.", color: "#F85149", flag: "reviewed" });
-    assert.equal(row({ state: "held", hold: "large" }).long, "Not reviewed yet. Large, so the agents wait for you to press Run.");
+    assert.deepEqual(row({ state: "failed" }, { agent }), { short: "Review failed", detail: "The one before found 3 findings", tone: "failed", flag: "reviewed" });
+    assert.equal(row({ state: "held", hold: "large" }).detail, "Large, so the agents wait for you to press Run");
     assert.equal(row({ state: "held", hold: "large" }).flag, "never");
     const rowSource = bundle.slice(bundle.indexOf("function xrvAgentState("), bundle.indexOf("function kf("));
     const isOpen = (s: any) => !s?.state || s.state === "OPEN";
@@ -301,7 +305,9 @@ describe("the built extension", () => {
     assert.equal(pr({ state: "idle" }, { isDraft: true, mergeStateStatus: "DIRTY" }), "#42 · draft · conflicts");
     assert.equal(pr({ state: "done" }, {}, { agent }), "#42 · Reviewed, not posted, 3 findings");
     assert.equal(pr({ state: "failed" }), "#42 · Review failed", "a failed first review still says so");
-    assert.ok(bundle.includes('let xs=xrvAgentState(s);r.appendMarkdown("<b>X-RayViewer</b> \u00B7 "),paint(xs.color,xs.long)'), "the hover card says it in full");
+    assert.ok(bundle.includes("a=xrvAgentState(s),r=new oe.MarkdownString(xrvCursor().prHoverMarkdown({"), "the hover card is built from the same state");
+    assert.ok(bundle.includes("review:{tone:a.tone,short:a.short,detail:a.detail}"), "the hover card says it in full");
+    assert.ok(bundle.includes("!0);return r.supportHtml=!0,r}"), "the hover card renders its icons and colors");
   });
 
   test("shows X-RayViewer's review state beside the risk pill on the review page", async () => {
