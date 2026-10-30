@@ -50,6 +50,9 @@ describe("the built extension", () => {
     const page = await readFile(path.join(dir, "media", "ui", "app.js"), "utf8");
     assert.match(page, /function modelSummary\(agents\)/);
     assert.match(page, /Update review/);
+    assert.match(page, /class="btn primary finish finish-\$\{where\}"/, "Update review stays filled, like Post review");
+    assert.match(page, /class="btn sm agent" id="host-run" data-act="host-run-agents"/, "Rerun is a filled agent button");
+    assert.match(page, /Decide<\/button><button type="button" class="btn sm primary" data-act="adopt-all" data-stay="finish">Add all comments<\/button>/, "Add all comments sits beside Decide");
     assert.match(page, /Choose model/);
     assert.match(page, /X-RayViewer/);
     assert.match(page, /choose-model/);
@@ -65,7 +68,7 @@ describe("the built extension", () => {
     assert.match(page, /\$\{icon\("plus"\)\}Add to my review<\/button>\$\{adoptAllCardHTML\(\)\}/, "each finding card also offers to add them all");
     assert.match(page, /function refreshChrome\(\) \{\n {2}if \(S\.view !== "pr"\) return;\n {2}syncAdoptAll\(\);/, "the cards' counts follow every decision");
     assert.match(page, /function findingDrafts\(findings, page\)/);
-    assert.match(page, /"adopt-all": \(\) => adoptAll\(\),\n {2}"adopt-all-undo": \(\) => undoAdoptAll\(\),/);
+    assert.match(page, /"adopt-all": \(el\) => \{\n\s+adoptAll\(\);\n\s+if \(!el \|\| el\.dataset\.stay !== "finish" \|\| !S\.sheet \|\| S\.sheet\.id !== "finish"\) return;\n\s+const sheet = document\.getElementById\("sheet-finish"\);/, "adding every comment from the post sheet redraws that sheet");
     assert.match(page, /\{ act: "adopt-all-undo", label: "Undo" \}/);
     assert.match(page, /function activityHTML\(progress, plan, view\)/);
     assert.match(page, /"agent-activity": \(\) => \{ runMenu\(false\); if \(typeof HOST\.showActivity === "function"\) HOST\.showActivity\(\); else openActivity\(\); \},\n {2}"activity-detail": \(el\) => showActivity\(el\.dataset\.id\),\n {2}"activity-back": \(\) => showActivity\(""\),/);
@@ -89,7 +92,11 @@ describe("the built extension", () => {
     assert.ok(bundle.includes("progress:run?.progress??null"), "the host posts each agent's steps with the run state");
     assert.ok(bundle.includes("state:s,automatic:!!run?.automatic"), "the page can tell a finished manual run from one that was stopped");
     assert.ok(bundle.includes("autoPost:auto"), "each open review hears when its own run should post");
+    assert.ok(bundle.includes("let xrvPanel=this.panel"), "a review page's answer is sent back to the page that asked");
+    assert.equal(bundle.includes('await this.service.api(t,String(e.method),String(e.path),e.body);this.panel?.webview.postMessage'), false, "posting one review must not answer whichever pull request is in front");
     assert.match(page, /if \(m\.autoPost\) armPostAll\(\);/);
+    assert.match(page, /function postAllStorageKey\(\) \{ return "xrv:postAllFor:" \+ postAllKey\(\); \}/, "each open pull request remembers its own post");
+    assert.equal(page.includes('localStorage.setItem("xrv:postAllFor"'), false, "one review must not clear the post the others are waiting on");
     assert.ok(bundle.includes("o.runState=l.state"), "a reloaded review knows the run has finished");
     assert.ok(bundle.includes("activity:xrvA.snapshot()"));
     assert.match(page, /body: withTag\(draftLevel\(d\), d\.body\)/, "every posted comment carries its level");
@@ -184,6 +191,8 @@ describe("the built extension", () => {
     for (const tone of ["success", "info", "ask", "warning", "error", "progress"]) assert.match(styles, new RegExp(`\\.notice-tone\\.t-${tone}`), tone);
     assert.match(styles, /-apple-system/);
     assert.match(styles, /backdrop-filter: saturate\(1\.8\) blur\(24px\)/);
+    assert.match(styles, /\.fr-acts \{[^}]*display: inline-flex/, "Decide and Add all comments sit side by side");
+    assert.match(styles, /#host-run\[data-act="host-run-agents"\]/, "the model caret matches the filled Rerun button");
   });
 
   test("draws the review page in the reader's theme, before its script runs and in every open tab", async () => {

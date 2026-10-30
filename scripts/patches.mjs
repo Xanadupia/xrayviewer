@@ -493,6 +493,16 @@ export const PATCHES = [
     replace: "if(this.log(`Couldn't open ${N(e)}: ${h}`),r()||slot.shownSeq===i)return;",
   },
   {
+    id: "review-reply-panel",
+    find: 'async onMessage(e){let t=e&&typeof e=="object"&&typeof e.key=="string"?Re(e.key):null;',
+    replace: 'async onMessage(e){let xrvPanel=this.panel,t=e&&typeof e=="object"&&typeof e.key=="string"?Re(e.key):null;',
+  },
+  {
+    id: "review-reply-result",
+    find: 'if(e.type==="api")try{let s=await this.service.api(t,String(e.method),String(e.path),e.body);this.panel?.webview.postMessage({type:"api-result",id:e.id,ok:!0,data:s})}catch(s){this.panel?.webview.postMessage({type:"api-result",id:e.id,ok:!1,error:s instanceof Error?s.message:String(s)})}else if(e.type==="metricsReport"||e.type==="metricsExport"){let s=(i,r)=>{this.panel?.webview.postMessage({type:"api-result",id:e.id,ok:i,...i?{data:r}:{error:r}})};try{s(!0,e.type==="metricsReport"?await this.service.metricsReport({days:e.days,groupBy:e.groupBy}):await this.exportMetrics(e.format,e.days))}catch(i){s(!1,i instanceof Error?i.message:String(i))}}else if(e.type==="agentMarkdown"){let s=e.mode==="open"||e.mode==="save"?e.mode:"copy";try{let i=await $i(this.service,t,s,this.log);this.panel?.webview.postMessage({type:"api-result",id:e.id,ok:!0,data:i})}catch(i){this.panel?.webview.postMessage({type:"api-result",id:e.id,ok:!1,error:i instanceof Error?i.message:String(i)})}}',
+    replace: 'if(e.type==="api")try{let s=await this.service.api(t,String(e.method),String(e.path),e.body);xrvPanel?.webview.postMessage({type:"api-result",id:e.id,ok:!0,data:s})}catch(s){xrvPanel?.webview.postMessage({type:"api-result",id:e.id,ok:!1,error:s instanceof Error?s.message:String(s)})}else if(e.type==="metricsReport"||e.type==="metricsExport"){let s=(i,r)=>{xrvPanel?.webview.postMessage({type:"api-result",id:e.id,ok:i,...i?{data:r}:{error:r}})};try{s(!0,e.type==="metricsReport"?await this.service.metricsReport({days:e.days,groupBy:e.groupBy}):await this.exportMetrics(e.format,e.days))}catch(i){s(!1,i instanceof Error?i.message:String(i))}}else if(e.type==="agentMarkdown"){let s=e.mode==="open"||e.mode==="save"?e.mode:"copy";try{let i=await $i(this.service,t,s,this.log);xrvPanel?.webview.postMessage({type:"api-result",id:e.id,ok:!0,data:i})}catch(i){xrvPanel?.webview.postMessage({type:"api-result",id:e.id,ok:!1,error:i instanceof Error?i.message:String(i)})}}',
+  },
+  {
     id: "review-decoration",
     find: 'l=C.window.createTreeView("xrayviewer.pullRequests",{treeDataProvider:a,showCollapseAll:!0});n.subscriptions.push(l,a,{dispose:()=>r.dispose()},{dispose:()=>o.dispose()});',
     replace:
@@ -647,7 +657,7 @@ export const PATCHES = [
 ];
 
 /** Names the patches add; the original bundle must not use them already. */
-export const ADDED_NAMES = ["xrvCursorHarness", "xrvCursor", "xrvReview", "xrvA", "xrvPick", "xrvClaude", "xrvCodex", "xrvModel", "xrvDone", "xrvRows", "xrvMove", "xrvSt", "xrvIcon", "xrvStatus", "xrvAgentState", "xrvTabs", "xrvSlot", "xrvHold", "xrvInstallNotices", "xrvScope", "xrvSc", "xrvKey", "xrvLine", "xrvSetEffort"];
+export const ADDED_NAMES = ["xrvCursorHarness", "xrvCursor", "xrvReview", "xrvA", "xrvPick", "xrvClaude", "xrvCodex", "xrvModel", "xrvDone", "xrvRows", "xrvMove", "xrvSt", "xrvIcon", "xrvStatus", "xrvAgentState", "xrvTabs", "xrvSlot", "xrvHold", "xrvPanel", "xrvInstallNotices", "xrvScope", "xrvSc", "xrvKey", "xrvLine", "xrvSetEffort"];
 
 const modelBit = '${modelSummary(AGENTS).line ? ` · ${esc(modelSummary(AGENTS).line)} <button type="button" class="link" data-act="choose-model">Change</button>` : ""}';
 
@@ -854,7 +864,18 @@ function prHeadHTML() {`,
   {
     id: "adopt-all-actions",
     find: '"finding-adopt": (el) => adoptFinding(el.dataset.id),',
-    replace: '"finding-adopt": (el) => adoptFinding(el.dataset.id),\n  "adopt-all": () => adoptAll(),\n  "adopt-all-undo": () => undoAdoptAll(),',
+    replace:
+      '"finding-adopt": (el) => adoptFinding(el.dataset.id),\n' +
+      '  "adopt-all": (el) => {\n' +
+      "    adoptAll();\n" +
+      '    if (!el || el.dataset.stay !== "finish" || !S.sheet || S.sheet.id !== "finish") return;\n' +
+      '    const sheet = document.getElementById("sheet-finish");\n' +
+      "    if (!sheet) return;\n" +
+      "    const ret = S.sheet.ret;\n" +
+      "    sheet.innerHTML = finishSheetHTML();\n" +
+      '    S.sheet = { id: "finish", ret };\n' +
+      "  },\n" +
+      '  "adopt-all-undo": () => undoAdoptAll(),',
   },
   {
     id: "comment-tags-read",
@@ -1018,7 +1039,7 @@ function prHeadHTML() {`,
       "let runButtonLabel = \"Rerun\";\n" +
       "const runMainHTML = (label) => agentsRunning\n" +
       "  ? `<button type=\"button\" class=\"btn sm ghost\" id=\"host-run\" data-act=\"agent-activity\" title=\"See what each agent is doing\"><span class=\"spin\" aria-hidden=\"true\"></span>Agents are running</button>`\n" +
-      "  : `<button type=\"button\" class=\"btn sm ghost\" id=\"host-run\" data-act=\"host-run-agents\">${icon(\"play\")}${label}</button>`;\n" +
+      "  : `<button type=\"button\" class=\"btn sm agent\" id=\"host-run\" data-act=\"host-run-agents\">${icon(\"play\")}${label}</button>`;\n" +
       "// Choose model stays in the run menu even while the agents run.\n" +
       "const hostRunHTML = (label) => {\n" +
       "  runButtonLabel = label;\n" +
@@ -1046,10 +1067,11 @@ function prHeadHTML() {`,
       "  if (open) { const first = menu.querySelector(\".menu-item\"); if (first) first.focus(); }\n" +
       "}\n" +
       "function postAllKey() { return PR.repo + \"#\" + PR.number; }\n" +
+      "function postAllStorageKey() { return \"xrv:postAllFor:\" + postAllKey(); }\n" +
       "function postAllOn() { try { return localStorage.getItem(\"xrv:postAll\") === \"1\"; } catch { return false; } }\n" +
-      "function postAllArmed() { try { return localStorage.getItem(\"xrv:postAllFor\") === postAllKey(); } catch { return false; } }\n" +
-      "function armPostAll() { try { localStorage.setItem(\"xrv:postAllFor\", postAllKey()); } catch { /* the run still starts */ } }\n" +
-      "function disarmPostAll() { try { localStorage.removeItem(\"xrv:postAllFor\"); } catch { /* optional */ } }\n" +
+      "function postAllArmed() { try { return localStorage.getItem(postAllStorageKey()) === \"1\"; } catch { return false; } }\n" +
+      "function armPostAll() { try { localStorage.setItem(postAllStorageKey(), \"1\"); } catch { /* the run still starts */ } }\n" +
+      "function disarmPostAll() { try { localStorage.removeItem(postAllStorageKey()); } catch { /* optional */ } }\n" +
       "function setPostAll(on) {\n" +
       "  try { localStorage.setItem(\"xrv:postAll\", on ? \"1\" : \"0\"); } catch { /* optional */ }\n" +
       "  const live = [\"queued\", \"running\", \"waiting\", \"elsewhere\"].includes(runState);\n" +
@@ -1177,7 +1199,7 @@ function prHeadHTML() {`,
   const label = posted ? "Update review" : "Post review";
   const badge = S.drafts.length ? \`<i class="badge">\${S.drafts.length}</i>\` : "";
   const tip = posted ? "You already posted a review. This sends another one." : "Post your review to GitHub";
-  return \`<button type="button" class="btn\${posted ? "" : " primary"} finish finish-\${where}" data-act="finish" title="\${tip}">\${label}\${badge}</button>\`;
+  return \`<button type="button" class="btn primary finish finish-\${where}" data-act="finish" title="\${tip}">\${label}\${badge}</button>\`;
 }`,
   },
   {
@@ -1328,6 +1350,11 @@ function statusLineHTML() {
     find: 'if (fn) { if (el.tagName === "A") e.preventDefault(); fn(el, e); return; }',
     replace: 'if (fn) { if (el.tagName === "A") e.preventDefault(); if (el.closest(".notice")) releaseBanner(el); fn(el, e); return; }',
   },
+  {
+    id: "finish-add-all",
+    find: '${undecided.length ? `<button type="button" class="btn sm" data-act="go-finding" data-id="${(hi[0] || undecided[0]).id}">Decide</button>` : ""}',
+    replace: '${undecided.length ? `<span class="fr-acts"><button type="button" class="btn sm" data-act="go-finding" data-id="${(hi[0] || undecided[0]).id}">Decide</button><button type="button" class="btn sm primary" data-act="adopt-all" data-stay="finish">Add all comments</button></span>` : ""}',
+  },
   ...THEME_PATCHES,
   ...CHROME_PATCHES,
   ...NAV_PATCHES,
@@ -1340,7 +1367,7 @@ export const UI_ADDED_NAMES = [
   "activityTime", "activityGroups", "activitySummary", "activityHTML", "agentProgress", "activityOpen", "activityTimer",
   "activityShown", "activityBodyHTML", "openActivity", "refreshActivity", "activityDetail", "showActivity",
   "findingDrafts", "lastAdopted", "adoptAllHTML", "adoptAll", "undoAdoptAll", "adoptAllCardHTML", "syncAdoptAll", "xrayState", "xrayPillHTML", "applyXrayPill", "xrayStopSheetHTML", "stopAgentsNow",
-  "postAllKey", "postAllOn", "postAllArmed", "armPostAll", "disarmPostAll", "setPostAll", "postAllHTML", "postingAll", "onHostRun", "postFinishedReview", "maybePostAll", "runState",
+  "postAllKey", "postAllStorageKey", "postAllOn", "postAllArmed", "armPostAll", "disarmPostAll", "setPostAll", "postAllHTML", "postingAll", "onHostRun", "postFinishedReview", "maybePostAll", "runState",
   "TONE_ICONS", "toneOf", "toneHTML", "notePosted", "showPostedNotice", "bannerTimer", "bannerPin", "bannerNow", "bannerStay", "bannerHost", "bannerHTML", "paintBanner", "dropBanner", "releaseBanner", "showPinnedNotice", "showHostNotice",
   ...THEME_NAMES,
   ...CHROME_NAMES,
