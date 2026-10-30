@@ -887,6 +887,30 @@ body {
   }
 }
 
+/* Rerun is filled. The model caret beside it uses the same fill, so the pair reads as one control. */
+.brief-head .split-btn:has(#host-run[data-act="host-run-agents"]) > .sb-caret,
+.brief-head .split-btn:has(#host-run[data-act="host-run-agents"]) > .sb-caret:hover,
+.brief-head .split-btn:has(#host-run[data-act="host-run-agents"]) > .sb-caret[aria-expanded="true"] {
+  background: var(--agent-fill);
+  border-color: var(--agent-fill);
+  color: var(--on-agent);
+}
+
+.brief-head .split-btn:has(#host-run[data-act="host-run-agents"]) > .sb-caret {
+  border-left-color: rgb(255 255 255 / 0.28);
+}
+
+.brief-head .split-btn:has(#host-run[data-act="host-run-agents"]) > .sb-caret:hover {
+  filter: brightness(1.08);
+}
+
+.fr-acts {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex: none;
+}
+
 #host-run .spin {
   width: 11px;
   height: 11px;
