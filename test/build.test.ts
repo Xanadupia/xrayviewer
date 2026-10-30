@@ -44,7 +44,7 @@ describe("the built extension", () => {
     assert.equal(manifest.displayName, "X-RayViewer");
     assert.equal(manifest.publisher, "aliqaryan");
     assert.equal(manifest.author, "Ali Qaryan");
-    assert.equal(manifest.version, "0.5.5");
+    assert.equal(manifest.version, "0.5.6");
     assert.ok(bundle.includes("ensurePanel(e)"), "each pull request opens in its own tab");
     assert.ok(bundle.includes("this.xrvTabs"), "open pull requests keep their tabs");
     const page = await readFile(path.join(dir, "media", "ui", "app.js"), "utf8");

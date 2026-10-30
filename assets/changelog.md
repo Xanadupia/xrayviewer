@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.5.6
+
+- **Review all selected and post finishes every pull request.** Before, only the last selected pull request was posted and the others stayed waiting. Each open review keeps its own post, and the answer comes back to the review that asked.
+- **Update review and Rerun are filled buttons.** Update review stays the same blue as Post review after a review is already on GitHub. Rerun uses the agent color, and the model menu beside it matches.
+- **Add all comments sits beside Decide.** On the post sheet, while findings are still open, it turns each open finding into its suggested comment and updates the sheet. Once every finding is already in the review, the button stays hidden.
+
 ## 0.5.5
 
 - **Cursor Code Review runs Cursor's /review-bugbot.** It runs when at least one selected agent is on Cursor Agent, whether you run every agent or only one. It isn't in the agent menus. Agent Activity lists it as **Cursor Code Review**. It reviews the branch against the pull request's base. If it doesn't finish, the other findings stay open and are not posted on their own. It gets the same extra time as the other built-in reviews: it stops after 5 minutes with nothing happening, or at three times `xrayviewer.agents.timeoutMinutes`.
